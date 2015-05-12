@@ -27,10 +27,11 @@ No one knows what happened to it.
 
 There is a little information online:
 
- *  Tom Uban's [Imlac picture gallery](http://www.ubanproductions.com/imlac.html) and [software library](http://www.ubanproductions.com/imlac_sw.html)
- * The [Blinkenlights](http://www.blinkenlights.com/classiccmp/imlac/) archive of Imlac information
- * Imlac at [old-computers.com](http://www.old-computers.com/museum/computer.asp?st=1&c=1295)
- * Inevitably, there is an [Imlac Facebook page](http://www.facebook.com/pages/Imlac-PDS-1/124593560918139)
+*  Tom Uban's [Imlac picture gallery](http://www.ubanproductions.com/imlac.html) and [software library](http://www.ubanproductions.com/imlac_sw.html)
+* The [Blinkenlights](http://www.blinkenlights.com/classiccmp/imlac/) archive of Imlac information
+* Imlac at [old-computers.com](http://www.old-computers.com/museum/computer.asp?st=1&c=1295)
+* Inevitably, there is an [Imlac Facebook page](http://www.facebook.com/pages/Imlac-PDS-1/124593560918139)
+* A working Imlac emulator is [here](http://rottedbits.blogspot.com/2013/05/an-introduction-to-imlac-pds-1.html)
 
 It's a little sad to see this machine fade from memory.  I wrote an emulator for
 the Imlac in C with an X display window quite a while ago, but didn't proceed
