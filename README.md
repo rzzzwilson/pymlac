@@ -32,6 +32,7 @@ There is a little information online:
 * Imlac at [old-computers.com](http://www.old-computers.com/museum/computer.asp?st=1&c=1295)
 * Inevitably, there is an [Imlac Facebook page](http://www.facebook.com/pages/Imlac-PDS-1/124593560918139)
 * A working Imlac emulator is [here](http://rottedbits.blogspot.com/2013/05/an-introduction-to-imlac-pds-1.html)
+* Some information from [chilton-computing.org.uk](http://www.chilton-computing.org.uk/acd/icf/terminals/p008.htm)
 
 It's a little sad to see this machine fade from memory.  I wrote an emulator for
 the Imlac in C with an X display window quite a while ago, but didn't proceed
