@@ -37,7 +37,7 @@ It's a little sad to see this machine fade from memory.  I wrote an emulator for
 the Imlac in C with an X display window quite a while ago, but didn't proceed
 with it, possibly because it would only run on Linux.  Now I would like to
 experiment with a rewrite in Python and use wxPython or pySide for the graphics.
-The [repository](https://) holds the code.
+This repository holds the code.
 
 ###Overview
 
@@ -94,33 +94,32 @@ required.  The options are:
 ```
 ```
 -r (<address> | pc)           executes from <address> or the current PC contents
-</pre>
-<pre>
+```
+```
 -s <setfile>                  sets memory adress values from <setfile>
-</pre>
-<pre>
+```
+```
 -t (<addr1> [,<addr2>] | off) controls the execution trace:
                                   -t 0100    trace from address 0100 (octal)
                                   -t 010,200 trace from 0100 octal to 200 decimal
                                   -t off     turns trace off
-</pre>
-<pre>
+```
+```
 -ttyin <file>                 loads a file on to the teletype reader
-</pre>
-<pre>
+```
+```
 -ttyout <file>                loads a file on to the teletype writer
-</pre>
-<pre>
+```
+```
 -v <viewfile>                 views contents of memory addresses from file
-</pre>
-<pre>
+```
+```
 -w (on | off)                 controls ROM write property:
                                   -w on     ROM addresses are writable
                                   -w off    ROM addresses are write protected
-</pre>
-
-If we wanted the pymlac machine to load a papertape file and run at address
-0100 with trace between 0110 and 0120 we would do:
+```
+For example, if we wanted the pymlac machine to load a papertape file and run at
+address 0100 with trace between 0110 and 0120 we would do:
 
     `pymlac -b ptr -ptr test.ptp -r 040 -t 0110,0120 -r 0100`
 
@@ -145,7 +144,7 @@ contents of some parts of memory after running the program, we would do:
 
 This would load the existing core file, mount the data file on the TTY reader,
 start execution at 0100, after which the machine halts.  Then the contents of
-memory addresses specified in the file 'read_memory" is displayed.  The core
+memory addresses specified in the file **read_memory** is displayed.  The core
 file is saved.
 
 And finally, if we just want to set some memory values in core, we would do:
@@ -153,5 +152,5 @@ And finally, if we just want to set some memory values in core, we would do:
     `pymlac -s setdatafile`
 
 Which loads the existing core file, sets some addresses to values given in the
-file 'setdatafile' and then saves the core file.
+file **setdatafile** and then saves the core file.
 
