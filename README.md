@@ -154,3 +154,7 @@ And finally, if we just want to set some memory values in core, we would do:
 Which loads the existing core file, sets some addresses to values given in the
 file **setdatafile** and then saves the core file.
 
+##File formats and implementation notes
+
+There are some details on papertape file formats and implementation notes
+in [the wiki](https://github.com/rzzzwilson/pymlac/wiki).
