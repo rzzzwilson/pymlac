@@ -121,7 +121,7 @@ required.  The options are:
 For example, if we wanted the pymlac machine to load a papertape file and run at
 address 0100 with trace between 0110 and 0120 we would do:
 
-    `pymlac -b ptr -ptr test.ptp -r 040 -t 0110,0120 -r 0100`
+    pymlac -b ptr -ptr test.ptp -r 040 -t 0110,0120 -r 0100
 
 This would load the corefile, set the ROM to the papertape bootstrap, load the
 file test.ptp on the papertape reader and start execution at address 040 (the
@@ -132,15 +132,15 @@ again halts.  The core file is saved.
 
 Given the persistence of the emulated core contents, the above single command could have been executed in this manner:
 
-    `pymlac -b ptr -ptr test.ptp -r 040`
+    pymlac -b ptr -ptr test.ptp -r 040
 
-    `pymlac -t 0110,0120 -r 0100`
+    pymlac -t 0110,0120 -r 0100
 
 If we wanted to use an existing core file from yesterday that contained a
 program that reads a data file from the TTY reader and we wanted to look at the
 contents of some parts of memory after running the program, we would do:
 
-    `pymlac -ttyin data.tty -r 0100 -v read_memory`
+    pymlac -ttyin data.tty -r 0100 -v read_memory
 
 This would load the existing core file, mount the data file on the TTY reader,
 start execution at 0100, after which the machine halts.  Then the contents of
@@ -149,7 +149,7 @@ file is saved.
 
 And finally, if we just want to set some memory values in core, we would do:
 
-    `pymlac -s setdatafile`
+    pymlac -s setdatafile
 
 Which loads the existing core file, sets some addresses to values given in the
 file **setdatafile** and then saves the core file.
