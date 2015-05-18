@@ -79,7 +79,7 @@ required.  The options are:
                                   none  uses no bootstrap ROM
 ```
 ```
--c                            clears core except for any bootstrap ROM, if used
+-c                            clears core including bootstrap ROM, if write enabled
 ```
 ```
 -d <value>                    sets the console data switches to the <value>
@@ -88,10 +88,10 @@ required.  The options are:
 -h                            prints this help
 ```
 ```
--ptp <file>                   loads a file on to the papertape punch
+-ptp <file>                   loads a file on to the papertape punch device
 ```
 ```
--ptr <file>                   loads a file on to the papertape reader
+-ptr <file>                   loads a file on to the papertape reader device
 ```
 ```
 -r (<address> | pc)           executes from <address> or the current PC contents
@@ -106,10 +106,10 @@ required.  The options are:
                                   -t off     turns trace off
 ```
 ```
--ttyin <file>                 loads a file on to the teletype reader
+-ttyin <file>                 loads a file on to the teletype reader device
 ```
 ```
--ttyout <file>                loads a file on to the teletype writer
+-ttyout <file>                loads a file on to the teletype writer device
 ```
 ```
 -v <viewfile>                 views contents of memory addresses from file
