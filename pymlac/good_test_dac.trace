@@ -1,0 +1,22 @@
+pymlac pymlac 0.1 trace
+
+Bootstrap ROM set to PTR
+File 'test_dac.ptp' mounted on PTR
+Running from address 000040
+Imlac halted
+Trace set to (000100, None)
+Running from address 000100
+DPC	Display		PC	Main		Regs
+------  -------------   ------  --------------  -----------------------
+			000100	LWC	00001	L=0 AC=177777
+			000101	DAC	00115	L=0 AC=177777
+			000102	CLA		L=0 AC=000000
+			000103	LAC	00115	L=0 AC=177777
+			000104	SAM	00116	L=0 AC=177777
+			000106	LWC	00002	L=0 AC=177776
+			000107	DAC	*00120	L=0 AC=177776
+			000110	CLA		L=0 AC=000000
+			000111	LAC	00115	L=0 AC=177776
+			000112	SAM	00117	L=0 AC=177776
+			000114	HLT		L=0 AC=177776
+Imlac halted

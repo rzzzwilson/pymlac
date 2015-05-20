@@ -1,0 +1,15 @@
+KEY	FUNCTION
+
+CR	reset
+1 to 5	toggle prey
+6	clear timer
+7	toggle tiger afraid
+8	toggle size
+9	clear tiger & prey vel
+0	clear prey vel
+f4	clear tiger vel
+s	off snarfing (timeout display)
+e	toggle EXONOFF
+f	toggle interprey force
+g	toggle sign of force (gravity)
+arrows	move tiger (repeat on hold)

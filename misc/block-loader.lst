@@ -1,0 +1,108 @@
+                               1 ; Imlac Program Loader
+                               2 ;
+                               3 ; This loader is loaded by the bootstrap program at x7700, where x=0 for
+                               4 ; a 4K machine, and x=1 for an 8K machine.  The first byte of this loader
+                               5 ; is 002, which is used by the bootstrap as a signal to start loading.
+                               6 ; This loader checks whether it is running at address 017700 on an 8K machine,
+                               7 ; which is assumed to support long vectors, and enables a simple display
+                               8 ; during the load if so.
+                               9 ;
+                              10 ; The load format consists of one or more contiguous blocks, with no
+                              11 ; padding bytes between them.  Each block begins with three words:
+                              12 ;
+                              13 ;          load address
+                              14 ;          negative word count
+                              15 ;          checksum
+                              16 ;
+                              17 ; Words are always received high-order byte first.  The rest of the block
+                              18 ; consists of "word count" words, which are loaded starting at "load address".
+                              19 ; The sum of all the words in the block, including these first three, must be
+                              20 ; zero (16 bit sum), and the checksum is computed to give that result.
+                              21 ;
+                              22 ; The end of the load is signalled by a block with a negative starting address.
+                              23 ; If that address is -1, the loader simply halts.  Otherwise it reads one more
+                              24 ; word (in the position normally occupied by the negative word count), which
+                              25 ; will be the value in the AC at the start of the program just loaded.  Then
+                              26 ; it starts the program with an indirect jump through the negative starting
+                              27 ; address.  (For example, to start at 00100, the starting address will be
+                              28 ; 100100).
+                              29 ;
+                              30 ; If a checksum error occurs, the loader goes into a tight loop at
+                              31 ; CSERR (x7736).
+                              32 ;
+                              33 ;    As decoded by Howard Palmer (hep@acm.org) from an Imlac wumpus binary.
+                              34 ;    Oct. 6, 2004
+                              35 ;
+                              36        ORG 37700
+   37700  001032              37 START: RCF                     ; This is overwritten by the block start address
+   37701  037701              38 CNT:   JMS   CNT               ; This instruction overwrites itself!
+   37702  063701              39 CKSM:  LAC   CNT               ; This is overwritten by the checksum
+   37703  077775              40        SAM   LD8K              ; Are we loaded at 017700?
+   37704  013710              41        JMP   NODSP             ; Yes, skip display code
+   37705  104012              42        LWC   12                ; Get address of display list (DLIST at 037766)
+   37706  001003              43        DLA                     ; Start the display processor
+   37707  003100              44        DON
+   37710  100011              45 NODSP: CAL                     ; Initialize checksum to zero
+   37711  023702              46        DAC   CKSM
+   37712  037746              47        JMS   RWORD             ; Read the load address of the next block
+   37713  023700              48        DAC   START             ; Save it
+   37714  002002              49        ASP                     ; Looking for a negative load address
+   37715  013740              50        JMP   DONE              ; Finished loading blocks if we find it
+   37716  037746              51        JMS   RWORD             ; Read the negative word count
+   37717  023701              52        DAC   CNT
+   37720  037746              53        JMS   RWORD             ; Read the checksum word
+   37721  037746              54 LOAD:  JMS   RWORD             ; Read next word to be loaded
+   37722  123700              55        DAC  @START             ; Store it
+   37723  063700              56        LAC   START             ; Get the current load address
+   37724  003063              57        SAR   3                 ; Extract the top 10 bits
+   37725  047765              58        AND   M1777
+   37726  053764              59        IOR   DLYA              ; Use as the Y value in a DLYA instruction
+   37727  023766              60        DAC   DLIST             ; Replace the DLYA in the display list
+   37730  163700              61        LAC  @START             ; Get the word that was just loaded
+   37731  033700              62        ISZ   START             ; Bump the load address
+   37732  033701              63        ISZ   CNT               ; Bump the negative count
+   37733  013721              64        JMP   LOAD              ; Loop until it goes to zero
+   37734  067702              65        ADD   CKSM              ; Finish computing the checksum
+   37735  002001              66        ASZ                     ; Should add up to zero
+   37736  013736              67 CSERR: JMP   CSERR             ; Tight loop if checksum error
+   37737  013710              68        JMP   NODSP             ; Loop back for the next block
+                              69 
+   37740  001012              70 DONE:  DOF                     ; Turn off the display processor
+   37741  100004              71        IAC                     ; Increment the negative load address
+   37742  102001              72        ASN                     ; Just stop if it goes to zero
+   37743  000000              73        HLT                     ; Load completed successfully
+   37744  037746              74        JMS   RWORD             ; If not zero, read a starting value for the AC
+   37745  113700              75        JMP  @START             ; And use the negative load address to start
+                              76 
+                              77 ; This subroutine reads the next word.  It is entered with either zero or the
+                              78 ; last word read in the AC.  It adds that value to CKSM.
+                              79 
+   37746  000000              80 RWORD: ZZZ                     ; Subroutine to read a word
+   37747  067702              81        ADD   CKSM              ; Accumulate checksum
+   37750  023702              82        DAC   CKSM
+   37751  100011              83        CAL
+   37752  002040              84 WT1:   RSF                     ; Wait for high-order byte
+   37753  013752              85        JMP   WT1
+   37754  001033              86        RRC                     ; Read it
+   37755  003003              87        RAL   3                 ; Move it to the high-order AC
+   37756  003003              88        RAL   3
+   37757  003002              89        RAL   2
+   37760  002040              90 WT2:   RSF                     ; Wait for low-order byte
+   37761  013760              91        JMP   WT2
+   37762  001033              92        RRC                     ; Read it, forming a word
+   37763  113746              93        JMP  @RWORD             ; Return to caller
+   37764  020000              94 DLYA:  DLYA  0                 ; Used to build DLYA instruction
+   37765  001777              95 M1777: DATA  1777              ; 10-bit mask
+                              96 
+                              97 ; Begin display list
+                              98 ;    This must start at location 037766
+                              99 
+   37766  020000             100 DLIST: DLYA  0                 ; This gets dynamically updated
+   37767  010000             101        DLXA  0
+   37770  004005             102        DSTS  1                 ; Set normal scale
+   37771  046000             103        DATA  046000            ; 3-word long vector
+   37772  021777             104        DATA  021777            ; x=1777, y=0, beam on
+   37773  000000             105        DATA  0
+   37774  067766             106        DJMP  DLIST             ; Run the display processor continuously
+   37775  017702             107 LD8K:  DATA  017702            ; Used to check for load at 017700
+                             108        END

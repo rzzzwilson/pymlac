@@ -1,0 +1,11 @@
+Here are various documents describing the architecture and
+various programs.
+
+The picture SydneyUniversityPDS4Rom.png shows the output
+of the ROM-60 program that checks the ROM from 040 to 077
+against what it should be in a floppy system.  The rom was
+turned off and the papertape boot loader was toggled in before
+running the ROM-60 program, so the output shows the floppy
+bootloader in the "correct" column and the papertape bootloader
+in the "actual" column.  This is from the PDS-4 that was at
+Sydney University in 1978.

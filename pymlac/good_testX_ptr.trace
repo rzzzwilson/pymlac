@@ -1,0 +1,15 @@
+pymlac pymlac 0.1 trace
+
+Bootstrap ROM set to PTR
+File 'testX_ptr.ptp' mounted on PTR
+Running from address 000040
+Imlac halted
+File 'test.txt' mounted on PTR
+Trace set to (000106, 000106)
+Running from address 000100
+DPC	Display		PC	Main		Regs
+------  -------------   ------  --------------  -----------------------
+			000106	HRB		L=0 AC=000101
+			000106	HRB		L=0 AC=000102
+			000106	HRB		L=0 AC=000103
+Imlac halted

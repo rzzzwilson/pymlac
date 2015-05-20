@@ -1,0 +1,30 @@
+pymlac pymlac 0.1 trace
+
+Bootstrap ROM set to PTR
+File 'test_xam.ptp' mounted on PTR
+Running from address 000040
+Imlac halted
+Trace set to (000100, None)
+Running from address 000100
+DPC	Display		PC	Main		Regs
+------  -------------   ------  --------------  -----------------------
+			000100	STL		L=1 AC=177777
+			000101	LAW	00000	L=1 AC=000000
+			000102	DAC	00131	L=1 AC=000000
+			000103	LWC	00001	L=1 AC=177777
+			000104	XAM	00131	L=1 AC=000000
+			000105	SAM	00132	L=1 AC=000000
+			000107	LSN		L=1 AC=000000
+			000111	LWC	00001	L=1 AC=177777
+			000112	SAM	00131	L=1 AC=177777
+			000114	CLL		L=0 AC=177777
+			000115	LAW	00000	L=0 AC=000000
+			000116	DAC	00131	L=0 AC=000000
+			000117	LWC	00001	L=0 AC=177777
+			000120	XAM	*00131	L=0 AC=000000
+			000121	SAM	00132	L=0 AC=000000
+			000123	LSZ		L=0 AC=000000
+			000125	LWC	00001	L=0 AC=177777
+			000126	SAM	00131	L=0 AC=177777
+			000130	HLT		L=0 AC=177777
+Imlac halted

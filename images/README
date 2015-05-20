@@ -1,0 +1,12 @@
+This directory holds loadable imlac images I have found on the 'net.
+
+The original image sub-directories are:
+imlac		tty images and doc
+imlac_a		short vector images
+imlacdocs	scanned documentation
+imlacptp	papertape images
+
+The classified sub-directories are:
+doc		documentation/source of images
+misc		unknown (at the moment) image types
+ptp		paper tape images

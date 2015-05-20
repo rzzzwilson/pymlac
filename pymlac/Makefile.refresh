@@ -1,0 +1,16 @@
+#
+# Special Makefile to refresh the good_*.trace file contents
+# when we make a change to the format, etc.
+#
+
+TESTS = $(shell ls test_*.asm|sed -e "s/\.asm//")
+
+test:	$(TESTS)
+
+%:	%.ptp
+	./pymlac -b ptr -ptr $< -r 040 -t 0100 -r 0100
+	mv pymlac.trace good_$*.trace
+
+%.ptp:	%.asm
+	./iasm -l $*.lst $<
+

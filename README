@@ -1,0 +1,15 @@
+This is the IMLAC simulator written in Python - pymlac.
+This python version is slowly being converted from the C version.
+
+The IMLAC: http://en.wikipedia.org/wiki/Imlac_PDS-1
+
+The directories here are:
+
+  bin         - place for imlac papertape executables (*.ptp & other files)
+  disasm      - an imlac executable disassembler
+                (for either papertape or tty programs)
+  iasm        - imlac cross assembler program (ptp or tty)
+  idasm       - an interactive disassembler (ptp or tty)
+  images      - loadable imlac images I have found on the 'net
+  pymlac      - the imlac emulator in python
+  vimlac.pics - various pictures of vimlac (C interpreter) screens

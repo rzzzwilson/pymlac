@@ -1,0 +1,24 @@
+pymlac pymlac 0.1 trace
+
+Bootstrap ROM set to PTR
+File 'test_jms.ptp' mounted on PTR
+Running from address 000040
+Imlac halted
+Trace set to (000100, None)
+Running from address 000100
+DPC	Display		PC	Main		Regs
+------  -------------   ------  --------------  -----------------------
+			000100	JMS	00115	L=0 AC=177777
+			000116	LAC	00115	L=0 AC=000101
+			000117	JMP	*00115	L=0 AC=000101
+			000101	SAM	00120	L=0 AC=000101
+			000103	LAC	00115	L=0 AC=000101
+			000104	SAM	00120	L=0 AC=000101
+			000106	JMS	*00122	L=0 AC=000101
+			000116	LAC	00115	L=0 AC=000107
+			000117	JMP	*00115	L=0 AC=000107
+			000107	SAM	00121	L=0 AC=000107
+			000111	LAC	00115	L=0 AC=000107
+			000112	SAM	00121	L=0 AC=000107
+			000114	HLT		L=0 AC=000107
+Imlac halted

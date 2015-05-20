@@ -1,0 +1,30 @@
+#!/usr/bin/python
+
+#from Globals import *
+import Test1
+
+class Test2(object):
+    def __init__(self):
+        pass
+
+    def alpha(self):
+        global instruction_cycles
+        instruction_cycles += 1
+
+global instruction_cycles
+
+instruction_cycles = 1
+
+test1 = Test1.Test1()
+
+print 'Before test1.alpha(), instruction_cycles =', instruction_cycles
+
+test1.alpha()
+
+print 'After test1.alpha(), instruction_cycles =', instruction_cycles
+
+test2 = Test2()
+
+test2.alpha()
+
+print 'After test2.alpha(), instruction_cycles =', instruction_cycles
