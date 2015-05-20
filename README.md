@@ -1,10 +1,7 @@
 ##STATUS
 
-The current state of the emulator is:
-
-The main CPU emulation seems complete.  There is still some work to be done on IOT instructions.
-
-The display isn't working AT ALL yet.
+This repository is just a copy of the old Google code repository.  It is in
+an UNKNOWN state.
 
 ##The Imlac
 
