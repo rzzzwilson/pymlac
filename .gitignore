@@ -1,0 +1,5 @@
+*.pyc
+*.o
+*.lst
+*.dSYM
+iasm
