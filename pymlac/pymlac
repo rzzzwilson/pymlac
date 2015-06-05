@@ -313,7 +313,7 @@ class Led_16(object):
         self.leds = []
         mark_count = 2
         ticks = [(x-17+led_width,y+led_height/2+5)]
-        dc = wx.PaintDC(parent)
+#        dc = wx.PaintDC(parent)
         for i in range(16):
             wx.StaticBitmap(parent, -1, off, pos=(x-1+i*17, y))
             led = wx.StaticBitmap(parent, -1, on, pos=(x-1+i*17, y))
