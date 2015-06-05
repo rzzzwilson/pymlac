@@ -3,3 +3,4 @@
 *.lst
 *.dSYM
 iasm
+.*.swp
