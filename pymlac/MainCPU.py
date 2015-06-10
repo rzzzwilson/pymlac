@@ -63,7 +63,7 @@ def init():
                    015: i_ADD,
                    016: i_SUB,
                    017: i_SAM}
-    
+
     # page_00 dispatch dictionary for decoding opcodes
     # HLT may be handled specially
     page_00_decode = {001003: i_DLA,
@@ -161,6 +161,7 @@ def EFFADDR(address):
 def execute_one_instruction():
     """Execute one MAIN instruction, return # cycles used"""
 
+    global main_decode
     global PC, BlockBase
 
     if not running:
@@ -199,7 +200,7 @@ def i_LAW_LWC(indirect, address, instruction):
     global AC
 
     if indirect:
-        AC = ((~address) + 1) & WORDMASK
+        AC = ~address & WORDMASK
         Trace.itrace('LWC', False, address)
     else:
         AC = address
