@@ -225,8 +225,8 @@ def put(value, address, indirect):
     global memory
 
     if indirect:
-        if ISAUTOINC(address):
-            memory[address] = MASK_MEM(memory[address] + 1)
+#        if ISAUTOINC(address):
+#            memory[address] = MASK_MEM(memory[address] + 1)
         address = memory[address] & ADDRMASK
 
     if using_rom and ROM_START <= address <= ROM_END:

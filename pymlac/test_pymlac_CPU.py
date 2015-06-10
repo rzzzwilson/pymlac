@@ -436,10 +436,11 @@ class TestPymlac(unittest.TestCase):
         msg = '"ISZ 010" modified memory[010] to %06o, should be 1' % Memory.memory[010]
         self.assertTrue(Memory.memory[010] == 1, msg)
 
-        # test "ISZ *010"
+        # test "ISZ *010"    no skip
         Memory.memory[0100] = 0130010    # ISZ *010
         Memory.memory[010] = 0102        # address of cell we are storing into
         Memory.memory[0102] = 0
+        Memory.memory[0103] = 1
         MainCPU.init()
         MainCPU.AC = 0177777
         MainCPU.L = 1
@@ -457,8 +458,37 @@ class TestPymlac(unittest.TestCase):
         self.assertTrue(MainCPU.PC== 0101, msg)
         msg = '"ISZ *010" modified memory[010] to %06o, should be 0103' % Memory.memory[010]
         self.assertTrue(Memory.memory[010] == 0103, msg)
-        msg = '"ISZ *010" modified memory[0102] to %06o, should be 1' % Memory.memory[0102]
-        self.assertTrue(Memory.memory[0102] == 1, msg)
+        msg = '"ISZ *010" modified memory[0102] to %06o, should be 0' % Memory.memory[0102]
+        self.assertTrue(Memory.memory[0102] == 0, msg)
+        msg = '"ISZ *010" modified memory[0103] to %06o, should be 2' % Memory.memory[0103]
+        self.assertTrue(Memory.memory[0103] == 2, msg)
+
+        # test "ISZ *010"    should skip
+        Memory.memory[0100] = 0130010    # ISZ *010
+        Memory.memory[010] = 0102        # address of cell we are storing into
+        Memory.memory[0102] = 0
+        Memory.memory[0103] = 0177777
+        MainCPU.init()
+        MainCPU.AC = 0177777
+        MainCPU.L = 1
+        MainCPU.PC = 0100
+        MainCPU.running = True
+        cycles = MainCPU.execute_one_instruction()
+        Trace.itraceend(False)
+        msg = '"ISZ *010" used %d cycles, should be 3' % cycles
+        self.assertTrue(cycles == 3, msg)
+        msg = '"ISZ *010" left AC containing %06o, should be 0177777' % MainCPU.AC
+        self.assertTrue(MainCPU.AC == 0177777, msg)
+        msg = '"ISZ *010" modified L to %01o, should be 1' % MainCPU.L
+        self.assertTrue(MainCPU.L == 1, msg)
+        msg = '"ISZ *010" modified PC to %06o, should be 0102' % MainCPU.PC
+        self.assertTrue(MainCPU.PC== 0102, msg)
+        msg = '"ISZ *010" modified memory[010] to %06o, should be 0103' % Memory.memory[010]
+        self.assertTrue(Memory.memory[010] == 0103, msg)
+        msg = '"ISZ *010" modified memory[0102] to %06o, should be 0' % Memory.memory[0102]
+        self.assertTrue(Memory.memory[0102] == 0, msg)
+        msg = '"ISZ *010" modified memory[0103] to %06o, should be 0' % Memory.memory[0103]
+        self.assertTrue(Memory.memory[0103] == 0, msg)
 
     def test_ADD(self):
         Trace.init('test_ADD.trace')
