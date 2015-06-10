@@ -839,15 +839,3 @@ frame1 = MyFrame(title='pymlac 0.1')
 frame1.Center() 
 frame1.Show() 
 app.MainLoop()
-
-
-
-
-
-
-# test it ...
-app = wx.PySimpleApp() 
-frame1 = MyFrame(title='pymlac 0.1') 
-frame1.Center() 
-frame1.Show() 
-app.MainLoop()
