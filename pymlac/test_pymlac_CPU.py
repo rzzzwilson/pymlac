@@ -36,12 +36,12 @@ class TestPymlac(unittest.TestCase):
         Trace.itraceend(False)
         msg = '"LAW 0" used %d cycles, should be 1' % cycles
         self.assertTrue(cycles == 1, msg)
-        msg = '"LAW 0" left AC containing %06o, should be 0' % MainCPU.AC
+        msg = '"LAW 0" left AC containing %07o, should be 0' % MainCPU.AC
         self.assertTrue(MainCPU.AC == 0, msg)
         msg = '"LAW 0" modified L to %01o, should be 1' % MainCPU.L
         self.assertTrue(MainCPU.L == 1, msg)
-        msg = '"LAW 0" modified PC to %06o, should be 0101' % MainCPU.PC
-        self.assertTrue(MainCPU.PC== 0101, msg)
+        msg = '"LAW 0" modified PC to %07o, should be 0101' % MainCPU.PC
+        self.assertTrue(MainCPU.PC == 0101, msg)
 
         Memory.memory[0100] = 004000    # LAW 0
         MainCPU.AC = 012345
@@ -52,12 +52,12 @@ class TestPymlac(unittest.TestCase):
         Trace.itraceend(False)
         msg = '"LAW 0" used %d cycles, should be 1' % cycles
         self.assertTrue(cycles == 1, msg)
-        msg = '"LAW 0" left AC containing %06o, should be 0' % MainCPU.AC
+        msg = '"LAW 0" left AC containing %07o, should be 0' % MainCPU.AC
         self.assertTrue(MainCPU.AC == 0, msg)
         msg = '"LAW 0" modified L to %01o, should be 0' % MainCPU.L
         self.assertTrue(MainCPU.L == 0, msg)
-        msg = '"LAW 0" modified PC to %06o, should be 0101' % MainCPU.PC
-        self.assertTrue(MainCPU.PC== 0101, msg)
+        msg = '"LAW 0" modified PC to %07o, should be 0101' % MainCPU.PC
+        self.assertTrue(MainCPU.PC == 0101, msg)
 
         # test "LAW 0377"
         Memory.memory[0100] = 004377    # LAW 0377
@@ -70,12 +70,12 @@ class TestPymlac(unittest.TestCase):
         Trace.itraceend(False)
         msg = '"LAW 0377" used %d cycles, should be 1' % cycles
         self.assertTrue(cycles == 1, msg)
-        msg = '"LAW 0377" left AC containing %06o, should be 0377' % MainCPU.AC
+        msg = '"LAW 0377" left AC containing %07o, should be 0377' % MainCPU.AC
         self.assertTrue(MainCPU.AC == 0377, msg)
         msg = '"LAW 0377" modified L to %01o, should be 1' % MainCPU.L
         self.assertTrue(MainCPU.L == 1, msg)
-        msg = '"LAW 0377" modified PC to %06o, should be 0101' % MainCPU.PC
-        self.assertTrue(MainCPU.PC== 0101, msg)
+        msg = '"LAW 0377" modified PC to %07o, should be 0101' % MainCPU.PC
+        self.assertTrue(MainCPU.PC == 0101, msg)
 
         Memory.memory[0100] = 004377    # LAW 0377
         MainCPU.AC = 012345
@@ -86,12 +86,12 @@ class TestPymlac(unittest.TestCase):
         Trace.itraceend(False)
         msg = '"LAW 0377" used %d cycles, should be 1' % cycles
         self.assertTrue(cycles == 1, msg)
-        msg = '"LAW 0377" left AC containing %06o, should be 0377' % MainCPU.AC
+        msg = '"LAW 0377" left AC containing %07o, should be 0377' % MainCPU.AC
         self.assertTrue(MainCPU.AC == 0377, msg)
         msg = '"LAW 0377" modified L to %01o, should be 0' % MainCPU.L
         self.assertTrue(MainCPU.L == 0, msg)
-        msg = '"LAW 0377" modified PC to %06o, should be 0101' % MainCPU.PC
-        self.assertTrue(MainCPU.PC== 0101, msg)
+        msg = '"LAW 0377" modified PC to %07o, should be 0101' % MainCPU.PC
+        self.assertTrue(MainCPU.PC == 0101, msg)
 
     def test_LWC(self):
         Trace.init('test_LWC.trace')
@@ -109,12 +109,12 @@ class TestPymlac(unittest.TestCase):
         Trace.itraceend(False)
         msg = '"LWC 0" used %d cycles, should be 1' % cycles
         self.assertTrue(cycles == 1, msg)
-        msg = '"LWC 0" left AC containing %06o, should be 0177777' % MainCPU.AC
+        msg = '"LWC 0" left AC containing %07o, should be 0177777' % MainCPU.AC
         self.assertTrue(MainCPU.AC == 0177777, msg)
         msg = '"LWC 0" modified L to %01o, should be 1' % MainCPU.L
         self.assertTrue(MainCPU.L == 1, msg)
-        msg = '"LWC 0" modified PC to %06o, should be 0101' % MainCPU.PC
-        self.assertTrue(MainCPU.PC== 0101, msg)
+        msg = '"LWC 0" modified PC to %07o, should be 0101' % MainCPU.PC
+        self.assertTrue(MainCPU.PC == 0101, msg)
 
         Memory.memory[0100] = 0104000    # LWC 0
         MainCPU.AC = 012345
@@ -125,12 +125,12 @@ class TestPymlac(unittest.TestCase):
         Trace.itraceend(False)
         msg = '"LWC 0" used %d cycles, should be 1' % cycles
         self.assertTrue(cycles == 1, msg)
-        msg = '"LWC 0" left AC containing %06o, should be 0177777' % MainCPU.AC
+        msg = '"LWC 0" left AC containing %07o, should be 0177777' % MainCPU.AC
         self.assertTrue(MainCPU.AC == 0177777, msg)
         msg = '"LWC 0" modified L to %01o, should be 0' % MainCPU.L
         self.assertTrue(MainCPU.L == 0, msg)
-        msg = '"LWC 0" modified PC to %06o, should be 0101' % MainCPU.PC
-        self.assertTrue(MainCPU.PC== 0101, msg)
+        msg = '"LWC 0" modified PC to %07o, should be 0101' % MainCPU.PC
+        self.assertTrue(MainCPU.PC == 0101, msg)
 
         # test "LWC 1"
         Memory.memory[0100] = 0104001    # LWC 1
@@ -143,12 +143,12 @@ class TestPymlac(unittest.TestCase):
         Trace.itraceend(False)
         msg = '"LWC 1" used %d cycles, should be 1' % cycles
         self.assertTrue(cycles == 1, msg)
-        msg = '"LWC 1" left AC containing %06o, should be 0177776' % MainCPU.AC
+        msg = '"LWC 1" left AC containing %07o, should be 0177776' % MainCPU.AC
         self.assertTrue(MainCPU.AC == 0177776, msg)
         msg = '"LWC 1" modified L to %01o, should be 1' % MainCPU.L
         self.assertTrue(MainCPU.L == 1, msg)
-        msg = '"LWC 1" modified PC to %06o, should be 0101' % MainCPU.PC
-        self.assertTrue(MainCPU.PC== 0101, msg)
+        msg = '"LWC 1" modified PC to %07o, should be 0101' % MainCPU.PC
+        self.assertTrue(MainCPU.PC == 0101, msg)
 
         Memory.memory[0100] = 0104001    # LWC 1
         MainCPU.AC = 012345
@@ -159,20 +159,20 @@ class TestPymlac(unittest.TestCase):
         Trace.itraceend(False)
         msg = '"LWC 1" used %d cycles, should be 1' % cycles
         self.assertTrue(cycles == 1, msg)
-        msg = '"LWC 1" left AC containing %06o, should be 0177776' % MainCPU.AC
+        msg = '"LWC 1" left AC containing %07o, should be 0177776' % MainCPU.AC
         self.assertTrue(MainCPU.AC == 0177776, msg)
         msg = '"LWC 1" modified L to %01o, should be 0' % MainCPU.L
         self.assertTrue(MainCPU.L == 0, msg)
-        msg = '"LWC 1" modified PC to %06o, should be 0101' % MainCPU.PC
-        self.assertTrue(MainCPU.PC== 0101, msg)
+        msg = '"LWC 1" modified PC to %07o, should be 0101' % MainCPU.PC
+        self.assertTrue(MainCPU.PC == 0101, msg)
 
     def test_JMP(self):
         Trace.init('test_JMP.trace')
         Trace.settrace(True)
         Memory.init()
 
-        # test "JMP 0100"
-        Memory.memory[0100] = 0010100    # JMP 0100
+        # test "JMP 0200"
+        Memory.memory[0100] = 0010200    # JMP 0200
         MainCPU.init()
         MainCPU.AC = 012345
         MainCPU.L = 1
@@ -180,32 +180,32 @@ class TestPymlac(unittest.TestCase):
         MainCPU.running = True
         cycles = MainCPU.execute_one_instruction()
         Trace.itraceend(False)
-        msg = '"JMP 0100" used %d cycles, should be 2' % cycles
+        msg = '"JMP 0200" used %d cycles, should be 2' % cycles
         self.assertTrue(cycles == 2, msg)
-        msg = '"JMP 0100" left AC containing %06o, should be 012345' % MainCPU.AC
+        msg = '"JMP 0200" left AC containing %07o, should be 012345' % MainCPU.AC
         self.assertTrue(MainCPU.AC == 012345, msg)
-        msg = '"JMP 0100" modified L to %01o, should be 1' % MainCPU.L
+        msg = '"JMP 0200" modified L to %01o, should be 1' % MainCPU.L
         self.assertTrue(MainCPU.L == 1, msg)
-        msg = '"JMP 0100" modified PC to %06o, should be 0100' % MainCPU.PC
-        self.assertTrue(MainCPU.PC== 0100, msg)
+        msg = '"JMP 0200" modified PC to %07o, should be 0200' % MainCPU.PC
+        self.assertTrue(MainCPU.PC == 0200, msg)
 
         # test "JMP 0110"
         Memory.memory[0100] = 0010110    # JMP 0110
         MainCPU.init()
         MainCPU.AC = 012345
-        MainCPU.L = 1
+        MainCPU.L = 0
         MainCPU.PC = 0100
         MainCPU.running = True
         cycles = MainCPU.execute_one_instruction()
         Trace.itraceend(False)
         msg = '"JMP 0110" used %d cycles, should be 2' % cycles
         self.assertTrue(cycles == 2, msg)
-        msg = '"JMP 0110" left AC containing %06o, should be 012345' % MainCPU.AC
+        msg = '"JMP 0110" left AC containing %07o, should be 012345' % MainCPU.AC
         self.assertTrue(MainCPU.AC == 012345, msg)
-        msg = '"JMP 0110" modified L to %01o, should be 1' % MainCPU.L
-        self.assertTrue(MainCPU.L == 1, msg)
-        msg = '"JMP 0110" modified PC to %06o, should be 0110' % MainCPU.PC
-        self.assertTrue(MainCPU.PC== 0110, msg)
+        msg = '"JMP 0110" modified L to %01o, should be 0' % MainCPU.L
+        self.assertTrue(MainCPU.L == 0, msg)
+        msg = '"JMP 0110" modified PC to %07o, should be 0110' % MainCPU.PC
+        self.assertTrue(MainCPU.PC == 0110, msg)
 
         # test "JMP *0110"
         Memory.memory[0100] = 0110110    # JMP *0110
@@ -219,12 +219,12 @@ class TestPymlac(unittest.TestCase):
         Trace.itraceend(False)
         msg = '"JMP *0110" used %d cycles, should be 3' % cycles
         self.assertTrue(cycles == 3, msg)
-        msg = '"JMP *0110" left AC containing %06o, should be 012345' % MainCPU.AC
+        msg = '"JMP *0110" left AC containing %07o, should be 012345' % MainCPU.AC
         self.assertTrue(MainCPU.AC == 012345, msg)
         msg = '"JMP *0110" modified L to %01o, should be 1' % MainCPU.L
         self.assertTrue(MainCPU.L == 1, msg)
-        msg = '"JMP *0110" modified PC to %06o, should be 0120' % MainCPU.PC
-        self.assertTrue(MainCPU.PC== 0120, msg)
+        msg = '"JMP *0110" modified PC to %07o, should be 0120' % MainCPU.PC
+        self.assertTrue(MainCPU.PC == 0120, msg)
 
     def test_DAC(self):
         Trace.init('test_DAC.trace')
@@ -243,14 +243,14 @@ class TestPymlac(unittest.TestCase):
         Trace.itraceend(False)
         msg = '"DAC 0101" used %d cycles, should be 2' % cycles
         self.assertTrue(cycles == 2, msg)
-        msg = '"DAC 0101" left AC containing %06o, should be 1' % MainCPU.AC
+        msg = '"DAC 0101" left AC containing %07o, should be 1' % MainCPU.AC
         self.assertTrue(MainCPU.AC == 1, msg)
         msg = '"DAC 0101" modified L to %01o, should be 1' % MainCPU.L
         self.assertTrue(MainCPU.L == 1, msg)
-        msg = '"DAC 0101" modified PC to %06o, should be 0101' % MainCPU.PC
-        self.assertTrue(MainCPU.PC== 0101, msg)
-        msg = '"DAC 0101" modified memory[0101] to %06o, should be 1' % Memory.memory[0101]
+        msg = '"DAC 0101" modified memory[0101] to %07o, should be 1' % Memory.memory[0101]
         self.assertTrue(Memory.memory[0101] == 1, msg)
+        msg = '"DAC 0101" modified PC to %07o, should be 0101' % MainCPU.PC
+        self.assertTrue(MainCPU.PC == 0101, msg)
 
         # test "DAC *0101"
         Memory.memory[0100] = 0120101    # DAC *0101
@@ -265,14 +265,39 @@ class TestPymlac(unittest.TestCase):
         Trace.itraceend(False)
         msg = '"DAC *0101" used %d cycles, should be 3' % cycles
         self.assertTrue(cycles == 3, msg)
-        msg = '"DAC *0101" left AC containing %06o, should be 0177777' % MainCPU.AC
+        msg = '"DAC *0101" left AC containing %07o, should be 0177777' % MainCPU.AC
         self.assertTrue(MainCPU.AC == 0177777, msg)
         msg = '"DAC *0101" modified L to %01o, should be 1' % MainCPU.L
         self.assertTrue(MainCPU.L == 1, msg)
-        msg = '"DAC *0101" modified PC to %06o, should be 0101' % MainCPU.PC
-        self.assertTrue(MainCPU.PC== 0101, msg)
-        msg = '"DAC *0101" modified memory[0102] to %06o, should be 0177777' % Memory.memory[0102]
+        msg = '"DAC *0101" modified memory[0102] to %07o, should be 0177777' % Memory.memory[0102]
         self.assertTrue(Memory.memory[0102] == 0177777, msg)
+        msg = '"DAC *0101" modified PC to %07o, should be 0101' % MainCPU.PC
+        self.assertTrue(MainCPU.PC == 0101, msg)
+
+        # test "DAC *010"
+        Memory.memory[0100] = 0120010    # DAC *010
+        Memory.memory[010] = 0102        # address of cell we are storing into
+        Memory.memory[0102] = 0
+        Memory.memory[0103] = 0
+        MainCPU.init()
+        MainCPU.AC = 0177777
+        MainCPU.L = 1
+        MainCPU.PC = 0100
+        MainCPU.running = True
+        cycles = MainCPU.execute_one_instruction()
+        Trace.itraceend(False)
+        msg = '"DAC *010" used %d cycles, should be 3' % cycles
+        self.assertTrue(cycles == 3, msg)
+        msg = '"DAC *010" left AC containing %07o, should be 0177777' % MainCPU.AC
+        self.assertTrue(MainCPU.AC == 0177777, msg)
+        msg = '"DAC *010" modified L to %01o, should be 1' % MainCPU.L
+        self.assertTrue(MainCPU.L == 1, msg)
+        msg = '"DAC *010" modified memory[0102] to %07o, should be 0' % Memory.memory[0102]
+        self.assertTrue(Memory.memory[0102] == 0, msg)
+        msg = '"DAC *010" modified memory[0103] to %07o, should be 0177777' % Memory.memory[0103]
+        self.assertTrue(Memory.memory[0103] == 0177777, msg)
+        msg = '"DAC *010" modified PC to %07o, should be 0101' % MainCPU.PC
+        self.assertTrue(MainCPU.PC == 0101, msg)
 
     def test_XAM(self):
         Trace.init('test_XAM.trace')
@@ -291,13 +316,13 @@ class TestPymlac(unittest.TestCase):
         Trace.itraceend(False)
         msg = '"XAM 0101" used %d cycles, should be 2' % cycles
         self.assertTrue(cycles == 2, msg)
-        msg = '"XAM 0101" left AC containing %06o, should be 0' % MainCPU.AC
+        msg = '"XAM 0101" left AC containing %07o, should be 0' % MainCPU.AC
         self.assertTrue(MainCPU.AC == 0, msg)
         msg = '"XAM 0101" modified L to %01o, should be 1' % MainCPU.L
         self.assertTrue(MainCPU.L == 1, msg)
-        msg = '"XAM 0101" modified PC to %06o, should be 0101' % MainCPU.PC
-        self.assertTrue(MainCPU.PC== 0101, msg)
-        msg = '"XAM 0101" modified memory[0101] to %06o, should be 2' % Memory.memory[0101]
+        msg = '"XAM 0101" modified PC to %07o, should be 0101' % MainCPU.PC
+        self.assertTrue(MainCPU.PC == 0101, msg)
+        msg = '"XAM 0101" modified memory[0101] to %07o, should be 2' % Memory.memory[0101]
         self.assertTrue(Memory.memory[0101] == 2, msg)
 
         # test "XAM *0101"
@@ -313,13 +338,13 @@ class TestPymlac(unittest.TestCase):
         Trace.itraceend(False)
         msg = '"XAM *0101" used %d cycles, should be 3' % cycles
         self.assertTrue(cycles == 3, msg)
-        msg = '"XAM *0101" left AC containing %06o, should be 0' % MainCPU.AC
+        msg = '"XAM *0101" left AC containing %07o, should be 0' % MainCPU.AC
         self.assertTrue(MainCPU.AC == 0, msg)
         msg = '"XAM *0101" modified L to %01o, should be 1' % MainCPU.L
         self.assertTrue(MainCPU.L == 1, msg)
-        msg = '"XAM *0101" modified PC to %06o, should be 0101' % MainCPU.PC
-        self.assertTrue(MainCPU.PC== 0101, msg)
-        msg = '"XAM *0101" modified memory[0102] to %06o, should be 0177777' % Memory.memory[0102]
+        msg = '"XAM *0101" modified PC to %07o, should be 0101' % MainCPU.PC
+        self.assertTrue(MainCPU.PC == 0101, msg)
+        msg = '"XAM *0101" modified memory[0102] to %07o, should be 0177777' % Memory.memory[0102]
         self.assertTrue(Memory.memory[0102] == 0177777, msg)
 
     def test_ISZ(self):
@@ -332,8 +357,6 @@ class TestPymlac(unittest.TestCase):
         Memory.memory[0101] = 0          # value we are incrementing/testing
         MainCPU.init()
         MainCPU.AC = 2
-        msg = 'Before, AC contains %06o, should be 2' % MainCPU.AC
-        self.assertTrue(MainCPU.AC == 2, msg)
         MainCPU.L = 1
         MainCPU.PC = 0100
         MainCPU.running = True
@@ -341,13 +364,13 @@ class TestPymlac(unittest.TestCase):
         Trace.itraceend(False)
         msg = '"ISZ 0101" used %d cycles, should be 2' % cycles
         self.assertTrue(cycles == 2, msg)
-        msg = '"ISZ 0101" left AC containing %06o, should be 2' % MainCPU.AC
+        msg = '"ISZ 0101" left AC containing %07o, should be 2' % MainCPU.AC
         self.assertTrue(MainCPU.AC == 2, msg)
         msg = '"ISZ 0101" modified L to %01o, should be 1' % MainCPU.L
         self.assertTrue(MainCPU.L == 1, msg)
-        msg = '"ISZ 0101" modified PC to %06o, should be 0101' % MainCPU.PC
-        self.assertTrue(MainCPU.PC== 0101, msg)
-        msg = '"ISZ 0101" modified memory[0101] to %06o, should be 1' % Memory.memory[0101]
+        msg = '"ISZ 0101" modified PC to %07o, should be 0101' % MainCPU.PC
+        self.assertTrue(MainCPU.PC == 0101, msg)
+        msg = '"ISZ 0101" modified memory[0101] to %07o, should be 1' % Memory.memory[0101]
         self.assertTrue(Memory.memory[0101] == 1, msg)
 
         # test "ISZ *0101"
@@ -363,13 +386,13 @@ class TestPymlac(unittest.TestCase):
         Trace.itraceend(False)
         msg = '"ISZ *0101" used %d cycles, should be 3' % cycles
         self.assertTrue(cycles == 3, msg)
-        msg = '"ISZ *0101" left AC containing %06o, should be 0177777' % MainCPU.AC
+        msg = '"ISZ *0101" left AC containing %07o, should be 0177777' % MainCPU.AC
         self.assertTrue(MainCPU.AC == 0177777, msg)
         msg = '"ISZ *0101" modified L to %01o, should be 1' % MainCPU.L
         self.assertTrue(MainCPU.L == 1, msg)
-        msg = '"ISZ *0101" modified PC to %06o, should be 0101' % MainCPU.PC
-        self.assertTrue(MainCPU.PC== 0101, msg)
-        msg = '"ISZ *0101" modified memory[0102] to %06o, should be 1' % Memory.memory[0102]
+        msg = '"ISZ *0101" modified PC to %07o, should be 0101' % MainCPU.PC
+        self.assertTrue(MainCPU.PC == 0101, msg)
+        msg = '"ISZ *0101" modified memory[0102] to %07o, should be 1' % Memory.memory[0102]
         self.assertTrue(Memory.memory[0102] == 1, msg)
 
         # test "ISZ 0101"
@@ -384,36 +407,36 @@ class TestPymlac(unittest.TestCase):
         Trace.itraceend(False)
         msg = '"ISZ 0101" used %d cycles, should be 2' % cycles
         self.assertTrue(cycles == 2, msg)
-        msg = '"ISZ 0101" left AC containing %06o, should be 2' % MainCPU.AC
+        msg = '"ISZ 0101" left AC containing %07o, should be 2' % MainCPU.AC
         self.assertTrue(MainCPU.AC == 2, msg)
         msg = '"ISZ 0101" modified L to %01o, should be 1' % MainCPU.L
         self.assertTrue(MainCPU.L == 1, msg)
-        msg = '"ISZ 0101" modified PC to %06o, should be 0102' % MainCPU.PC
-        self.assertTrue(MainCPU.PC== 0102, msg)
-        msg = '"ISZ 0101" modified memory[0101] to %06o, should be 0' % Memory.memory[0101]
+        msg = '"ISZ 0101" modified PC to %07o, should be 0102' % MainCPU.PC
+        self.assertTrue(MainCPU.PC == 0102, msg)
+        msg = '"ISZ 0101" modified memory[0101] to %07o, should be 0' % Memory.memory[0101]
         self.assertTrue(Memory.memory[0101] == 0, msg)
 
-        # test "ISZ *0101"
-        Memory.memory[0100] = 0130101    # ISZ *0101
-        Memory.memory[0101] = 0102       # address of cell we are storing into
-        Memory.memory[0102] = 0177777
+        # test "ISZ *0200"
+        Memory.memory[0100] = 0130200    # ISZ *0200
+        Memory.memory[0200] = 0201       # address of cell we are storing into
+        Memory.memory[0201] = 0177777
         MainCPU.init()
-        MainCPU.AC = 0177777
+        MainCPU.AC = 0177776
         MainCPU.L = 1
         MainCPU.PC = 0100
         MainCPU.running = True
         cycles = MainCPU.execute_one_instruction()
         Trace.itraceend(False)
-        msg = '"ISZ *0101" used %d cycles, should be 3' % cycles
+        msg = '"ISZ *0200" used %d cycles, should be 3' % cycles
         self.assertTrue(cycles == 3, msg)
-        msg = '"ISZ *0101" left AC containing %06o, should be 0177777' % MainCPU.AC
-        self.assertTrue(MainCPU.AC == 0177777, msg)
-        msg = '"ISZ *0101" modified L to %01o, should be 1' % MainCPU.L
+        msg = '"ISZ *0200" left AC containing %07o, should be 0177776' % MainCPU.AC
+        self.assertTrue(MainCPU.AC == 0177776, msg)
+        msg = '"ISZ *0200" modified L to %01o, should be 1' % MainCPU.L
         self.assertTrue(MainCPU.L == 1, msg)
-        msg = '"ISZ *0101" modified PC to %06o, should be 0102' % MainCPU.PC
-        self.assertTrue(MainCPU.PC== 0102, msg)
-        msg = '"ISZ *0101" modified memory[0102] to %06o, should be 0' % Memory.memory[0102]
-        self.assertTrue(Memory.memory[0102] == 0, msg)
+        msg = '"ISZ *0200" modified memory[0201] to %07o, should be 0' % Memory.memory[0201]
+        self.assertTrue(Memory.memory[0201] == 0, msg)
+        msg = '"ISZ *0200" modified PC to %07o, should be 0102' % MainCPU.PC
+        self.assertTrue(MainCPU.PC == 0102, msg)
 
         # test "ISZ 010"        check auto-increment locations
         Memory.memory[0100] = 0030010    # ISZ 010
@@ -427,13 +450,13 @@ class TestPymlac(unittest.TestCase):
         Trace.itraceend(False)
         msg = '"ISZ 010" used %d cycles, should be 2' % cycles
         self.assertTrue(cycles == 2, msg)
-        msg = '"ISZ 010" left AC containing %06o, should be 2' % MainCPU.AC
+        msg = '"ISZ 010" left AC containing %07o, should be 2' % MainCPU.AC
         self.assertTrue(MainCPU.AC == 2, msg)
         msg = '"ISZ 010" modified L to %01o, should be 1' % MainCPU.L
         self.assertTrue(MainCPU.L == 1, msg)
-        msg = '"ISZ 010" modified PC to %06o, should be 0101' % MainCPU.PC
-        self.assertTrue(MainCPU.PC== 0101, msg)
-        msg = '"ISZ 010" modified memory[010] to %06o, should be 1' % Memory.memory[010]
+        msg = '"ISZ 010" modified PC to %07o, should be 0101' % MainCPU.PC
+        self.assertTrue(MainCPU.PC == 0101, msg)
+        msg = '"ISZ 010" modified memory[010] to %07o, should be 1' % Memory.memory[010]
         self.assertTrue(Memory.memory[010] == 1, msg)
 
         # test "ISZ *010"    no skip
@@ -450,17 +473,17 @@ class TestPymlac(unittest.TestCase):
         Trace.itraceend(False)
         msg = '"ISZ *010" used %d cycles, should be 3' % cycles
         self.assertTrue(cycles == 3, msg)
-        msg = '"ISZ *010" left AC containing %06o, should be 0177777' % MainCPU.AC
+        msg = '"ISZ *010" left AC containing %07o, should be 0177777' % MainCPU.AC
         self.assertTrue(MainCPU.AC == 0177777, msg)
         msg = '"ISZ *010" modified L to %01o, should be 1' % MainCPU.L
         self.assertTrue(MainCPU.L == 1, msg)
-        msg = '"ISZ *010" modified PC to %06o, should be 0101' % MainCPU.PC
-        self.assertTrue(MainCPU.PC== 0101, msg)
-        msg = '"ISZ *010" modified memory[010] to %06o, should be 0103' % Memory.memory[010]
+        msg = '"ISZ *010" modified PC to %07o, should be 0101' % MainCPU.PC
+        self.assertTrue(MainCPU.PC == 0101, msg)
+        msg = '"ISZ *010" modified memory[010] to %07o, should be 0103' % Memory.memory[010]
         self.assertTrue(Memory.memory[010] == 0103, msg)
-        msg = '"ISZ *010" modified memory[0102] to %06o, should be 0' % Memory.memory[0102]
+        msg = '"ISZ *010" modified memory[0102] to %07o, should be 0' % Memory.memory[0102]
         self.assertTrue(Memory.memory[0102] == 0, msg)
-        msg = '"ISZ *010" modified memory[0103] to %06o, should be 2' % Memory.memory[0103]
+        msg = '"ISZ *010" modified memory[0103] to %07o, should be 2' % Memory.memory[0103]
         self.assertTrue(Memory.memory[0103] == 2, msg)
 
         # test "ISZ *010"    should skip
@@ -477,18 +500,90 @@ class TestPymlac(unittest.TestCase):
         Trace.itraceend(False)
         msg = '"ISZ *010" used %d cycles, should be 3' % cycles
         self.assertTrue(cycles == 3, msg)
-        msg = '"ISZ *010" left AC containing %06o, should be 0177777' % MainCPU.AC
+        msg = '"ISZ *010" left AC containing %07o, should be 0177777' % MainCPU.AC
         self.assertTrue(MainCPU.AC == 0177777, msg)
         msg = '"ISZ *010" modified L to %01o, should be 1' % MainCPU.L
         self.assertTrue(MainCPU.L == 1, msg)
-        msg = '"ISZ *010" modified PC to %06o, should be 0102' % MainCPU.PC
-        self.assertTrue(MainCPU.PC== 0102, msg)
-        msg = '"ISZ *010" modified memory[010] to %06o, should be 0103' % Memory.memory[010]
+        msg = '"ISZ *010" modified PC to %07o, should be 0102' % MainCPU.PC
+        self.assertTrue(MainCPU.PC == 0102, msg)
+        msg = '"ISZ *010" modified memory[010] to %07o, should be 0103' % Memory.memory[010]
         self.assertTrue(Memory.memory[010] == 0103, msg)
-        msg = '"ISZ *010" modified memory[0102] to %06o, should be 0' % Memory.memory[0102]
+        msg = '"ISZ *010" modified memory[0102] to %07o, should be 0' % Memory.memory[0102]
         self.assertTrue(Memory.memory[0102] == 0, msg)
-        msg = '"ISZ *010" modified memory[0103] to %06o, should be 0' % Memory.memory[0103]
+        msg = '"ISZ *010" modified memory[0103] to %07o, should be 0' % Memory.memory[0103]
         self.assertTrue(Memory.memory[0103] == 0, msg)
+
+    def test_JMS(self):
+        Trace.init('test_JMS.trace')
+        Trace.settrace(True)
+        Memory.init()
+
+        # test "JMS 0101"
+        Memory.memory[0100] = 0034101    # JMS 0101
+        Memory.memory[0101] = 0          # location we are storing PC into
+        MainCPU.init()
+        MainCPU.AC = 2
+        MainCPU.L = 1
+        MainCPU.PC = 0100
+        MainCPU.running = True
+        cycles = MainCPU.execute_one_instruction()
+        Trace.itraceend(False)
+        msg = '"JMS 0101" used %d cycles, should be 2' % cycles
+        self.assertTrue(cycles == 2, msg)
+        msg = '"JMS 0101" left AC containing %07o, should be 2' % MainCPU.AC
+        self.assertTrue(MainCPU.AC == 2, msg)
+        msg = '"JMS 0101" modified L to %01o, should be 1' % MainCPU.L
+        self.assertTrue(MainCPU.L == 1, msg)
+        msg = '"JMS 0101" modified PC to %07o, should be 0102' % MainCPU.PC
+        self.assertTrue(MainCPU.PC == 0102, msg)
+        msg = '"JMS 0101" modified memory[0101] to %07o, should be 0101' % Memory.memory[0101]
+        self.assertTrue(Memory.memory[0101] == 0101, msg)
+
+        # test "JMS *0101"
+        Memory.memory[0100] = 0134101    # JMS *0101
+        Memory.memory[0101] = 0200
+        Memory.memory[0200] = 1          # location we are storing PC into
+        MainCPU.init()
+        MainCPU.AC = 2
+        MainCPU.L = 1
+        MainCPU.PC = 0100
+        MainCPU.running = True
+        cycles = MainCPU.execute_one_instruction()
+        Trace.itraceend(False)
+        msg = '"JMS *0101" used %d cycles, should be 3' % cycles
+        self.assertTrue(cycles == 3, msg)
+        msg = '"JMS *0101" left AC containing %07o, should be 2' % MainCPU.AC
+        self.assertTrue(MainCPU.AC == 2, msg)
+        msg = '"JMS *0101" modified L to %01o, should be 1' % MainCPU.L
+        self.assertTrue(MainCPU.L == 1, msg)
+        msg = '"JMS *0101" modified memory[0200] to %07o, should be 0101' % Memory.memory[0200]
+        self.assertTrue(Memory.memory[0200] == 0101, msg)
+        msg = '"JMS *0101" modified PC to %07o, should be 0201' % MainCPU.PC
+        self.assertTrue(MainCPU.PC == 0201, msg)
+
+        # test "JMS *010
+        Memory.memory[0100] = 0134010    # JMS *010
+        Memory.memory[010] = 0200
+        Memory.memory[0201] = 0          # location we are storing PC into
+        MainCPU.init()
+        MainCPU.AC = 2
+        MainCPU.L = 1
+        MainCPU.PC = 0100
+        MainCPU.running = True
+        cycles = MainCPU.execute_one_instruction()
+        Trace.itraceend(False)
+        msg = '"JMS *010" used %d cycles, should be 3' % cycles
+        self.assertTrue(cycles == 3, msg)
+        msg = '"JMS *010" left AC containing %07o, should be 2' % MainCPU.AC
+        self.assertTrue(MainCPU.AC == 2, msg)
+        msg = '"JMS *010" modified L to %01o, should be 1' % MainCPU.L
+        self.assertTrue(MainCPU.L == 1, msg)
+        msg = '"JMS *010" modified PC to %07o, should be 0202' % MainCPU.PC
+        self.assertTrue(MainCPU.PC == 0202, msg)
+        msg = '"JMS *010" modified memory[010] to %07o, should be 0201' % Memory.memory[010]
+        self.assertTrue(Memory.memory[010] == 0201, msg)
+        msg = '"JMS *010" modified memory[0201] to %07o, should be 0101' % Memory.memory[0201]
+        self.assertTrue(Memory.memory[0201] == 0101, msg)
 
     def test_ADD(self):
         Trace.init('test_ADD.trace')
@@ -507,12 +602,12 @@ class TestPymlac(unittest.TestCase):
         Trace.itraceend(False)
         msg = '"ADD 0101" used %d cycles, should be 2' % cycles
         self.assertTrue(cycles == 2, msg)
-        msg = '"ADD 0101" left AC containing %06o, should be 0' % MainCPU.AC
+        msg = '"ADD 0101" left AC containing %07o, should be 0' % MainCPU.AC
         self.assertTrue(MainCPU.AC == 0, msg)
         msg = '"ADD 0101" modified L to %01o, should be 1' % MainCPU.L
         self.assertTrue(MainCPU.L == 1, msg)
-        msg = '"ADD 0101" modified PC to %06o, should be 0101' % MainCPU.PC
-        self.assertTrue(MainCPU.PC== 0101, msg)
+        msg = '"ADD 0101" modified PC to %07o, should be 0101' % MainCPU.PC
+        self.assertTrue(MainCPU.PC == 0101, msg)
 
         # test "ADD 0101"       add 1 to 0
         Memory.memory[0100] = 0064101    # ADD 0101
@@ -526,12 +621,12 @@ class TestPymlac(unittest.TestCase):
         Trace.itraceend(False)
         msg = '"ADD 0101" used %d cycles, should be 2' % cycles
         self.assertTrue(cycles == 2, msg)
-        msg = '"ADD 0101" left AC containing %06o, should be 1' % MainCPU.AC
+        msg = '"ADD 0101" left AC containing %07o, should be 1' % MainCPU.AC
         self.assertTrue(MainCPU.AC == 1, msg)
         msg = '"ADD 0101" modified L to %01o, should be 1' % MainCPU.L
         self.assertTrue(MainCPU.L == 1, msg)
-        msg = '"ADD 0101" modified PC to %06o, should be 0101' % MainCPU.PC
-        self.assertTrue(MainCPU.PC== 0101, msg)
+        msg = '"ADD 0101" modified PC to %07o, should be 0101' % MainCPU.PC
+        self.assertTrue(MainCPU.PC == 0101, msg)
 
         # test "ADD 0101"       add 1 to 0177777, L=1 before
         Memory.memory[0100] = 0064101    # ADD 0101
@@ -545,12 +640,12 @@ class TestPymlac(unittest.TestCase):
         Trace.itraceend(False)
         msg = '"ADD 0101" used %d cycles, should be 2' % cycles
         self.assertTrue(cycles == 2, msg)
-        msg = '"ADD 0101" left AC containing %06o, should be 0' % MainCPU.AC
+        msg = '"ADD 0101" left AC containing %07o, should be 0' % MainCPU.AC
         self.assertTrue(MainCPU.AC == 0, msg)
         msg = '"ADD 0101" modified L to %01o, should be 0' % MainCPU.L
         self.assertTrue(MainCPU.L == 0, msg)
-        msg = '"ADD 0101" modified PC to %06o, should be 0101' % MainCPU.PC
-        self.assertTrue(MainCPU.PC== 0101, msg)
+        msg = '"ADD 0101" modified PC to %07o, should be 0101' % MainCPU.PC
+        self.assertTrue(MainCPU.PC == 0101, msg)
 
 
 
@@ -558,6 +653,7 @@ class TestPymlac(unittest.TestCase):
 
 if __name__ == '__main__':
     suite = unittest.makeSuite(TestPymlac, 'test')
+    #suite = unittest.makeSuite(TestPymlac, 'test_JMS')
     runner = unittest.TextTestRunner()
     runner.run(suite)
 

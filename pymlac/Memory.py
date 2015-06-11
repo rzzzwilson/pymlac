@@ -200,7 +200,7 @@ def set_ROM(romtype=None):
             memory[i] = 0
             i += 1
 
-def get(address, indirect):
+def fetch(address, indirect):
     """Get a value from a memory address.
 
     The read can be indirect, and may be through an
@@ -209,11 +209,36 @@ def get(address, indirect):
 
     global memory
 
-    if indirect:
+    # the Imlac can get into infinite defer loops, and so can we!
+    while indirect:
+        address = address & (MEMORY_SIZE - 1)
         if ISAUTOINC(address):
+            # indirect on auto-inc register, add one to it before use
             memory[address] = MASK_MEM(memory[address] + 1)
         address = memory[address]
+        indirect = bool(address & 0100000)
+
     return memory[address]
+
+def eff_address(address, indirect):
+#def get(address, indirect):
+    """Get an effective memory address.
+
+    The address can be indirect, and may be through an
+    auto-increment address.
+    """
+
+    global memory
+
+    # the Imlac can get into infinite defer loops, and so can we!
+    while indirect:
+        if ISAUTOINC(address):
+            # indirect on auto-inc register, add one to it before use
+            memory[address] = MASK_MEM(memory[address] + 1)
+        address = memory[address]
+        indirect = bool(address & 0100000)
+
+    return address
 
 def put(value, address, indirect):
     """Put a value into a memory address.

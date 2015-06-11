@@ -157,7 +157,9 @@ LOADTTY_RADIO_RECT = (SCREEN_BOOTROM_LOADTTY_RADIO_POSN, (19, 19))
 
 # 'core' size (words) and save filename
 CORE_FILENAME = 'pymlac.core'
-MEMORY_SIZE = 040000	# 16K words memory size
+#MEMORY_SIZE = 040000	# 16K words memory size
+MEMORY_SIZE = 04000	# 2K words memory size - while debugging
+                        # removes some block address bugs
 PCMASK = MEMORY_SIZE - 1
 
 # Trace stuff
@@ -171,7 +173,7 @@ ROM_PTR = 1
 ROM_TTY = 2
 ROM_NONE = 3
 
-# The 4K 'local' mask
+# The 4K 'local' mask to remove high bits
 ADDRHIGHMASK = 0x7800
 
 # word overflow and value masks
@@ -200,6 +202,6 @@ def MASK_MEM(address):
 
 # A function to decide if an address is an auto-increment address
 def ISAUTOINC(address):
-    maskaddr = address & 0x7ff
-    return (maskaddr >= 8) and (maskaddr <= 17)
+    maskaddr = address & 03777
+    return (maskaddr >= 010) and (maskaddr <= 017)
 

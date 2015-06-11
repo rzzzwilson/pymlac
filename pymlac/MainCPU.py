@@ -155,7 +155,7 @@ def init():
 
     running = False
 
-def EFFADDR(address):
+def BLOCKADDR(address):
     return BlockBase | address
 
 def execute_one_instruction():
@@ -168,13 +168,13 @@ def execute_one_instruction():
         return 0
 
     # get instruction word to execute, advance PC
-    instruction = Memory.get(PC, False)
+    instruction = Memory.fetch(PC, False)
     BlockBase = PC & ADDRHIGHMASK
     PC = MASK_MEM(PC + 1)
 
     # get instruction opcode, indirect bit and address
     opcode = (instruction >> 11) & 017
-    indirect = (instruction & 0100000)
+    indirect = bool(instruction & 0100000)
     address = (instruction & 03777)
 
     return main_decode.get(opcode, illegal)(indirect, address, instruction)
@@ -210,25 +210,22 @@ def i_LAW_LWC(indirect, address, instruction):
 def i_JMP(indirect, address, instruction):
     global PC
 
-    jmpaddr = EFFADDR(address)
-    if indirect:
-        jmpaddr = Memory.get(jmpaddr, False)
-    PC = jmpaddr & PCMASK
+    address = Memory.eff_address(address, indirect)
+    PC = address & PCMASK
     Trace.itrace('JMP', indirect, address)
     return 3 if indirect else 2
 
 def i_DAC(indirect, address, instruction):
-    address = EFFADDR(address)
-    Memory.put(AC, address, indirect)
+    address = Memory.eff_address(address, indirect)
+    Memory.put(AC, address, False)
     Trace.itrace('DAC', indirect, address)
     return 3 if indirect else 2
 
 def i_XAM(indirect, address, instruction):
     global AC
 
-    if indirect:
-        address = Memory.get(address, False)
-    tmp = Memory.get(address, False)
+    address = Memory.eff_address(address, indirect)
+    tmp = Memory.fetch(address, False)
     Memory.put(AC, address, False)
     AC = tmp
     Trace.itrace('XAM', indirect, address)
@@ -237,8 +234,9 @@ def i_XAM(indirect, address, instruction):
 def i_ISZ(indirect, address, instruction):
     global PC
 
-    value = (Memory.get(address, indirect) + 1) & WORDMASK
-    Memory.put(value, address, indirect)
+    address = Memory.eff_address(address, indirect)
+    value = (Memory.fetch(address, False) + 1) & WORDMASK
+    Memory.put(value, address, False)
     if value == 0:
         PC = (PC + 1) & WORDMASK
     Trace.itrace('ISZ', indirect, address)
@@ -247,11 +245,9 @@ def i_ISZ(indirect, address, instruction):
 def i_JMS(indirect, address, instruction):
     global PC
 
-    jmsaddr = EFFADDR(address)
-    if indirect:
-        jmsaddr = Memory.get(jmsaddr, False)
-    Memory.put(PC, jmsaddr, False)
-    PC = (jmsaddr + 1) & PCMASK
+    address = Memory.eff_address(address, indirect)
+    Memory.put(PC, address, False)
+    PC = (address + 1) & PCMASK
     Trace.itrace('JMS', indirect, address)
     return 3 if indirect else 2
 
@@ -286,8 +282,7 @@ def i_LAC(indirect, address, instruction):
 def i_ADD(indirect, address, instruction):
     global AC, L
 
-    effaddress = EFFADDR(address)
-    AC += Memory.get(address, indirect)
+    AC += Memory.fetch(BLOCKADDR(address), indirect)
     if AC & OVERFLOWMASK:
         L = not L
         AC &= WORDMASK
@@ -297,8 +292,7 @@ def i_ADD(indirect, address, instruction):
 def i_SUB(indirect, address, instruction):
     global AC, L
 
-    effaddr = EFFADDR(address)
-    AC -= Memory.get(address, indirect)
+    AC -= Memory.fetch(BLOCKADDR(address), indirect)
     if AC & OVERFLOWMASK:
         L = not L
         AC &= WORDMASK
@@ -308,7 +302,7 @@ def i_SUB(indirect, address, instruction):
 def i_SAM(indirect, address, instruction):
     global PC
 
-    samaddr = EFFADDR(address)
+    samaddr = BLOCKADDR(address)
     if indirect:
         samaddr = Memory.get(samaddr, False)
     if AC == Memory.get(samaddr, False):
