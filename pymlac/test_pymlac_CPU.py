@@ -11,6 +11,51 @@ Execute opcode, test result.
 We DON'T try to load from papertape, use core files, etc.
 """
 
+# We implement a small interpreter to test the CPU.  The test code is read in
+# from a file:
+#
+#    # LAW                                                                            
+#    setreg ac 012345; setreg l 1; setreg pc 0100; setmem 0100 [LAW 0]; RUN; checkcycles 1; checkreg pc 0101; checkreg ac 0
+#    setreg ac 012345; setreg l 0; setreg pc 0100; setmem 0100 [LAW 0]; RUN
+#            checkcycles 1; checkreg pc 0101; checkreg ac 0
+#
+# The instructions are delimited by ';' characters.  A line beginning with a
+# TAB character is a continuation of the previous.  Lines with '#' in column
+# 1 are comments
+#
+# The test instructions are:
+#
+#     setreg <name> <value>
+#         where <name> is one of AC, L or PC, value is any value
+#         (all registers are set to 0 initially)
+#
+#     setmem <addr> <value>
+#         where <addr> is an address and value is any value OR
+#         [<instruction>] where the value is the assembled opcode
+#
+#     run [<addr>]
+#         starts execution, optional <addr> is used PC := addr before
+#
+#     checkcycles <number>
+#         check number of executed cycles is <number>
+#
+#     checkreg <name> <value>
+#         check register (AC, L or PC) has value <value>
+#
+#     checkmem <addr> <value>
+#         check that memory at <addr> has <value>
+#
+#     memset <value>
+#         sets all of memory to <value>
+#         a "memset 0" is assumed before each test
+#
+# In addition, all of memory is checked for changed values after execution
+# except where an explicit "checkmem <addr> <value>" has been performed.
+# Additionally, registers that aren't explicitly checked are tested to make
+# sure they didn't change.
+#
+
+
 
 import unittest
 
