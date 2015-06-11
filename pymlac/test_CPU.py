@@ -61,6 +61,7 @@ where <filename> is a file of test instructions and
 # If any errors are found, print line followed by all errors.
 
 
+from Globals import *
 import MainCPU
 import Memory
 
@@ -74,6 +75,7 @@ def setreg(name, value):
     global RegValues
     
     RegValues[name] = value
+
     exec "MainCPU.%s = %07o" % (name, value)
 
 def setmem(addr, value):
@@ -82,6 +84,7 @@ def setmem(addr, value):
     global MemValues
 
     MemValues[addr] = value
+
     Memory.memory[addr] = value
 
 
@@ -94,7 +97,9 @@ def allmem(value):
     global MemAllValue
 
     MemAllValue = value
-    for mem in range(Memory.MAXMEM):
+
+    for mem in range(PCMASK):
+        print str(mem)
         Memory.memory[mem] = value
 
 def allreg(value):
@@ -103,6 +108,7 @@ def allreg(value):
     global RegAllValue
 
     RegAllValue = value
+
     MainCPU.AC = value
     MainCPU.L = value & 1
     MainCPU.PC = value
@@ -112,6 +118,7 @@ def execute(test):
 
     global RegValues, MemValues
     global RegAllValue, MemAllValue
+    global Test
 
     # set globals
     RegValues = {}
@@ -119,17 +126,51 @@ def execute(test):
     RegAllValue = {}
     MemAllValue = {}
 
+    Test = test
+
     # clear memory and registers to 0 first
-    memset(0)
-    regset(0)
+#    allmem(0)
+#    allreg(0)
 
     # interpret the test instructions
     instructions = test.split(';')
     for op in instructions:
-        print op
+        fields = op.split(None, 2)
+        op = fields[0].lower()
+        try:
+            var1 = fields[1]
+        except IndexError:
+            var1 = None
+        try:
+            var2 = fields[2]
+        except IndexError:
+            var2 = None
 
+        try:
+            if op == 'setreg':
+                setreg(var1, var2)
+            elif op == 'setmem':
+                setmem(var1, var2)
+            elif op == 'run':
+                run(var1, var2)
+            elif op == 'checkcycles':
+                checkcycles(var1, var2)
+            elif op == 'checkreg':
+                checkreg(var1, var2)
+            elif op == 'checkmem':
+                checkmem(var1, var2)
+            elif op == 'allreg':
+                allreg(var1, var2)
+            elif op == 'allmem':
+                allmem(var1, var2)
+            else:
+                error('Unrecognized operation: %s' % test)
+        except CPUError:
+            pass
 
-
+    # now check all memory and regs for changes
+    check_all_mem()
+    check_all_regs()
 
 def main(filename):
     """Execute CPU tests from 'filename'."""
