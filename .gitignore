@@ -9,3 +9,6 @@ iasm
 .DS_Store
 _#ASM#_.*
 *.log
+*.OLD
+*.txt
+*.core
