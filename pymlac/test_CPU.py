@@ -214,8 +214,9 @@ def check_all_regs():
             result.append('PC changed, is %07o, should be %07o'
                           % (MainCPU.PC, RegAllValue))
 
-    if result:
-        return result.join('\n')
+    return result
+#    if result:
+#        return result.join('\n')
 
 def checkreg(reg, value):
     """Check register is as it should be."""
@@ -266,6 +267,12 @@ def run(addr, var2):
 
     UsedCycles = MainCPU.execute_one_instruction()
 
+def checkrun(state, var2):
+    """Check CPU run state is as desired."""
+
+    if str(MainCPU.running).lower() != state:
+        return 'CPU run state should be %s, is %s' % (str(state), str(MainCPU.running))
+
 def debug_operation(op, var1, var2):
     """Write operation to log file."""
 
@@ -305,11 +312,11 @@ def execute(test):
         fields = op.split(None, 2)
         op = fields[0].lower()
         try:
-            var1 = fields[1]
+            var1 = fields[1].lower()
         except IndexError:
             var1 = None
         try:
-            var2 = fields[2]
+            var2 = fields[2].lower()
         except IndexError:
             var2 = None
 
@@ -344,8 +351,10 @@ def execute(test):
             r = allreg(var1, var2)
         elif op == 'allmem':
             r = allmem(var1, var2)
+        elif op == 'checkrun':
+            r = checkrun(var1, var2)
         else:
-            error('Unrecognized operation: %s' % test)
+            raise Exception('Unrecognized operation: %s' % test)
 
         if r is not None:
             result.append(r)
@@ -358,10 +367,10 @@ def execute(test):
 
     r = check_all_regs()
     if r:
-        result.append(r)
+        result.extend(r)
 
-    print(test)
     if result:
+        print(test)
         print('\t' + '\n\t'.join(result))
 
     memdump('core.txt', 0, 0200)
@@ -393,6 +402,8 @@ def main(filename):
     test = ''
     for line in lines:
         line = line[:-1]        # strip newline
+        if not line:
+            continue            # skip blank lines
 
         if line[0] == '#':      # a comment
             continue

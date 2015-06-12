@@ -254,28 +254,28 @@ def i_JMS(indirect, address, instruction):
 def i_AND(indirect, address, instruction):
     global AC
 
-    AC &= Memory.get(address, indirect)
+    AC &= Memory.fetch(address, indirect)
     Trace.itrace('AND', indirect, address)
     return 3 if indirect else 2
 
 def i_IOR(indirect, address, instruction):
     global AC
 
-    AC |= Memory.get(address, indirect)
+    AC |= Memory.fetch(address, indirect)
     Trace.itrace('IOR', indirect, address)
     return 3 if indirect else 2
 
 def i_XOR(indirect, address, instruction):
     global AC
 
-    AC ^= Memory.get(address, indirect)
+    AC ^= Memory.fetch(address, indirect)
     Trace.itrace('XOR', indirect, address)
     return 3 if indirect else 2
 
 def i_LAC(indirect, address, instruction):
     global AC
 
-    AC = Memory.get(address, indirect)
+    AC = Memory.fetch(address, indirect)
     Trace.itrace('LAC', indirect, address)
     return 3 if indirect else 2
 
@@ -303,9 +303,11 @@ def i_SAM(indirect, address, instruction):
     global PC
 
     samaddr = BLOCKADDR(address)
-    if indirect:
-        samaddr = Memory.get(samaddr, False)
-    if AC == Memory.get(samaddr, False):
+    
+#    if indirect:
+#        samaddr = Memory.fetch(samaddr, False)
+
+    if AC == Memory.fetch(samaddr, indirect):
         PC = (PC + 1) & PCMASK
     Trace.itrace('SAM', indirect, address)
     return 3 if indirect else 2
@@ -328,8 +330,8 @@ def microcode(instruction):
     # T3
     if (instruction & 004):
         newac = AC + 1
-        if newac & OVERFLOWMASK:
-            L = (~L) & 01
+#        if newac & OVERFLOWMASK:
+#            L = (~L) & 01
         AC = newac & WORDMASK
     if (instruction & 040):
         AC |= DS
