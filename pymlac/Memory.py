@@ -221,7 +221,6 @@ def fetch(address, indirect):
     return memory[address]
 
 def eff_address(address, indirect):
-#def get(address, indirect):
     """Get an effective memory address.
 
     The address can be indirect, and may be through an

@@ -1,26 +1,2 @@
-# LAW
-setreg ac 012345; setreg l 1; setreg pc 0100; setmem 0100 [LAW 0]; RUN
-	checkcycles 1; checkreg pc 0101; checkreg ac 0
-setreg ac 012345; setreg l 0; setreg pc 0100; setmem 0100 [LAW 0]; RUN
-	checkcycles 1; checkreg pc 0101; checkreg ac 0
-setreg ac 012345; setreg l 1; setreg pc 0100; setmem 0100 [LAW 0377]; RUN
-	checkcycles 1; checkreg pc 0101; checkreg ac 0377
-setreg ac 012345; setreg l 0; setreg pc 0100; setmem 0100 [LAW 0377]; RUN
-	checkcycles 1; checkreg pc 0101; checkreg ac 0377
-# LWC
-setreg ac 012345; setreg l 1; setreg pc 0100; setmem 0100 [LWC 0]; RUN; checkcycles 1; checkreg pc 0101; checkreg ac 0177777
-setreg ac 012345; setreg l 0; setreg pc 0100; setmem 0100 [LWC 0]; RUN; checkcycles 1; checkreg pc 0101; checkreg ac 0177777
-setreg ac 012345; setreg l 1; setreg pc 0100; setmem 0100 [LWC 1]; RUN; checkcycles 1; checkreg pc 0101; checkreg ac 0177776
-setreg ac 012345; setreg l 0; setreg pc 0100; setmem 0100 [LWC 1]; RUN; checkcycles 1; checkreg pc 0101; checkreg ac 0177776
-# JMP
-setreg ac 012345; setreg l 1; setreg pc 0100; setmem 0100 [JMP 0200]; RUN; checkcycles 2; checkreg pc 0200
-setreg ac 012345; setreg l 0; setreg pc 0100; setmem 0100 [JMP 0110]; RUN; checkcycles 2; checkreg pc 0110
-setreg ac 012345; setreg l 1; setreg pc 0100; setmem 0100 [JMP *0110]; setmem 0110 0120; RUN; checkcycles 3; checkreg pc 0120
-setreg ac 012345; setreg l 1; setreg pc 0100; setmem 0100 [JMP *010]; setmem 010 0120; RUN checkcycles 3; checkreg pc 0120; checkmem 010 0121
-# DAC
-setreg ac 1; setreg l 1; setreg pc 0100; setmem 0100 [DAC 0110]; RUN
-	checkcycles 2; checkreg pc 0101; checkmem 0110 1
-setreg ac 0177777; setreg l 0; setreg pc 0100; setmem 0100 [DAC *0110]; setmem 0110 0120; RUN
-	checkcycles 3; checkreg pc 0101; checkmem 0120 0177777
 setreg ac 0177777; setreg l 1; setreg pc 0100; setmem 0100 [DAC *010]; setmem 010 0120; RUN
-	checkcycles 3; checkreg pc 0101; checkmem 0120 0177777; checkmem 010 0121
+	checkcycles 3; checkreg pc 0101; checkmem 0121 0177777; checkmem 010 0121
