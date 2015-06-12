@@ -107,7 +107,6 @@ def assemble(addr, opcode):
         lines = fd.readlines()
     line = lines[1]
     (opcode, _) = line.split(None, 1)
-    print('opcode=%07o' % int(opcode, base=8))
 
     return int(opcode, base=8)
 
@@ -166,10 +165,12 @@ def allmem(value):
 
     global MemAllValue
 
+    log.debug('allmem: setting memory to %07o' % value)
+
     MemAllValue = value
 
     for mem in range(MEMORY_SIZE):
-        Memory.put(mem, value, False)
+        Memory.put(value, mem, False)
 
 def allreg(value):
     """Set all registers to a value."""
@@ -232,7 +233,7 @@ def checkreg(reg, value):
             return 'L wrong, is %07o, should be %07o' % (MainCPU.L, value)
     elif reg == 'pc':
         if MainCPU.PC != value:
-            return 'AC wrong, is %07o, should be %07o' % (MainCPU.PC, value)
+            return 'PC wrong, is %07o, should be %07o' % (MainCPU.PC, value)
     else:
         raise Exception('checkreg: bad register name: %s' % name)
 

@@ -239,12 +239,29 @@ def eff_address(address, indirect):
 
     return address
 
+#def str_trace(msg=None):                                                         
+#    """Get a traceback string."""                                                
+#
+#    import traceback
+#                                                             
+#    result = []                                                                  
+#
+#    if msg:                                                                      
+#        result.append(msg+'\n')                                                  
+#
+#    result.extend(traceback.format_stack())                                      
+#
+#    return ''.join(result)                 
+
 def put(value, address, indirect):
     """Put a value into a memory address.
 
     The store can be indirect, and may be through an
     auto-increment address.
     """
+
+#    if address == 0 and value != 0:
+#        print str_trace('Writing %07o to address 0!?' % value)
 
     global memory
 
