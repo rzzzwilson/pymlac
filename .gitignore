@@ -7,3 +7,5 @@ iasm
 *.trace
 *.ptp
 .DS_Store
+_#ASM#_.*
+*.log
