@@ -3,9 +3,19 @@
 """
 A simple logger.
 
-TODO: Use python logging, etc.
-"""
+Simple usage:
+    import log
+    log = log.Log('my_log.log', log.Log.DEBUG)
+    log('A line in the log at the default level (DEBUG)')
+    log('A log line at WARN level', Log.WARN)
+    log.info('log line issued at INFO level')
 
+Based on the 'borg' recipe from [http://code.activestate.com/recipes/66531/].
+
+Log levels styled on the Python 'logging' module.
+
+Log output includes the module and line # of the log() call.
+"""
 
 import os
 import sys
@@ -13,23 +23,8 @@ import datetime
 import traceback
 
 
-# maximum length of filename (enforced)
-MaxNameLength = 15
-
-
 ################################################################################
-# A simple logger.
-#
-# Simple usage:
-#     import log
-#     log = log.Log('my_log.log', log.Log.DEBUG)
-#     log('A line in the log at the default level (DEBUG)')
-#     log('A log line at WARN level', Log.WARN)
-#     log.debug('log line issued at DEBUG level')
-#
-# Based on the 'borg' recipe from [http://code.activestate.com/recipes/66531/].
-#
-# Log levels styled on the Python 'logging' module.
+# A simple (?) logger.
 ################################################################################
 
 class Log(object):
@@ -51,7 +46,12 @@ class Log(object):
                           ERROR: 'ERROR',
                           CRITICAL: 'CRITICAL'}
 
-    def __init__(self, logfile=None, level=NOTSET, append=False):
+    # default maximum length of filename (enforced)
+    DefaultMaxFname = 15
+
+
+    def __init__(self, logfile=None, level=NOTSET, append=False,
+                 max_fname=DefaultMaxFname):
         """Initialise the logging object.
 
         logfile the path to the log file
@@ -61,6 +61,11 @@ class Log(object):
 
         # make sure we have same state as all other log objects
         self.__dict__ = Log.__shared_state
+
+        self.max_fname = max_fname
+
+        self.sym_level = 'NOTSET'      # set in call to check_level()
+        self.level = self.check_level(level)
 
         # don't allow logfile to change after initially set
         if not hasattr(self, 'logfile'):
@@ -75,10 +80,8 @@ class Log(object):
                 # assume we have readonly filesystem
                 basefile = os.path.basename(logfile)
                 if sys.platform == 'win32':
-                    #logfile = r'C:\%s' % basefile
                     logfile = os.path.join('C:\\', basefile)
                 else:
-                    #logfile = '~/%s' % basefile
                     logfile = os.path.join('~', basefile)
 
             # try to open logfile again
@@ -88,13 +91,50 @@ class Log(object):
                 self.logfd = open(logfile, 'w')
 
             self.logfile = logfile
-            self.level = level
 
             self.critical('='*55)
             self.critical('Log started on %s, log level=%s'
                  % (datetime.datetime.now().ctime(),
-                    Log._level_num_to_name[level]))
+                    self._level_num_to_name[level]))
             self.critical('-'*55)
+
+    def check_level(self, level):
+        """Check the level value for legality.
+        
+        If 'level' is invalid, raise Exception.  If valid, return value.
+        """
+
+        try:
+            level = int(level)
+        except ValueError:
+            msg = "Logging level invalid: '%s'" % str(level)
+            print(msg)
+            raise Exception(msg)
+
+        if not 0 <= level <= 50:
+            msg = "Logging level invalid: '%s'" % str(level)                                                                                       
+            print(msg)                                                                                                                             
+            raise Exception(msg)
+
+        return level
+
+    def set_level(self, level):
+        """Set logging level."""
+
+        level = self.check_level(level)
+
+        # convert numeric level to symbolic
+        sym = self._level_num_to_name.get(level, None)
+        if sym is None:
+            # not recognized symbolic but it's legal, so interpret as 'XXXX+2'
+            sym_10 = 10 * (level/10)
+            sym_rem = level - sym_10
+            sym = '%s+%d' % (self._level_num_to_name[sym_10], sym_rem)
+
+        self.level = level
+        self.sym_level = sym
+
+        self.critical('Logging level set to %02d (%s)' % (level, sym))
 
     def __call__(self, msg=None, level=None):
         """Call on the logging object.
@@ -134,38 +174,38 @@ class Log(object):
                 break
 
         # get string for log level
-        loglevel = Log._level_num_to_name[level]
+        loglevel = self._level_num_to_name[level]
 
-        fname = fname[:MaxNameLength]
+        fname = fname[:self.max_fname]
         self.logfd.write('%02d:%02d:%02d.%06d|%8s|%*s:%-4d|%s\n'
-                         % (hr, min, sec, msec, loglevel, MaxNameLength, fname,
-                            lnum, msg))
+                         % (hr, min, sec, msec, loglevel, self.max_fname,
+                            fname, lnum, msg))
         self.logfd.flush()
 
     def critical(self, msg):
         """Log a message at CRITICAL level."""
 
-        self(msg, Log.CRITICAL)
+        self(msg, self.CRITICAL)
 
     def error(self, msg):
         """Log a message at ERROR level."""
 
-        self(msg, Log.ERROR)
+        self(msg, self.ERROR)
 
     def warn(self, msg):
         """Log a message at WARN level."""
 
-        self(msg, Log.WARN)
+        self(msg, self.WARN)
 
     def info(self, msg):
         """Log a message at INFO level."""
 
-        self(msg, Log.INFO)
+        self(msg, self.INFO)
 
     def debug(self, msg):
         """Log a message at DEBUG level."""
 
-        self(msg, Log.DEBUG)
+        self(msg, self.DEBUG)
 
     def __del__(self):
         self.logfd.close()
