@@ -25,7 +25,7 @@ where <filename> is a file of test instructions and
 #
 # The test instructions are:
 #     setreg <name> <value>
-#         where <name> is one of AC, L or PC, value is any value
+#         where <name> is one of AC, L, PC or DS, value is any value
 #         (all registers are set to 0 initially)
 #
 #     setmem <addr> <value>
@@ -39,7 +39,7 @@ where <filename> is a file of test instructions and
 #         check number of executed cycles is <number>
 #
 #     checkreg <name> <value>
-#         check register (AC, L or PC) has value <value>
+#         check register (AC, L, PC or DS) has value <value>
 #
 #     checkmem <addr> <value>
 #         check that memory at <addr> has <value>
@@ -102,7 +102,7 @@ def assemble(addr, opcode):
     # now assemble file
     os.system('../iasm/iasm -l %s.lst %s.asm' % (AsmFilename, AsmFilename))
 
-    # read the listing file to get assembled opcode
+    # read the listing file to get assembled opcode (second line)
     with open(AsmFilename+'.lst', 'rb') as fd:
         lines = fd.readlines()
     line = lines[1]
@@ -117,22 +117,20 @@ def setreg(name, value):
     Remember value to check later.
     """
 
-    log.debug('setreg: name=%s, value=%s' % (name, oct(value)))
-
     global RegValues
     
     RegValues[name] = value
-    log.debug('setreg: After, RegValues=%s' % str(RegValues))
 
     if name == 'ac':
         MainCPU.AC = value
-        log.debug('setreg: After, AC=%s' % oct(MainCPU.AC))
     elif name == 'l':
         MainCPU.L = value & 1
-        log.debug('setreg: After, L=%s' % oct(MainCPU.L))
     elif name == 'pc':
         MainCPU.PC = value
-        log.debug('setreg: After, PC=%s' % oct(MainCPU.PC))
+    elif name == 'ds':
+        MainCPU.DS = value
+    else:
+        raise Exception('setreg: bad register name: %s' % name)
 
 def setmem(addr, value):
     """Set memory location to a value."""
@@ -182,59 +180,88 @@ def allreg(value):
     MainCPU.AC = value
     MainCPU.L = value & 1
     MainCPU.PC = value
+    MainCPU.DS = value
 
 def check_all_mem():
     """Check memory for unwanted changes."""
 
+    result = []
+
     for mem in range(MEMORY_SIZE):
-        if mem in MemValues:
-            continue
         value = Memory.fetch(mem, False)
-        if value != MemAllValue:
-            return ('Changed memory at address %07o, is %07o, should be %07o'
-                    % (mem, value, MemAllValue))
+        if mem in MemValues:
+            if value != MemValues[mem]:
+                result.append('Memory at %07o changed, is %07o, should be %07o'
+                              % (mem, value, MemValues[mem]))
+        else:
+            if value != MemAllValue:
+                result.append('Memory at %07o changed, is %07o, should be %07o'
+                              % (mem, value, MemAllValue))
 
 def check_all_regs():
     """Check registers for unwanted changes."""
 
     result = []
 
-    if 'ac' not in RegValues:
+    if 'ac' in RegValues:
+        if MainCPU.AC != RegValues['ac']:
+            result.append('AC changed, is %07o, should be %07o'
+                          % (MainCPU.AC, RegValues['ac']))
+    else:
         if MainCPU.AC != RegAllValue:
             result.append('AC changed, is %07o, should be %07o'
                           % (MainCPU.AC, RegAllValue))
 
-    if 'l' not in RegValues:
+    if 'l' in RegValues:
+        if MainCPU.L != RegValues['l']:
+            result.append('L changed, is %02o, should be %02o'
+                          % (MainCPU.L, RegValues['l']))
+    else:
         if MainCPU.L != RegAllValue & 1:
             result.append('L changed, is %02o, should be %02o'
                           % (MainCPU.L, RegAllValue & 1))
 
-    if 'pc' not in RegValues:
+    if 'pc' in RegValues:
+        if MainCPU.PC != RegValues['pc']:
+            result.append('PC changed, is %07o, should be %07o'
+                          % (MainCPU.PC, RegValues['pc']))
+    else:
         if MainCPU.PC != RegAllValue:
             result.append('PC changed, is %07o, should be %07o'
                           % (MainCPU.PC, RegAllValue))
 
+    if 'ds' in RegValues:
+        if MainCPU.DS != RegValues['ds']:
+            result.append('DS changed, is %07o, should be %07o'
+                          % (MainCPU.DS, RegValues['ds']))
+    else:
+        if MainCPU.DS != RegAllValue:
+            result.append('DS changed, is %07o, should be %07o'
+                          % (MainCPU.DS, RegAllValue))
+
     return result
-#    if result:
-#        return result.join('\n')
 
 def checkreg(reg, value):
     """Check register is as it should be."""
     
     global RegValues
 
-    RegValues[reg] = value
-    log.debug('checkreg: After, RegValues=%s' % str(RegValues))
-
     if reg == 'ac':
+        RegValues[reg] = MainCPU.AC
         if MainCPU.AC != value:
             return 'AC wrong, is %07o, should be %07o' % (MainCPU.AC, value)
     elif reg == 'l':
+        RegValues[reg] = MainCPU.L
         if MainCPU.L != value:
-            return 'L wrong, is %07o, should be %07o' % (MainCPU.L, value)
+            return 'L wrong, is %02o, should be %02o' % (MainCPU.L, value)
     elif reg == 'pc':
+        RegValues[reg] = MainCPU.PC
         if MainCPU.PC != value:
             return 'PC wrong, is %07o, should be %07o' % (MainCPU.PC, value)
+    elif reg == 'ds':
+        RegValues[reg] = MainCPU.DS
+        if MainCPU.DS != value:
+            return 'DS wrong, is %07o, should be %07o' % (MainCPU.DS, value)
     else:
         raise Exception('checkreg: bad register name: %s' % name)
 
@@ -328,12 +355,14 @@ def execute(test):
                 var1 = int(var1, base=8)
             else:
                 var1 = int(var1)
+            var1 &= 0177777
 
         if var2 and var2[0] in '0123456789':
             if var2[0] == '0':
                 var2 = int(var2, base=8)
             else:
                 var2 = int(var2)
+            var2 &= 0177777
 
         if op == 'setreg':
             r = setreg(var1, var2)

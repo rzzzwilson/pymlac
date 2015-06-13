@@ -284,18 +284,20 @@ def i_ADD(indirect, address, instruction):
 
     AC += Memory.fetch(BLOCKADDR(address), indirect)
     if AC & OVERFLOWMASK:
-        L = not L
-        AC &= WORDMASK
+        L = (~L) & 01
+    AC &= WORDMASK
     Trace.itrace('ADD', indirect, address)
     return 3 if indirect else 2
 
 def i_SUB(indirect, address, instruction):
     global AC, L
 
-    AC -= Memory.fetch(BLOCKADDR(address), indirect)
+    addit = Memory.fetch(BLOCKADDR(address), indirect)
+    addit = (~addit + 1) & WORDMASK
+    AC += addit
     if AC & OVERFLOWMASK:
         L = not L
-        AC &= WORDMASK
+    AC &= WORDMASK
     Trace.itrace('SUB', indirect, address)
     return 3 if indirect else 2
 
@@ -304,38 +306,34 @@ def i_SAM(indirect, address, instruction):
 
     samaddr = BLOCKADDR(address)
     
-#    if indirect:
-#        samaddr = Memory.fetch(samaddr, False)
-
     if AC == Memory.fetch(samaddr, indirect):
         PC = (PC + 1) & PCMASK
     Trace.itrace('SAM', indirect, address)
     return 3 if indirect else 2
 
 def microcode(instruction):
-    global AC, L, PC, running
+    global AC, L, PC, DS, running
 
     # T1
-    if (instruction & 001):
+    if instruction & 001:
         AC = 0
-    if (instruction & 010):
+    if instruction & 010:
         L = 0
 
     # T2
-    if (instruction & 002):
+    if instruction & 002:
         AC = (~AC) & WORDMASK
-    if (instruction & 020):
+    if instruction & 020:
         L = (~L) & 01
 
     # T3
-    if (instruction & 004):
-        newac = AC + 1
-#        if newac & OVERFLOWMASK:
-#            L = (~L) & 01
-        AC = newac & WORDMASK
-    if (instruction & 040):
+    if instruction & 004:
+        AC += 1
+        if AC & OVERFLOWMASK:
+            L = (~L) & 1
+        AC &= WORDMASK
+    if instruction & 040:
         AC |= DS
-        L = (~L) & 1
 
     # do some sort of trace
     combine = []
