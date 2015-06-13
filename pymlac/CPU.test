@@ -335,5 +335,67 @@ setreg ac 0; setreg l 1; setmem 0100 [RAR 3]; RUN 0100; checkcycles 1; checkreg 
 setreg ac 1; setreg l 0; setmem 0100 [RAR 3]; RUN 0100; checkcycles 1; checkreg pc 0101; checkreg ac 0040000; checkreg l 0
 setreg ac 0177777; setreg l 0; setmem 0100 [RAR 3]; RUN 0100; checkcycles 1; checkreg pc 0101; checkreg ac 0157777; checkreg l 1
 
-# DON
+# ASZ
+setreg ac 1; setmem 0100 [ASZ]; RUN 0100; checkcycles 1; checkreg pc 0101
+setreg ac 0; setmem 0100 [ASZ]; RUN 0100; checkcycles 1; checkreg pc 0102
+setreg ac 0177777; setmem 0100 [ASZ]; RUN 0100; checkcycles 1; checkreg pc 0101
 
+# ASN
+setreg ac 1; setmem 0100 [ASN]; RUN 0100; checkcycles 1; checkreg pc 0102
+setreg ac 0; setmem 0100 [ASN]; RUN 0100; checkcycles 1; checkreg pc 0101
+setreg ac 0177777; setmem 0100 [ASN]; RUN 0100; checkcycles 1; checkreg pc 0102
+
+# ASP
+setreg ac 1; setmem 0100 [ASP]; RUN 0100; checkcycles 1; checkreg pc 0102
+setreg ac 0; setmem 0100 [ASP]; RUN 0100; checkcycles 1; checkreg pc 0102
+setreg ac 0177777; setmem 0100 [ASP]; RUN 0100; checkcycles 1; checkreg pc 0101
+
+# ASM
+setreg ac 1; setmem 0100 [ASM]; RUN 0100; checkcycles 1; checkreg pc 0101
+setreg ac 0; setmem 0100 [ASM]; RUN 0100; checkcycles 1; checkreg pc 0101
+setreg ac 0177777; setmem 0100 [ASM]; RUN 0100; checkcycles 1; checkreg pc 0102
+
+# LSZ
+setreg l 0; setmem 0100 [LSZ]; RUN 0100; checkcycles 1; checkreg pc 0102
+setreg l 1; setmem 0100 [LSZ]; RUN 0100; checkcycles 1; checkreg pc 0101
+
+# LSN
+setreg l 0; setmem 0100 [LSN]; RUN 0100; checkcycles 1; checkreg pc 0101
+setreg l 1; setmem 0100 [LSN]; RUN 0100; checkcycles 1; checkreg pc 0102
+
+# not tested here, interacting with other hardware
+# DON
+# DSF
+# DSN
+# KSF
+# KSN
+# RSF
+# RSN
+# TSF
+# TSN
+# SSF
+# SSN
+# HSF
+# HSN
+#
+# DLA
+# CTB
+# DOF
+# KRB
+# KCF
+# KRC
+# RRB
+# RCF
+# RRC
+# TPR
+# TCF
+# TPC
+# HRB
+# HOF
+# HON
+# STB
+# SCF
+# IOS
+# PSF
+# PPC
+# and lots of IOT instructions

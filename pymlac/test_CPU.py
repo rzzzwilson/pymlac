@@ -70,6 +70,9 @@ import Memory
 import log
 log = log.Log('test_CPU.log', log.Log.DEBUG)
 
+# fake a Display instance
+DisplayState = False
+
 
 # number of cycles used in previous instruction
 UsedCycles = 0
@@ -298,7 +301,30 @@ def checkrun(state, var2):
     """Check CPU run state is as desired."""
 
     if str(MainCPU.running).lower() != state:
-        return 'CPU run state should be %s, is %s' % (str(state), str(MainCPU.running))
+        return 'CPU run state is %s, should be %s' % (str(MainCPU.running), str(state))
+
+def setd(state, var2):
+    """Set display state."""
+
+    global DisplayState
+
+    if state == 'on':
+        DisplayState = True
+    elif state == 'off':
+        DisplayState = False
+    else:
+        raise Exception('setd: bad state: %s' % str(state))
+
+def checkd(state, var2):
+    """Check display state is as expected."""
+
+    global DisplayState
+
+    if state == 'on' and DisplayState is not True:
+        return 'DCPU run state is %s, should be True' % str(DisplayState)
+    if state == 'off' and DisplayState is True:
+        return 'DCPU run state is %s, should be False' % str(DisplayState)
+
 
 def debug_operation(op, var1, var2):
     """Write operation to log file."""
@@ -316,6 +342,7 @@ def execute(test):
 
     global RegValues, MemValues
     global RegAllValue, MemAllValue
+    global DisplayState
 
     # set globals
     RegValues = {}
@@ -327,6 +354,7 @@ def execute(test):
 
     MainCPU.init()
     MainCPU.running = True
+    DisplayState = False
     Memory.init()
 
     # clear memory and registers to 0 first
@@ -382,8 +410,12 @@ def execute(test):
             r = allmem(var1, var2)
         elif op == 'checkrun':
             r = checkrun(var1, var2)
+        elif op == 'setd':
+            r = setd(var1, var2)
+        elif op == 'checkd':
+            r = checkd(var1, var2)
         else:
-            raise Exception('Unrecognized operation: %s' % test)
+            raise Exception("Unrecognized operation '%s' in: %s" % (op, test))
 
         if r is not None:
             result.append(r)
