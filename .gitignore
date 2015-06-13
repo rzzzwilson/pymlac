@@ -12,3 +12,4 @@ _#ASM#_.*
 *.OLD
 *.txt
 *.core
+*.out
