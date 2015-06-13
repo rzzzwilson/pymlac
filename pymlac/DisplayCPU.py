@@ -26,15 +26,16 @@ DIB = 0				# display CPU ???
 DX = 0				# display CPU draw X register
 DY = 0				# display CPU draw Y register
 
-# state variables
-mode = MODE_NORMAL
-running = False
-
+# global state variables
+Mode = MODE_NORMAL
+Running = False
 
 
 def init():
-    mode = MODE_NORMAL
-    running = False
+    global Mode, Running
+
+    Mode = MODE_NORMAL
+    Running = False
 
 def DEIMdecode(byte):
     """Decode a DEIM byte"""
@@ -57,6 +58,7 @@ def DEIMdecode(byte):
 
 def doDEIMByte(byte):
     global DPC, DX, DY, DRSindex
+    global Mode
 
     if byte & 0x80:			# increment?
         prevDX = DX
@@ -73,7 +75,7 @@ def doDEIMByte(byte):
 #                display.draw(0, prevDX, prevDY, DX, DY)
     else:				# micro instructions
         if byte & 0x40:
-            mode = MODE_NORMAL
+            Mode = MODE_NORMAL
         if byte & 0x20:		# DRJM
             if DRSindex <= 0:
                 Trace.comment('\nDRS stack underflow at display address %6.6o'
@@ -92,18 +94,19 @@ def doDEIMByte(byte):
 
 def execute_one_instruction():
     global DPC
+    global Mode
 
-    if not running:
+    if not Running:
         Trace.dtrace('')
         return 0
 
     instruction = Memory.get(DPC, 0)
     DPC = MASK_MEM(DPC + 1)
 
-    if mode == MODE_DEIM:
+    if Mode == MODE_DEIM:
         Trace.trace(DEIMdecode(instruction >> 8) + '\t')
         doDEIMByte(instruction >> 8)
-        if mode == MODE_DEIM:
+        if Mode == MODE_DEIM:
             Trace.trace(DEIMdecode(instruction & 0xff) + '\t')
             doDEIMByte(instruction & 0xff)
         else:
@@ -114,14 +117,14 @@ def execute_one_instruction():
     address = instruction & 007777
 
     if   opcode == 000:	return page00(instruction)
-    elif opcode == 001:     return i_DLXA(address)
-    elif opcode == 002:     return i_DLYA(address)
-    elif opcode == 003:     return i_DEIM(address)
-    elif opcode == 004:     return i_DLVH(address)
-    elif opcode == 005:     return i_DJMS(address)
-    elif opcode == 006:     return i_DJMP(address)
-    elif opcode == 007:     return illegal(instruction)
-    else:                   illegal(instruction)
+    elif opcode == 001: return i_DLXA(address)
+    elif opcode == 002: return i_DLYA(address)
+    elif opcode == 003: return i_DEIM(address)
+    elif opcode == 004: return i_DLVH(address)
+    elif opcode == 005: return i_DJMS(address)
+    elif opcode == 006: return i_DJMP(address)
+    elif opcode == 007: illegal(instruction)
+    else:               illegal(instruction)
 
 def illegal(instruction=None):
     if instruction:
@@ -133,7 +136,7 @@ def illegal(instruction=None):
     sys.exit(0)
 
 def ison():
-    return running
+    return Running
 
 def i_DDXM():
     global DX
@@ -148,13 +151,15 @@ def i_DDYM():
     Trace.dtrace('DDYM')
 
 def i_DEIM(address):
-    mode = MODE_DEIM
+    global Mode
+
+    Mode = MODE_DEIM
     Trace.deimtrace('DEIM', DEIMdecode(address & 0377))
     doDEIMByte(address & 0377)
     return 1
 
 def i_DHLT():
-    running = False
+    Running = False
     Trace.dtrace('DHLT')
 
 def i_DHVC():
@@ -315,11 +320,11 @@ def page00(instruction):
     return 1
 
 def start():
-    global running
+    global Running
 
-    running = True
+    Running = True
 
 def stop():
-    global running
+    global Running
 
-    running = False
+    Running = False

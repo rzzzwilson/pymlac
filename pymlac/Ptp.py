@@ -21,6 +21,7 @@ motor_state = MOTOR_OFF
 device_state = DEVICE_NOT_READY
 filename = None
 open_file = None
+cycle_count = None
 
 
 def init():
@@ -50,27 +51,27 @@ def dismount():
     open_file = None
 
 def start():
-    global motor_state, device_state, filename, open_file
+    global motor_state, device_state, cycle_count
 
     motor_state = MOTOR_ON
     device_state = DEVICE_NOT_READY
     cycle_count = DEVICE_NOT_READY_CYCLES
 
 def stop():
-    global motor_state, device_state, filename, open_file
+    global motor_state, device_state
 
     motor_state = MOTOR_OFF
     device_state = DEVICE_NOT_READY
 
 def write(ch):
-    global motor_state, device_state, filename, open_file
+    global device_state, open_file, cycle_count
 
     device_state = DEVICE_NOT_READY
     cycle_count = DEVICE_NOT_READY_CYCLES
     open_file.write(ch)
 
 def tick(cycles):
-    global motor_state, device_state, filename, open_file
+    global motor_state, device_state, open_file, cycle_count
 
     if motor_state == MOTOR_OFF or not open_file:
         device_state = DEVICE_NOT_READY
