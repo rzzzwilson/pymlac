@@ -24,7 +24,8 @@ except ImportError:
 # Various demo constants
 ######
 
-DefaultAppSize = (200, 200)
+WindowTitleHeight = 22
+DefaultAppSize = (600, 600+WindowTitleHeight)
 
 ################################################################################
 # The main application frame
@@ -50,24 +51,36 @@ class TestFrame(wx.Frame):
 
         self.Bind(wx.EVT_SIZE, self.OnSize)
 
-        self.display.Drawlist([(0,0,1024,1024), (1024,0,0,1024)])
+        self.lock = False
+
+        self.Refresh()
+
+        self.display.Drawlist([(0,0,1023,1023), (1023,0,0,1023)])
 
     def OnSize(self, event):
         """Maintain square window."""
 
-        if deltaw is None:
+        if not self.lock:
+            self.lock = True
+            (w, h) = event.GetSize()
+            log('####: w=%d, h=%d' % (w, h))
+            size = min(w, h)
+            self.SetSize((size-WindowTitleHeight, size))
+            self.lock = False
 
+#        if deltaw is None:
+#
 #        (fwidth, fheight) = self.GetSize()                              
 #        log('####: fwidth=%d, fheight=%d' % (fwidth, fheight))
+#        fheight -= WindowTitleHeight
+#        fsize = min(fwidth, fheight)
+#        self.SetSize((fsize, fsize)) 
 #
 #        (pwidth, pheight) = self.display.GetClientSizeTuple()
-#        deltaw = fwidth - pwidth
-#        deltah = fheight - pheight
-#        log('####: deltaw=%d, deltah=%d' % (deltaw, deltah))
+#        pheight = fheight - WindowTitleHeight
+#        log('####: pwidth=%d, pheight=%d' % (pwidth, pheight))
 #
-#        psize = min(pwidth, pheight)
-#        fsize = (pwidth+deltaw, pheight+deltah)
-#        self.SetSize(fsize) 
+#        self.SetSize((pwidth, pheight)) 
 
         event.Skip()
 
