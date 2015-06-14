@@ -90,10 +90,10 @@ class _BufferedCanvas(wx.Panel):
         """Create a new off-screen buffer to hold drawn data."""
 
         (width, height) = self.GetClientSizeTuple()
-        if width == 0:
-            width = 1
-        if height == 0:
-            height = 1
+#        if width == 0:
+#            width = 1
+#        if height == 0:
+#            height = 1
 
         minsize = min(width, height)
         self.SetSize((minsize, minsize))
