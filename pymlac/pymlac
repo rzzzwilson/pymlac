@@ -369,12 +369,10 @@ class MyFrame(wx.Frame):
                                size=(self.WIDTH_SCREEN, self.HEIGHT_SCREEN),
                                pos=(0,0)) 
         self.screen.SetBackgroundColour(self.SCREEN_COLOUR)
-        self.screen.Bind(wx.EVT_PAINT, self.on_paint) 
         self.console = wx.Panel(self, style=wx.SIMPLE_BORDER,
                                 size=(self.WIDTH_CONSOLE, self.HEIGHT_SCREEN),
                                 pos=(self.WIDTH_SCREEN,0)) 
         self.console.SetBackgroundColour(self.CONSOLE_COLOUR)
-        self.console.Bind(wx.EVT_PAINT, self.on_paint) 
 
         python_png = wx.Image('images/PythonPowered.png',
                               wx.BITMAP_TYPE_PNG).ConvertToBitmap()
@@ -698,12 +696,10 @@ class MyFrame(wx.Frame):
                                size=(self.WIDTH_SCREEN, self.HEIGHT_SCREEN),
                                pos=(0,0)) 
         self.screen.SetBackgroundColour(self.SCREEN_COLOUR)
-        self.screen.Bind(wx.EVT_PAINT, self.on_paint) 
         self.console = wx.Panel(self, style=wx.SIMPLE_BORDER,
                                 size=(self.WIDTH_CONSOLE, self.HEIGHT_SCREEN),
                                 pos=(self.WIDTH_SCREEN,0)) 
         self.console.SetBackgroundColour(self.CONSOLE_COLOUR)
-        self.console.Bind(wx.EVT_PAINT, self.on_paint) 
 
         python_png = wx.Image('images/PythonPowered.png',
                               wx.BITMAP_TYPE_PNG).ConvertToBitmap()
@@ -785,6 +781,9 @@ class MyFrame(wx.Frame):
         self.y_sign = +1
 
         self.Fit() 
+
+        self.screen.Bind(wx.EVT_PAINT, self.on_paint) 
+        self.console.Bind(wx.EVT_PAINT, self.on_paint) 
 
     def on_paint(self, event):
         global count
