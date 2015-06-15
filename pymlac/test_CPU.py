@@ -491,4 +491,37 @@ def main(filename):
 ################################################################################
 
 if __name__ == '__main__':
-    main('CPU.test')
+    import sys
+    import getopt
+
+    def usage(msg=None):
+        if msg:
+            print('*'*60)
+            print(msg)
+            print('*'*60)
+        print(__doc__)
+
+    try:
+        (opts, args) = getopt.gnu_getopt(sys.argv, "h", ["help"])
+    except getopt.GetoptError:
+        usage()
+        sys.exit(10)
+
+    for opt, arg in opts:
+        if opt in ("-h", "--help"):
+            usage()
+            sys.exit(0)
+
+    if len(args) != 2:
+        usage()
+        sys.exit(10)
+
+    filename = args[1]
+    try:
+        f = open(filename)
+    except IOError:
+        print("Sorry, can't find file '%s'" % filename)
+        sys.exit(10)
+    f.close()
+
+    main(filename)
