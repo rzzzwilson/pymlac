@@ -63,24 +63,9 @@ class TestFrame(wx.Frame):
         if not self.lock:
             self.lock = True
             (w, h) = event.GetSize()
-            log('####: w=%d, h=%d' % (w, h))
             size = min(w, h)
             self.SetSize((size-WindowTitleHeight, size))
             self.lock = False
-
-#        if deltaw is None:
-#
-#        (fwidth, fheight) = self.GetSize()                              
-#        log('####: fwidth=%d, fheight=%d' % (fwidth, fheight))
-#        fheight -= WindowTitleHeight
-#        fsize = min(fwidth, fheight)
-#        self.SetSize((fsize, fsize)) 
-#
-#        (pwidth, pheight) = self.display.GetClientSizeTuple()
-#        pheight = fheight - WindowTitleHeight
-#        log('####: pwidth=%d, pheight=%d' % (pwidth, pheight))
-#
-#        self.SetSize((pwidth, pheight)) 
 
         event.Skip()
 
