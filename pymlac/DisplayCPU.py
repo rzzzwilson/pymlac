@@ -72,7 +72,7 @@ def doDEIMByte(byte):
         else:
             DY += (byte & 0x03)
             if byte & 0x40:
-                display.draw(0, prevDX, prevDY, DX, DY)
+                display.draw(prevDX, prevDY, DX, DY)
     else:				# micro instructions
         if byte & 0x40:
             Mode = MODE_NORMAL
@@ -250,7 +250,7 @@ def i_DLVH(word1):
         else:
             DY += N
 
-        display.draw(dotted, prevDX, prevDY, DX, DY)
+        display.draw(prevDX, prevDY, DX, DY, dotted)
     Trace.dtrace('DLVH')
     return 3
 

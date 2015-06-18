@@ -148,15 +148,21 @@ class Display(_BufferedCanvas):
 
         self.OnSize()
 
-    def draw(self, sd, x1, y1, x2, y2):
+    def draw(self, x1, y1, x2, y2, dotted=False):
         """Draw a line on the screen.
 
-        sd      True if solid line, False if dotted
         x1, y1  start coordinates
         x2, y2  end coordinates
+        dotted  True if dotted line, else False
         """
 
-        self.drawlist.append((sd, x1, y1, x2, y2))
+        self.drawlist.append((x1, y1, x2, y2, dotted))
+        self.Update()
+
+    def clear(self):
+        """Clear the display."""
+
+        self.drawlist = []
         self.Update()
 
     def Draw(self, dc):
@@ -167,8 +173,8 @@ class Display(_BufferedCanvas):
 
         pen = wx.Pen(self.DrawColour)
 
-        for (sd, x1, y1, x2, y2) in self.drawlist:
-            if sd:
+        for (x1, y1, x2, y2, dotted) in self.drawlist:
+            if not dotted:
                 pen.SetStyle(wx.SOLID)
                 pen.SetWidth(2)
             else:
