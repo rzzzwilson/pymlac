@@ -25,7 +25,7 @@ except ImportError:
 ######
 
 WindowTitleHeight = 22
-DefaultAppSize = (600, 600+WindowTitleHeight)
+DefaultAppSize = (200, 200+WindowTitleHeight)
 
 ################################################################################
 # The main application frame
@@ -55,8 +55,8 @@ class TestFrame(wx.Frame):
 
         self.Refresh()
 
-        self.display.draw(0, 0, 1023, 1023)
-        self.display.draw(1023, 0, 0, 1023)
+        self.display.draw(True, 0, 0, 2047, 2047)
+        self.display.draw(False, 2047, 0, 0, 2047)
 
     def OnSize(self, event):
         """Maintain square window."""
