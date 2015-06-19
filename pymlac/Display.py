@@ -101,6 +101,7 @@ class _BufferedCanvas(wx.Panel):
 
         (width, height) = self.GetClientSizeTuple()
 
+        # keep widget square
         minsize = min(width, height)
         self.SetSize((minsize, minsize))
 
