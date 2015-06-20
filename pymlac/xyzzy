@@ -24,6 +24,7 @@ where options may be zero or more of:
 
 import sys
 import os
+import time
 import traceback
 from threading import *
 import wx
@@ -705,6 +706,7 @@ class DisplayFrame(wx.Frame):
         self.Refresh()
 
         self.lock = False
+        self.running = False
 
         # Set up handler for interpreter thread events
         self.Bind(EVT_INTERPRETER_STOP, self.OnInterpreterStop)
@@ -718,6 +720,7 @@ class DisplayFrame(wx.Frame):
         """A STOP event from the interpreter."""
 
         print('OnInterpreterStop: event=%s' % str(dir(event)))
+        self.running = False
 
     def OnSize(self, event):
         """Maintain square window."""
@@ -742,6 +745,9 @@ class DisplayFrame(wx.Frame):
         Imlac.init(0, TRACE_FILENAME, None, None, boot_rom, CORE_FILENAME)
 
         for (operation, args) in ops:
+            while self.running:
+                time.sleep(1)
+
             if operation == 'boot':
                 Memory.set_ROM(args)
                 Trace.comment('Bootstrap ROM set to %s' % args.upper())
@@ -771,6 +777,7 @@ class DisplayFrame(wx.Frame):
                                   '-----------------------')
                 #self.on_paint()
                 self.interpreter = InterpreterThread(self)
+                self.running = True
 #                Imlac.run()
                 #self.on_paint()
 #                Trace.comment('Imlac halted')
@@ -837,6 +844,11 @@ app = wx.App()
 DisplayFrame().Show()
 app.MainLoop()
 sys.exit(0)
+
+
+
+
+
 
 
 # GUI Frame class that spins off the worker thread
