@@ -201,14 +201,15 @@ class Memory(object):
 
         # the Imlac can get into infinite defer loops, and so can we!
         while indirect:
-            address = address & (MEMORY_SIZE - 1)
+            address = MASK_MEM(address)
+
+            # if indirect on auto-inc register, add one to it before use
             if ISAUTOINC(address):
-                # indirect on auto-inc register, add one to it before use
-                self.memory[address] = MASK_MEM(self.memory[address] + 1)
-            address = self.memory[address]
+                self.memory[address] += 1
+            address = self.memory[MASK_MEM(address)]
             indirect = bool(address & 0100000)
 
-        return self.memory[address]
+        return self.memory[MASK_MEM(address)]
 
     def eff_address(self, address, indirect):
         """Get an effective memory address.
