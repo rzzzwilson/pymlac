@@ -14,7 +14,7 @@ where <filename> is a file of test instructions and
 # We implement a small interpreter to test the CPU.  The test code is read in
 # from a file:
 #
-#    # LAW                                                                            
+#    # LAW
 #    setreg ac 012345; setreg l 1; setreg pc 0100; setmem 0100 [LAW 0]; RUN; checkcycles 1; checkreg pc 0101; checkreg ac 0
 #    setreg ac 012345; setreg l 0; setmem 0100 [LAW 0]; RUN 0100
 #            checkcycles 1; checkreg pc 0101; checkreg ac 0
@@ -70,423 +70,387 @@ import Memory
 import log
 log = log.Log('test_CPU.log', log.Log.DEBUG)
 
-# fake a Display instance
-DisplayState = False
+
+class TestCPU(object):
+
+    # temporary assembler file and listfile prefix
+    AsmFilename = '_#ASM#_'
 
 
-# number of cycles used in previous instruction
-UsedCycles = 0
+    def __init__(self):
+        """Initialize the test."""
 
-# register+value explicitly set by test
-RegValues = {}
+        pass
 
-# memory address+value explicitly set by test
-MemValues = {}
+    def assemble(self, addr, opcode):
+        """Assemble a single instruction, return opcode."""
 
-# memory value all explicitly set to (shouldn't change)
-MemAllValue = None
+        # create ASM file with instruction
+        with open(self.AsmFilename+'.asm', 'wb') as fd:
+            fd.write('\torg\t%07o\n' % addr)
+            fd.write('\t%s\n' % opcode[1:-1])
+            fd.write('\tend\n')
 
-# registers value all explicitly set to (shouldn't change)
-RegAllValue = None
+        # now assemble file
+        os.system('../iasm/iasm -l %s.lst %s.asm' % (self.AsmFilename, self.AsmFilename))
 
-# temporary assembler file and listfile prefix
-AsmFilename = '_#ASM#_'
+        # read the listing file to get assembled opcode (second line)
+        with open(self.AsmFilename+'.lst', 'rb') as fd:
+            lines = fd.readlines()
+        line = lines[1]
+        (opcode, _) = line.split(None, 1)
 
-
-def assemble(addr, opcode):
-    """Assemble a single instruction, return opcode."""
-
-    # create ASM file with instruction
-    with open(AsmFilename+'.asm', 'wb') as fd:
-        fd.write('\torg\t%07o\n' % addr)
-        fd.write('\t%s\n' % opcode[1:-1])
-        fd.write('\tend\n')
-
-    # now assemble file
-    os.system('../iasm/iasm -l %s.lst %s.asm' % (AsmFilename, AsmFilename))
-
-    # read the listing file to get assembled opcode (second line)
-    with open(AsmFilename+'.lst', 'rb') as fd:
-        lines = fd.readlines()
-    line = lines[1]
-    (opcode, _) = line.split(None, 1)
-
-    return int(opcode, base=8)
+        return int(opcode, base=8)
 
 
-def setreg(name, value):
-    """Set register to a value.
+    def setreg(self, name, value):
+        """Set register to a value.
 
-    Remember value to check later.
-    """
+        Remember value to check later.
+        """
 
-    global RegValues
-    
-    RegValues[name] = value
+        self.reg_values[name] = value
 
-    if name == 'ac':
-        MainCPU.AC = value
-    elif name == 'l':
-        MainCPU.L = value & 1
-    elif name == 'pc':
-        MainCPU.PC = value
-    elif name == 'ds':
-        MainCPU.DS = value
-    else:
-        raise Exception('setreg: bad register name: %s' % name)
-
-def setmem(addr, value):
-    """Set memory location to a value."""
-
-    if isinstance(value, basestring):
-        log.debug('setmem: addr=%s, value=%s' % (oct(addr), value))
-    else:
-        log.debug('setmem: addr=%s, value=%s' % (oct(addr), oct(value)))
-
-    global MemValues
-
-    # check if we must assemble var2
-    if isinstance(value, basestring) and value[0] == '[':
-        # assemble an instruction
-        value = assemble(addr, value)
-        log.debug('setmem: assembled opcode=%07o' % value)
-
-    MemValues[addr] = value
-    log.debug('setmem: After, MemValues=%s' % str(MemValues))
-
-    Memory.put(value, addr, False)
-    log.debug('setmem: After, Memory at %07o is %07o' % (addr, Memory.fetch(addr, False)))
-
-
-def allmem(value):
-    """Set all of memory to a value.
-
-    Remember value to check later.
-    """
-
-    global MemAllValue
-
-    log.debug('allmem: setting memory to %07o' % value)
-
-    MemAllValue = value
-
-    for mem in range(MEMORY_SIZE):
-        Memory.put(value, mem, False)
-
-def allreg(value):
-    """Set all registers to a value."""
-
-    global RegAllValue
-
-    RegAllValue = value
-
-    MainCPU.AC = value
-    MainCPU.L = value & 1
-    MainCPU.PC = value
-    MainCPU.DS = value
-
-def check_all_mem():
-    """Check memory for unwanted changes."""
-
-    result = []
-
-    for mem in range(MEMORY_SIZE):
-        value = Memory.fetch(mem, False)
-        if mem in MemValues:
-            if value != MemValues[mem]:
-                result.append('Memory at %07o changed, is %07o, should be %07o'
-                              % (mem, value, MemValues[mem]))
+        if name == 'ac':
+            self.cpu.AC = value
+        elif name == 'l':
+            self.cpu.L = value & 1
+        elif name == 'pc':
+            self.cpu.PC = value
+        elif name == 'ds':
+            self.cpu.DS = value
         else:
-            if value != MemAllValue:
-                result.append('Memory at %07o changed, is %07o, should be %07o'
-                              % (mem, value, MemAllValue))
+            raise Exception('setreg: bad register name: %s' % name)
 
-def check_all_regs():
-    """Check registers for unwanted changes."""
+    def setmem(self, addr, value):
+        """Set memory location to a value."""
 
-    result = []
-
-    if 'ac' in RegValues:
-        if MainCPU.AC != RegValues['ac']:
-            result.append('AC changed, is %07o, should be %07o'
-                          % (MainCPU.AC, RegValues['ac']))
-    else:
-        if MainCPU.AC != RegAllValue:
-            result.append('AC changed, is %07o, should be %07o'
-                          % (MainCPU.AC, RegAllValue))
-
-    if 'l' in RegValues:
-        if MainCPU.L != RegValues['l']:
-            result.append('L changed, is %02o, should be %02o'
-                          % (MainCPU.L, RegValues['l']))
-    else:
-        if MainCPU.L != RegAllValue & 1:
-            result.append('L changed, is %02o, should be %02o'
-                          % (MainCPU.L, RegAllValue & 1))
-
-    if 'pc' in RegValues:
-        if MainCPU.PC != RegValues['pc']:
-            result.append('PC changed, is %07o, should be %07o'
-                          % (MainCPU.PC, RegValues['pc']))
-    else:
-        if MainCPU.PC != RegAllValue:
-            result.append('PC changed, is %07o, should be %07o'
-                          % (MainCPU.PC, RegAllValue))
-
-    if 'ds' in RegValues:
-        if MainCPU.DS != RegValues['ds']:
-            result.append('DS changed, is %07o, should be %07o'
-                          % (MainCPU.DS, RegValues['ds']))
-    else:
-        if MainCPU.DS != RegAllValue:
-            result.append('DS changed, is %07o, should be %07o'
-                          % (MainCPU.DS, RegAllValue))
-
-    return result
-
-def checkreg(reg, value):
-    """Check register is as it should be."""
-    
-    global RegValues
-
-    if reg == 'ac':
-        RegValues[reg] = MainCPU.AC
-        if MainCPU.AC != value:
-            return 'AC wrong, is %07o, should be %07o' % (MainCPU.AC, value)
-    elif reg == 'l':
-        RegValues[reg] = MainCPU.L
-        if MainCPU.L != value:
-            return 'L wrong, is %02o, should be %02o' % (MainCPU.L, value)
-    elif reg == 'pc':
-        RegValues[reg] = MainCPU.PC
-        if MainCPU.PC != value:
-            return 'PC wrong, is %07o, should be %07o' % (MainCPU.PC, value)
-    elif reg == 'ds':
-        RegValues[reg] = MainCPU.DS
-        if MainCPU.DS != value:
-            return 'DS wrong, is %07o, should be %07o' % (MainCPU.DS, value)
-    else:
-        raise Exception('checkreg: bad register name: %s' % name)
-
-def checkmem(addr, value):
-    """Check a memory location is as it should be."""
-
-    global MemValues
-
-    MemValues[addr] = value
-    log.debug('checkmem: After, MemValues=%s' % str(MemValues))
-
-    memvalue = Memory.fetch(addr, False)
-    if memvalue != value:
-        return 'Memory wrong at address %07o, is %07o, should be %07o' % (addr, memvalue, value)
-
-def checkcycles(cycles, var2=None):
-    """Check that opcode cycles used is correct."""
-
-    if cycles != UsedCycles:
-        return 'Opcode used %d cycles, expected %d' % (UsedCycles, cycles)
-
-def run(addr, var2):
-    """Execute instruction."""
-
-    global UsedCycles
-
-    if addr is not None:
-        # force PC to given address
-        setreg('pc', addr)
-
-    UsedCycles = MainCPU.execute_one_instruction()
-
-def checkrun(state, var2):
-    """Check CPU run state is as desired."""
-
-    if str(MainCPU.running).lower() != state:
-        return 'CPU run state is %s, should be %s' % (str(MainCPU.running), str(state))
-
-def setd(state, var2):
-    """Set display state."""
-
-    global DisplayState
-
-    if state == 'on':
-        DisplayState = True
-    elif state == 'off':
-        DisplayState = False
-    else:
-        raise Exception('setd: bad state: %s' % str(state))
-
-def checkd(state, var2):
-    """Check display state is as expected."""
-
-    global DisplayState
-
-    if state == 'on' and DisplayState is not True:
-        return 'DCPU run state is %s, should be True' % str(DisplayState)
-    if state == 'off' and DisplayState is True:
-        return 'DCPU run state is %s, should be False' % str(DisplayState)
-
-
-def debug_operation(op, var1, var2):
-    """Write operation to log file."""
-
-    if var1:
-        if var2:
-            log.debug('Operation: %s %s %s' % (op, var1, var2))
+        if isinstance(value, basestring):
+            log.debug('setmem: addr=%s, value=%s' % (oct(addr), value))
         else:
-            log.debug('Operation: %s %s' % (op, var1))
-    else:
-        log.debug('Operation: %s' % op)
+            log.debug('setmem: addr=%s, value=%s' % (oct(addr), oct(value)))
 
-def execute(test):
-    """Execute test string in 'test'."""
+        # check if we must assemble var2
+        if isinstance(value, basestring) and value[0] == '[':
+            # assemble an instruction
+            value = self.assemble(addr, value)
+            log.debug('setmem: assembled opcode=%07o' % value)
 
-    global RegValues, MemValues
-    global RegAllValue, MemAllValue
-    global DisplayState
+        self.mem_values[addr] = value
+        log.debug('setmem: After, MemValues=%s' % str(self.mem_values))
 
-    # set globals
-    RegValues = {}
-    MemValues = {}
-    RegAllValue = {}
-    MemAllValue = {}
+        self.memory.put(value, addr, False)
+        log.debug('setmem: After, Memory at %07o is %07o' % (addr, self.memory.fetch(addr, False)))
 
-    result = []
+    def allmem(self, value):
+        """Set all of memory to a value.
 
-    MainCPU.init()
-    MainCPU.running = True
-    DisplayState = False
-    Memory.init()
+        Remember value to check later.
+        """
 
-    # clear memory and registers to 0 first
-    allmem(0)
-    allreg(0)
+        log.debug('allmem: setting memory to %07o' % value)
 
-    # interpret the test instructions
-    instructions = test.split(';')
-    for op in instructions:
-        fields = op.split(None, 2)
-        op = fields[0].lower()
-        try:
-            var1 = fields[1].lower()
-        except IndexError:
-            var1 = None
-        try:
-            var2 = fields[2].lower()
-        except IndexError:
-            var2 = None
+        self.mem_all_value = value
 
-        debug_operation(op, var1, var2)
+        for mem in range(MEMORY_SIZE):
+            self.memory.put(value, mem, False)
 
-        # change var strings into numeric values
-        if var1 and var1[0] in '0123456789':
-            if var1[0] == '0':
-                var1 = int(var1, base=8)
+    def allreg(self, value):
+        """Set all registers to a value."""
+
+        self.reg_all_value = value
+
+        self.cpu.AC = value
+        self.cpu.L = value & 1
+        self.cpu.PC = value
+        self.cpu.DS = value
+
+    def check_all_mem(self):
+        """Check memory for unwanted changes."""
+
+        result = []
+
+        for mem in range(MEMORY_SIZE):
+            value = self.memory.fetch(mem, False)
+            if mem in self.mem_values:
+                if value != self.mem_values[mem]:
+                    result.append('Memory at %07o changed, is %07o, should be %07o'
+                                  % (mem, value, self.mem_values[mem]))
             else:
-                var1 = int(var1)
-            var1 &= 0177777
+                if value != self.mem_all_value:
+                    result.append('Memory at %07o changed, is %07o, should be %07o'
+                                  % (mem, value, self.mem_all_value))
 
-        if var2 and var2[0] in '0123456789':
-            if var2[0] == '0':
-                var2 = int(var2, base=8)
-            else:
-                var2 = int(var2)
-            var2 &= 0177777
+    def check_all_regs(self):
+        """Check registers for unwanted changes."""
 
-        if op == 'setreg':
-            r = setreg(var1, var2)
-        elif op == 'setmem':
-            r = setmem(var1, var2)
-        elif op == 'run':
-            r = run(var1, var2)
-        elif op == 'checkcycles':
-            r = checkcycles(var1, var2)
-        elif op == 'checkreg':
-            r = checkreg(var1, var2)
-        elif op == 'checkmem':
-            r = checkmem(var1, var2)
-        elif op == 'allreg':
-            r = allreg(var1, var2)
-        elif op == 'allmem':
-            r = allmem(var1, var2)
-        elif op == 'checkrun':
-            r = checkrun(var1, var2)
-        elif op == 'setd':
-            r = setd(var1, var2)
-        elif op == 'checkd':
-            r = checkd(var1, var2)
+        result = []
+
+        if 'ac' in self.reg_values:
+            if self.cpu.AC != self.reg_values['ac']:
+                result.append('AC changed, is %07o, should be %07o'
+                              % (self.cpu.AC, self.reg_values['ac']))
         else:
-            raise Exception("Unrecognized operation '%s' in: %s" % (op, test))
+            if self.cpu.AC != self.reg_all_value:
+                result.append('AC changed, is %07o, should be %07o'
+                              % (self.cpu.AC, self.reg_all_value))
 
-        if r is not None:
+        if 'l' in self.reg_values:
+            if self.cpu.L != self.reg_values['l']:
+                result.append('L changed, is %02o, should be %02o'
+                              % (self.cpu.L, self.reg_values['l']))
+        else:
+            if self.cpu.L != self.reg_all_value & 1:
+                result.append('L changed, is %02o, should be %02o'
+                              % (self.cpu.L, self.reg_all_value & 1))
+
+        if 'pc' in self.reg_values:
+            if self.cpu.PC != self.reg_values['pc']:
+                result.append('PC changed, is %07o, should be %07o'
+                              % (self.cpu.PC, self.reg_values['pc']))
+        else:
+            if self.cpu.PC != self.reg_all_value:
+                result.append('PC changed, is %07o, should be %07o'
+                              % (self.cpu.PC, self.reg_all_value))
+
+        if 'ds' in self.reg_values:
+            if self.cpu.DS != self.reg_values['ds']:
+                result.append('DS changed, is %07o, should be %07o'
+                              % (self.cpu.DS, self.reg_values['ds']))
+        else:
+            if self.cpu.DS != self.reg_all_value:
+                result.append('DS changed, is %07o, should be %07o'
+                              % (self.cpu.DS, self.reg_all_value))
+
+        return result
+
+    def checkreg(self, reg, value):
+        """Check register is as it should be."""
+
+        if reg == 'ac':
+            self.reg_values[reg] = self.cpu.AC
+            if self.cpu.AC != value:
+                return 'AC wrong, is %07o, should be %07o' % (self.cpu.AC, value)
+        elif reg == 'l':
+            self.reg_values[reg] = self.cpu.L
+            if self.cpu.L != value:
+                return 'L wrong, is %02o, should be %02o' % (self.cpu.L, value)
+        elif reg == 'pc':
+            self.reg_values[reg] = self.cpu.PC
+            if self.cpu.PC != value:
+                return 'PC wrong, is %07o, should be %07o' % (self.cpu.PC, value)
+        elif reg == 'ds':
+            self.reg_values[reg] = self.cpu.DS
+            if self.cpu.DS != value:
+                return 'DS wrong, is %07o, should be %07o' % (self.cpu.DS, value)
+        else:
+            raise Exception('checkreg: bad register name: %s' % name)
+
+    def checkmem(self, addr, value):
+        """Check a memory location is as it should be."""
+
+        self.mem_values[addr] = value
+        log.debug('checkmem: After, MemValues=%s' % str(self.mem_values))
+
+        memvalue = self.memory.fetch(addr, False)
+        if memvalue != value:
+            return 'Memory wrong at address %07o, is %07o, should be %07o' % (addr, memvalue, value)
+
+    def checkcycles(self, cycles, var2=None):
+        """Check that opcode cycles used is correct."""
+
+        if cycles != self.used_cycles:
+            return 'Opcode used %d cycles, expected %d' % (self.used_cycles, cycles)
+
+    def run(self, addr, var2):
+        """Execute instruction."""
+
+        if addr is not None:
+            # force PC to given address
+            self.setreg('pc', addr)
+
+        self.used_cycles = self.cpu.execute_one_instruction()
+
+    def checkrun(self, state, var2):
+        """Check CPU run state is as desired."""
+
+        if str(self.cpu.running).lower() != state:
+            return 'CPU run state is %s, should be %s' % (str(self.cpu.running), str(state))
+
+    def setd(self, state, var2):
+        """Set display state."""
+
+        if state == 'on':
+            self.display_state = True
+        elif state == 'off':
+            self.display_state = False
+        else:
+            raise Exception('setd: bad state: %s' % str(state))
+
+    def checkd(self, state, var2):
+        """Check display state is as expected."""
+
+        if state == 'on' and self.display_state is not True:
+            return 'DCPU run state is %s, should be True' % str(self.display_state)
+        if state == 'off' and self.display_state is True:
+            return 'DCPU run state is %s, should be False' % str(self.display_state)
+
+    def debug_operation(self, op, var1, var2):
+        """Write operation to log file."""
+
+        if var1:
+            if var2:
+                log.debug('Operation: %s %s %s' % (op, var1, var2))
+            else:
+                log.debug('Operation: %s %s' % (op, var1))
+        else:
+            log.debug('Operation: %s' % op)
+
+    def execute(self, test):
+        """Execute test string in 'test'."""
+
+        # set globals
+        self.reg_values = {}
+        self.mem_values = {}
+        self.reg_all_value = {}
+        self.mem_all_value = {}
+
+        result = []
+
+        self.memory = Memory.Memory()
+        #self.cpu = MainCPU.MainCPU(memory, display, displaycpu, kbd, ttyin, ttyout, ptp, ptr)
+        self.cpu = MainCPU.MainCPU(self.memory, None, None, None, None, None, None, None)
+        self.cpu.running = True
+        self.display_state = False
+
+        # clear memory and registers to 0 first
+        self.allmem(0)
+        self.allreg(0)
+
+        # interpret the test instructions
+        instructions = test.split(';')
+        for op in instructions:
+            fields = op.split(None, 2)
+            op = fields[0].lower()
+            try:
+                var1 = fields[1].lower()
+            except IndexError:
+                var1 = None
+            try:
+                var2 = fields[2].lower()
+            except IndexError:
+                var2 = None
+
+            self.debug_operation(op, var1, var2)
+
+            # change var strings into numeric values
+            if var1 and var1[0] in '0123456789':
+                if var1[0] == '0':
+                    var1 = int(var1, base=8)
+                else:
+                    var1 = int(var1)
+                var1 &= 0177777
+
+            if var2 and var2[0] in '0123456789':
+                if var2[0] == '0':
+                    var2 = int(var2, base=8)
+                else:
+                    var2 = int(var2)
+                var2 &= 0177777
+
+            if op == 'setreg':
+                r = self.setreg(var1, var2)
+            elif op == 'setmem':
+                r = self.setmem(var1, var2)
+            elif op == 'run':
+                r = self.run(var1, var2)
+            elif op == 'checkcycles':
+                r = self.checkcycles(var1, var2)
+            elif op == 'checkreg':
+                r = self.checkreg(var1, var2)
+            elif op == 'checkmem':
+                r = self.checkmem(var1, var2)
+            elif op == 'allreg':
+                r = self.allreg(var1, var2)
+            elif op == 'allmem':
+                r = self.allmem(var1, var2)
+            elif op == 'checkrun':
+                r = self.checkrun(var1, var2)
+            elif op == 'setd':
+                r = self.setd(var1, var2)
+            elif op == 'checkd':
+                r = self.checkd(var1, var2)
+            else:
+                raise Exception("Unrecognized operation '%s' in: %s" % (op, test))
+
+            if r is not None:
+                result.append(r)
+
+        # now check all memory and regs for changes
+        r = self.check_all_mem()
+        if r:
             result.append(r)
 
+        r = self.check_all_regs()
+        if r:
+            result.extend(r)
 
-    # now check all memory and regs for changes
-    r = check_all_mem()
-    if r:
-        result.append(r)
+        if result:
+            print(test)
+            print('\t' + '\n\t'.join(result))
 
-    r = check_all_regs()
-    if r:
-        result.extend(r)
+        self.memdump('core.txt', 0, 0200)
 
-    if result:
-        print(test)
-        print('\t' + '\n\t'.join(result))
+    def memdump(self, filename, start, number):
+        """Dump memory from 'start' into 'filename', 'number' words dumped."""
 
-    memdump('core.txt', 0, 0200)
+        with open(filename, 'wb') as fd:
+            for addr in range(start, start+number, 8):
+                a = addr
+                llen = min(8, start+number - addr)
+                line = '%04o  ' % addr
+                for _ in range(llen):
+                    line += '%06o ' % self.memory.fetch(a, False)
+                    a += 1
+                fd.write('%s\n' % line)
 
-def memdump(filename, start, number):
-    """Dump memory from 'start' into 'filename', 'number' words dumped."""
+    def main(self, filename):
+        """Execute CPU tests from 'filename'."""
 
-    with open(filename, 'wb') as fd:
-        for addr in range(start, start+number, 8):
-            a = addr
-            llen = min(8, start+number - addr)
-            line = '%04o  ' % addr
-            for _ in range(llen):
-                line += '%06o ' % Memory.fetch(a, False)
-                a += 1
-            fd.write('%s\n' % line)
+        log.debug("Running test file '%s'" % filename)
 
-def main(filename):
-    """Execute CPU tests from 'filename'."""
+        # get all tests from file
+        with open(filename, 'rb') as fd:
+            lines = fd.readlines()
 
-    log.debug("Running test file '%s'" % filename)
+        # read lines, join continued, get complete tests
+        tests = []
+        test = ''
+        for line in lines:
+            line = line[:-1]        # strip newline
+            if not line:
+                continue            # skip blank lines
 
-    # get all tests from file
-    with open(filename, 'rb') as fd:
-        lines = fd.readlines()
+            if line[0] == '#':      # a comment
+                continue
 
-    # read lines, join continued, get complete tests
-    tests = []
-    test = ''
-    for line in lines:
-        line = line[:-1]        # strip newline
-        if not line:
-            continue            # skip blank lines
+            if line[0] == '\t':     # continuation
+                if test:
+                    test += '; '
+                test += line[1:]
+            else:                   # beginning of new test
+                if test:
+                    tests.append(test)
+                test = line
 
-        if line[0] == '#':      # a comment
-            continue
+        # flush last test
+        if test:
+            tests.append(test)
 
-        if line[0] == '\t':     # continuation
-            if test:
-                test += '; '
-            test += line[1:]
-        else:                   # beginning of new test
-            if test:
-                tests.append(test)
-            test = line
-
-    # flush last test
-    if test:
-        tests.append(test)
-
-    # now do each test
-    for test in tests:
-        log.debug('Executing test: %s' % test)
-        execute(test)
-
+        # now do each test
+        for test in tests:
+            log.debug('Executing test: %s' % test)
+            self.execute(test)
 
 ################################################################################
 
@@ -524,4 +488,5 @@ if __name__ == '__main__':
         sys.exit(10)
     f.close()
 
-    main(filename)
+    test = TestCPU()
+    test.main(filename)
