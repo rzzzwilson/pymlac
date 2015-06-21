@@ -18,4 +18,4 @@ lst:	$(TESTS)
 	../iasm/iasm -l $*.lst $<
 
 clean:
-	rm -Rf *.pyc *~ *.out test_*.ptp *.lst test_*.trace _#ASM#_.*
+	rm -Rf *.pyc *~ *.out test_*.ptp *.lst test_*.trace _#ASM#_.* _#PTR#_.* _#PTP#_.*
