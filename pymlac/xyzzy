@@ -50,23 +50,29 @@ except ImportError:
 
 
 ######
-# Various demo constants
+# Default things
 ######
-
-WindowTitleHeight = 22
-DefaultAppSize = (600, 600+WindowTitleHeight)
-
-
 
 # map ROM name to type
 RomTypeMap = {'ptr': ROM_PTR,
               'tty': ROM_TTY,
               'none': ROM_NONE}
 
-count = 1
+DefaultBootROM = 'ptr'
+DefaultCoreFile = 'pymlac.core'
+
+######
+# Various demo constants
+######
+
+WindowTitleHeight = 22      # FIXME probably depends on OS/GUI framework
+DefaultAppSize = (600, 600+WindowTitleHeight)
+
+count = 1       # debug
+
 
 def abort(msg):
-    """Handle a terminal problem."""
+    """Handle a fatal problem."""
 
     print(msg)
     sys.exit(1)
@@ -99,11 +105,12 @@ def get_next(options, index, msg):
 
     return next_arg
 
-def handle_options():
+def get_options():
     """Routine to analyse command line options.
 
     Returns a list of operation objects which are tuples:
         (OPERATION, ARGS)
+    ARGS may be None or possibly another tuple.
     """
 
     options = sys.argv[1:]
@@ -240,7 +247,7 @@ def main():
     """Start of the emulator."""
 
     # get operations list
-    ops = handle_options()
+    ops = get_options()
 
     # Initialize the emulator.
     boot_rom = 'ptr'    # default ROM loader
@@ -688,7 +695,6 @@ class InterpreterThread(Thread):
 class DisplayFrame(wx.Frame):
     def __init__(self):
         wx.Frame.__init__(self, parent=None, size=DefaultAppSize)
-#                          title=('pymlac v%s' % Display.__version__))
         self.SetMinSize(DefaultAppSize)
         self.panel = wx.Panel(self, wx.ID_ANY)
         self.panel.ClearBackground()
@@ -719,8 +725,9 @@ class DisplayFrame(wx.Frame):
     def OnInterpreterStop(self, event):
         """A STOP event from the interpreter."""
 
-        print('OnInterpreterStop: event=%s' % str(dir(event)))
+#        print('OnInterpreterStop: event=%s' % str(dir(event)))
         self.running = False
+        Trace.comment('Imlac halted')
 
     def OnSize(self, event):
         """Maintain square window."""
@@ -737,13 +744,17 @@ class DisplayFrame(wx.Frame):
     def run_machine(self):
         """Run the interpreter."""
 
-        # get operations list
-        ops = handle_options()
+# FIXME create all devices, build the Imlac machine
+        self.memory = Memory.Memory(boot_rom=DefaultBootROM, corefile=DefaultCoreFile)
+        self.ptr = Ptr.Ptr()
+        self.ptp = Ptp.Ptp()
+        self.display = Display.Display(self.memory)
+        self.dcpu = DisplayCPU.DisplayCPU(self.display, self.memory)
+        self.cpu = MainCPU.MainCPU(self.ptr, self.ptp,
+                                   self.display, self.dcpu, self.memory)
 
-        # Initialize the emulator.
-        boot_rom = 'ptr'    # default ROM loader
-        Imlac.init(0, TRACE_FILENAME, None, None, boot_rom, CORE_FILENAME)
-
+        # get and execute the operations list
+        ops = get_options()
         for (operation, args) in ops:
             while self.running:
                 time.sleep(1)
@@ -751,23 +762,18 @@ class DisplayFrame(wx.Frame):
             if operation == 'boot':
                 Memory.set_ROM(args)
                 Trace.comment('Bootstrap ROM set to %s' % args.upper())
-                #self.on_paint()
             elif operation == 'clear':
                 Memory.clear_core()
                 Trace.comment('Core cleared')
-                #self.on_paint()
             elif operation == 'load_ptp':
                 Ptp.mount(args)
                 Trace.comment("File '%s' mounted on PTP" % args)
-                #self.on_paint()
             elif operation == 'load_ptr':
                 Ptr.mount(args)
                 Trace.comment("File '%s' mounted on PTR" % args)
-                #self.on_paint()
             elif operation == 'data':
                 MainCPU.DS = args
                 Trace.comment('Dataswitch value set to %06o' % args)
-                #self.on_paint()
             elif operation == 'run':
                 MainCPU.PC = args
                 Trace.comment('Running from address %06o' % args)
@@ -775,16 +781,10 @@ class DisplayFrame(wx.Frame):
                     Trace.comment('DPC\tDisplay\t\tPC\tMain\t\tRegs')
                     Trace.comment('------  -------------   ------  --------------  '
                                   '-----------------------')
-                #self.on_paint()
                 self.interpreter = InterpreterThread(self)
                 self.running = True
-#                Imlac.run()
-                #self.on_paint()
-#                Trace.comment('Imlac halted')
-                #self.on_paint()
             elif operation == 'set':
                 Trace.comment("Setting memory from file '%s'" % args)
-                #self.on_paint()
             elif operation == 'trace':
                 if args == 'off':
                     Imlac.tracestart = None
@@ -800,18 +800,14 @@ class DisplayFrame(wx.Frame):
                 if tend is not None:
                     tend = '%06o' % tend
                 Trace.comment('Trace set to (%s, %s)' % (tstart, tend))
-                #self.on_paint()
             elif operation == 'ttyin':
                 TtyIn.mount(args)
                 Trace.comment("File '%s' mounted on TTYIN" % args)
-                #self.on_paint()
             elif operation == 'ttyout':
                 TtyOut.mount(args)
                 Trace.comment("File '%s' mounted on TTYOUT" % args)
-                #self.on_paint()
             elif operation == 'view':
                 Trace.comment("Viewing memory from file '%s'" % args)
-                #self.on_paint()
             elif operation == 'write':
                 if args == 'on':
                     Memory.using_rom = True
@@ -820,20 +816,20 @@ class DisplayFrame(wx.Frame):
                 else:
                     abort("Invalid view arg: %s" % args)
                 Trace.comment('ROM write protect set %s' % args.upper())
-                #self.on_paint()
             else:
                 abort('Invalid internal operation: %s' % operation)
 
         Imlac.close(CORE_FILENAME)
 
-
-# our own handler for uncaught exceptions
 def excepthook(type, value, tb):
+    """Handler for uncaught exceptions."""
+
     msg = '\n' + '=' * 80
     msg += '\nUncaught exception:\n'
     msg += ''.join(traceback.format_exception(type, value, tb))
     msg += '=' * 80 + '\n'
     print(msg)
+    log.critical(msg)
     sys.exit(1)
 
 # plug our handler into the python system
@@ -843,69 +839,3 @@ sys.excepthook = excepthook
 app = wx.App()
 DisplayFrame().Show()
 app.MainLoop()
-sys.exit(0)
-
-
-
-
-
-
-
-# GUI Frame class that spins off the worker thread
-class MainFrame(wx.Frame):
-    """Class MainFrame."""
-    def __init__(self, parent, id):
-        """Create the MainFrame."""
-        wx.Frame.__init__(self, parent, id, 'Thread Test')
-
-        # Dumb sample frame with two buttons
-        wx.Button(self, ID_START, 'Start', pos=(0,0))
-        wx.Button(self, ID_STOP, 'Stop', pos=(0,50))
-        self.status = wx.StaticText(self, -1, '', pos=(0,100))
-
-        self.Bind(wx.EVT_BUTTON, self.OnStart, id=ID_START)
-        self.Bind(wx.EVT_BUTTON, self.OnStop, id=ID_STOP)
-
-        # Set up event handler for any worker thread results
-        EVT_INTERPRETER(self,self.OnResult)
-
-        # And indicate we don't have a worker thread yet
-        self.interpreter = None
-
-    def OnStart(self, event):
-        """Start Computation."""
-        # Trigger the worker thread unless it's already busy
-        if not self.interpreter:
-            self.status.SetLabel('Starting computation')
-            self.interpreter = InterpreterThread(self)
-
-    def OnStop(self, event):
-        """Stop Computation."""
-        # Flag the worker thread to stop if running
-        if self.interpreter:
-            self.status.SetLabel('Trying to abort computation')
-            self.interpreter.abort()
-
-    def OnResult(self, event):
-        """Show Result status."""
-        if event.data is None:
-            # Thread aborted (using our convention of None return)
-            self.status.SetLabel('Computation aborted')
-        else:
-            # Process results here
-            self.status.SetLabel('Computation Result: %s' % event.data)
-        # In either event, the worker is done
-        self.interpreter = None
-
-class MainApp(wx.App):
-    """Class Main App."""
-    def OnInit(self):
-        """Init Main App."""
-        self.frame = MainFrame(None, -1)
-        self.frame.Show(True)
-        self.SetTopWindow(self.frame)
-        return True
-
-if __name__ == '__main__':
-    app = MainApp(0)
-    app.MainLoop()

@@ -9,6 +9,7 @@ import sys
 
 from Globals import *
 import DisplayCPU
+#import Display
 import Memory
 import Ptr
 import Ptp
@@ -39,12 +40,17 @@ micro_opcodes = None
 micro_singles = None
 
 # module-level state variables
-running = False
+running = False     # True if CPU running
+
+Display = None      # reference to the Display object
 
 
-def init():
+def init(display):
     global running, main_decode, page_00_decode, page02_decode, micro_opcodes
     global micro_singles
+    global Display
+
+    Display = display
 
     # main dispatch dictionary for decoding opcodes in bits 1-4
     main_decode = {000: page_00,	# secondary decode
