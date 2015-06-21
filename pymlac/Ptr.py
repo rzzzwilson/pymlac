@@ -1,4 +1,4 @@
-#!/usr/bin/python 
+#!/usr/bin/python
 
 """
 Emulate the imlac Paper Tape Reader (PTR).
@@ -11,29 +11,19 @@ the PTR object how many CPU cycles have passed (tick()).
 from Globals import *
 
 
-# number of chars per second we want
-CharsPerSecond = 300
+class Ptr(object):
 
-# duty cycle for PTR is 30% ready and 70% not ready
-ReadyCycles = int((CYCLES_PER_SECOND / CharsPerSecond) / 0.7) / 25
-NotReadyCycles = int((CYCLES_PER_SECOND / CharsPerSecond) / 0.3) / 25
+    # number of chars per second we want
+    CharsPerSecond = 300
 
-# no tape in reader, return 0377 (all holes see light)
-PtrEOF = 0377
+    # duty cycle for PTR is 30% ready and 70% not ready
+    ReadyCycles = int((CYCLES_PER_SECOND / CharsPerSecond) / 0.7) / 25
+    NotReadyCycles = int((CYCLES_PER_SECOND / CharsPerSecond) / 0.3) / 25
 
-# module-level state variables
-motor_on = False
-device_ready = False
-open_file = None
-filename = None
-at_eof = True
-value = PtrEOF
-cycle_count = 0
+    # no tape in reader, return 0377 (all holes see light)
+    PtrEOF = 0377
 
-
-def init():
-    global motor_on, device_ready, filename, at_eof, value, cycle_count, open_file
-
+    # module-level state variables
     motor_on = False
     device_ready = False
     open_file = None
@@ -42,75 +32,92 @@ def init():
     value = PtrEOF
     cycle_count = 0
 
-def mount(fname):
-    global motor_on, device_ready, filename, at_eof, value, cycle_count, open_file
 
-    motor_on = False
-    device_ready = False
-    filename = fname
-    open_file = open(filename, 'r')
-    at_eof = False
-    value = PtrEOF
+    def __init__(self):
+        """Initialize the paertape reader device."""
 
-def dismount():
-    global motor_on, device_ready, filename, at_eof, value, cycle_count, open_file
+        self.motor_on = False
+        self.device_ready = False
+        self.open_file = None
+        self.filename = None
+        self.at_eof = True
+        self.value = self.PtrEOF
+        self.cycle_count = 0
 
-    motor_on = False
-    device_ready = False
-    if filename:
-        open_file.close()
-    filename = None
-    at_eof = True
-    value = PtrEOF
+    def mount(self, fname):
+        """Mount papertape file on the reader device."""
 
-def start():
-    global motor_on, device_ready, filename, at_eof, value, cycle_count, open_file
+        self.motor_on = False
+        self.device_ready = False
+        self.filename = fname
+        self.open_file = open(self.filename, 'r')
+        self.at_eof = False
+        self.value = self.PtrEOF
 
-    motor_on = True
-    device_ready = False
-    cycle_count = NotReadyCycles
+    def dismount(self):
+        """Dismount a papertape file."""
 
-def stop():
-    global motor_on, device_ready, filename, at_eof, value, cycle_count, open_file
+        self.motor_on = False
+        self.device_ready = False
+        if self.filename:
+            self.open_file.close()
+            self.open_file = None
+        self.filename = None
+        self.at_eof = True
+        self.value = self.PtrEOF
 
-    motor_on = False
-    device_ready = False
-    cycle_count = NotReadyCycles
+    def start(self):
+        """Turn papertape reader motor on."""
 
-def read():
-    return value
+        self.motor_on = True
+        self.device_ready = False
+        self.cycle_count = self.ReadyCycles
 
-def eof():
-    return at_eof
+    def stop(self):
+        """Stop reader motor."""
 
-def tick(cycles):
-    """Called to push PTR state along.
+        self.motor_on = False
+        self.device_ready = False
+        self.cycle_count = self.ReadyCycles
 
-    cycles  number of cycles passed since last tick
-    """
+    def read(self):
+        """Read papertape value."""
 
-    global motor_on, device_ready, filename, at_eof, value, cycle_count, open_file
+        return self.value
 
-    # if end of tape or motor off, do nothing, state remains unchanged
-    if at_eof or not motor_on:
-        return
+    def eof(self):
+        """Return reader EOF status."""
 
-    cycle_count -= cycles
-    if cycle_count <= 0:
-        if device_ready:
-            device_ready = False
-            cycle_count += NotReadyCycles
-        else:
-            device_ready = True
-            cycle_count += ReadyCycles
-            value = open_file.read(1)
-            if len(value) < 1:
-                # EOF on input file, pretend end of tape
-                at_eof = True
-                value = PtrEOF
+        return self.at_eof
+
+    def tick(self, cycles):
+        """Called to push PTR state along.
+
+        cycles  number of cycles passed since last tick
+        """
+
+        # if end of tape or motor off, do nothing, state remains unchanged
+        if self.at_eof or not self.motor_on:
+            return
+
+        self.cycle_count -= cycles
+        if self.cycle_count <= 0:
+            if self.device_ready:
+                self.device_ready = False
+                self.cycle_count += self.ReadyCycles
             else:
-                value = ord(value)
+                self.device_ready = True
+                self.cycle_count += self.ReadyCycles
+                self.value = self.open_file.read(1)
+                if len(self.value) < 1:
+                    # EOF on input file, pretend end of tape
+                    self.at_eof = True
+                    self.value = self.PtrEOF
+                else:
+                    self.value = ord(self.value)
 
-def ready():
-    return device_ready
+    def ready(self):
+        """Test if reader is ready."""
+
+        return self.device_ready
 

@@ -1,4 +1,4 @@
-#!/usr/bin/python 
+#!/usr/bin/python
 
 """
 Emulate the Paper Tape Punch (PTP).
@@ -8,79 +8,83 @@ Emulate the Paper Tape Punch (PTP).
 from Globals import *
 
 
-# define various internal states
-MOTOR_ON = 1
-MOTOR_OFF = 0
-DEVICE_NOT_READY = 0
-DEVICE_READY = 1
-PTP_CHARS_PER_SECOND = 30
-DEVICE_NOT_READY_CYCLES = int(CYCLES_PER_SECOND / PTP_CHARS_PER_SECOND)
+class Ptp(object):
 
-# module-level state variables
-motor_state = MOTOR_OFF
-device_state = DEVICE_NOT_READY
-filename = None
-open_file = None
-cycle_count = None
+    # define various internal states
+    MOTOR_ON = 1
+    MOTOR_OFF = 0
+    DEVICE_NOT_READY = 0
+    DEVICE_READY = 1
+    PTP_CHARS_PER_SECOND = 30
+    DEVICE_NOT_READY_CYCLES = int(CYCLES_PER_SECOND / PTP_CHARS_PER_SECOND)
 
-
-def init():
-    global motor_state, device_state, filename, open_file
-
+    # module-level state variables
     motor_state = MOTOR_OFF
     device_state = DEVICE_NOT_READY
     filename = None
     open_file = None
+    cycle_count = None
 
-def mount(ptp_filename):
-    global motor_state, device_state, filename, open_file
 
-    motor_state = MOTOR_OFF
-    device_state = DEVICE_NOT_READY
-    filename = ptp_filename
-    open_file = open(filename, 'w')
+    def init(self):
+        """Initialize the punch."""
 
-def dismount():
-    global motor_state, device_state, filename, open_file
+        self.motor_state = self.MOTOR_OFF
+        self.device_state = self.DEVICE_NOT_READY
+        self.filename = None
+        self.open_file = None
 
-    motor_state = MOTOR_OFF
-    device_state = DEVICE_NOT_READY
-    if open_file:
-        open_file.close()
-    filename = None
-    open_file = None
+    def mount(self, ptp_filename):
+        """Mount a file on the punch."""
 
-def start():
-    global motor_state, device_state, cycle_count
+        self.motor_state = self.MOTOR_OFF
+        self.device_state = self.DEVICE_NOT_READY
+        self.filename = ptp_filename
+        self.open_file = open(self.filename, 'w')
 
-    motor_state = MOTOR_ON
-    device_state = DEVICE_NOT_READY
-    cycle_count = DEVICE_NOT_READY_CYCLES
+    def dismount(self):
+        """Dismount the file from the punch."""
 
-def stop():
-    global motor_state, device_state
+        self.motor_state = self.MOTOR_OFF
+        self.device_state = self.DEVICE_NOT_READY
+        if self.open_file:
+            self.open_file.close()
+        self.filename = None
+        self.open_file = None
 
-    motor_state = MOTOR_OFF
-    device_state = DEVICE_NOT_READY
+    def start(self):
+        """Start the punch motor."""
 
-def write(ch):
-    global device_state, open_file, cycle_count
+        self.motor_state = self.MOTOR_ON
+        self.device_state = self.DEVICE_NOT_READY
+        self.cycle_count = self.DEVICE_NOT_READY_CYCLES
 
-    device_state = DEVICE_NOT_READY
-    cycle_count = DEVICE_NOT_READY_CYCLES
-    open_file.write(ch)
+    def stop(self):
+        """Stop the punch motor."""
 
-def tick(cycles):
-    global motor_state, device_state, open_file, cycle_count
+        self.motor_state = self.MOTOR_OFF
+        self.device_state = self.DEVICE_NOT_READY
 
-    if motor_state == MOTOR_OFF or not open_file:
-        device_state = DEVICE_NOT_READY
-        return
+    def write(self, ch):
+        """Punch an 8 bit value to the tape file."""
 
-    cycle_count -= cycles
-    if cycle_count <= 0:
-        device_state = DEVICE_READY
+        self.device_state = self.DEVICE_NOT_READY
+        self.cycle_count = self.DEVICE_NOT_READY_CYCLES
+        self.open_file.write(ch)
 
-def ready():
-    return device_state == DEVICE_READY
+    def tick(self, cycles):
+        """Move the state of the punch along."""
+
+        if self.motor_state == self.MOTOR_OFF or not self.open_file:
+            self.device_state = self.DEVICE_NOT_READY
+            return
+
+        self.cycle_count -= cycles
+        if self.cycle_count <= 0:
+            self.device_state = self.DEVICE_READY
+
+    def ready(self):
+        """Get the punch state."""
+
+        return self.device_state == self.DEVICE_READY
 

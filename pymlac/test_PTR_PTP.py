@@ -25,29 +25,29 @@ PtrFilename = '_#PTR#_.ptp'
 PtpFilename = '_#PTP#_.ptp'
 
 
-def read_no_tape():
+def read_no_tape(ptr):
     """Read from device with no tape mounted."""
 
     # read before turning on
-    byte = Ptr.read()
+    byte = ptr.read()
     if byte != 0377:
         print('Error')
-    Ptr.tick(1000000)     # wait a long time
-    byte = Ptr.read()
+    ptr.tick(1000000)     # wait a long time
+    byte = ptr.read()
     if byte != 0377:
         print('Error')
 
     # turn device on, still no tape
-    Ptr.start()
-    Ptr.tick(1000000)     # wait a long time
-    byte = Ptr.read()
+    ptr.start()
+    ptr.tick(1000000)     # wait a long time
+    byte = ptr.read()
     if byte != 0377:
         print('Error')
-    Ptr.tick(1000000)     # wait a long time
-    byte = Ptr.read()
+    ptr.tick(1000000)     # wait a long time
+    byte = ptr.read()
     if byte != 0377:
         print('Error')
-    Ptr.stop()
+    ptr.stop()
 
 def create_papertape(filename):
     """Create a PTP file."""
@@ -65,55 +65,55 @@ def create_papertape(filename):
         for _ in range(128):
             fd.write(chr(0))
 
-def create_papertape_ptp(filename):
+def create_papertape_ptp(ptp, filename):
     """Create a PTP file using the Ptp device."""
 
-    Ptp.mount(filename)
-    Ptp.start()
+    ptp.mount(filename)
+    ptp.start()
 
     # leader
     for _ in range(128):
-        while not Ptp.ready():
-            Ptp.tick(1)
-        Ptp.write(chr(0))
-        while Ptp.ready():
-            Ptp.tick(1)
+        while not ptp.ready():
+            ptp.tick(1)
+        ptp.write(chr(0))
+        while ptp.ready():
+            ptp.tick(1)
 
     # body
     for v in range(1, 256):
-        while not Ptp.ready():
-            Ptp.tick(1)
-        Ptp.write(chr(v))
-        while Ptp.ready():
-            Ptp.tick(1)
+        while not ptp.ready():
+            ptp.tick(1)
+        ptp.write(chr(v))
+        while ptp.ready():
+            ptp.tick(1)
 
     # trailer
     for _ in range(128):
-        while not Ptp.ready():
-            Ptp.tick(1)
-        Ptp.write(chr(0))
-        while Ptp.ready():
-            Ptp.tick(1)
+        while not ptp.ready():
+            ptp.tick(1)
+        ptp.write(chr(0))
+        while ptp.ready():
+            ptp.tick(1)
 
-    Ptp.stop()
-    Ptp.dismount()
+    ptp.stop()
+    ptp.dismount()
 
-def read_tape(filename):
+def read_tape(ptr, filename):
     """Create tape and read it."""
 
     # now mount and read tape
-    Ptr.mount(filename)
-    Ptr.start()
+    ptr.mount(filename)
+    ptr.start()
 
     # read leader
     byte = None
     count = 0
     while True:
-        while not Ptr.ready():
-            Ptr.tick(1)
-        byte = Ptr.read()
-        while Ptr.ready():                                                   
-            Ptr.tick(1)
+        while not ptr.ready():
+            ptr.tick(1)
+        byte = ptr.read()
+        while ptr.ready():                                                   
+            ptr.tick(1)
         if byte != 0:
             break
         count += 1
@@ -124,11 +124,11 @@ def read_tape(filename):
     byte = None
     count = 1
     while True:
-        while not Ptr.ready():
-            Ptr.tick(1)
-        byte = Ptr.read()
-        while Ptr.ready():                                                   
-            Ptr.tick(1)
+        while not ptr.ready():
+            ptr.tick(1)
+        byte = ptr.read()
+        while ptr.ready():                                                   
+            ptr.tick(1)
         if byte == 0:
             break
         count += 1
@@ -139,30 +139,30 @@ def read_tape(filename):
     byte = None
     count = 1
     while True:
-        while not Ptr.ready():
-            Ptr.tick(1)
-        byte = Ptr.read()
+        while not ptr.ready():
+            ptr.tick(1)
+        byte = ptr.read()
         if byte != 0:
             break
         count += 1
-        while Ptr.ready():                                                   
-            Ptr.tick(1)
+        while ptr.ready():                                                   
+            ptr.tick(1)
 
-    Ptr.stop()
+    ptr.stop()
 
     print('%d bytes of trailer' % count)
 
 def main():
     """Test the papertape reader."""
 
-    Ptr.init()
-    Ptp.init()
+    ptr = Ptr.Ptr()
+    ptp = Ptp.Ptp()
 
-    read_no_tape()
+    read_no_tape(ptr)
     create_papertape(PtrFilename)
-    read_tape(PtrFilename)
-    create_papertape_ptp(PtpFilename)
-    read_tape(PtpFilename)
+    read_tape(ptr, PtrFilename)
+    create_papertape_ptp(ptp, PtpFilename)
+    read_tape(ptr, PtpFilename)
 
 
 
