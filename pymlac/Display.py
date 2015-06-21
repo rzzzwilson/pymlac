@@ -189,7 +189,6 @@ class Display(_BufferedCanvas):
         self.Sync40hz = 0
         self.cycle_count = self.SYNC_40HZ_CYCLE_COUNT
 
-    @property
     def ready(self):
         return self.Sync40hz
 
