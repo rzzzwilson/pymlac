@@ -8,22 +8,25 @@ The Imlac trace stuff.
 import time
 
 from Globals import *
-import MainCPU
-import DisplayCPU
 
 # module-level state variables
 tracing = False
 tracefile = None
+cpu = None
+dcpu = None
 
 
-def init(filename):
-    global tracing, tracefile
+def init(filename, maincpu, displaycpu):
+    global tracing, tracefile, cpu, dcpu
 
     tracing = True
     tracefile = open(filename, 'w')
     trace('pymlac %s trace\n\n' % PYMLAC_VERSION)
     tracing = False
     comment = None
+
+    cpu = maincpu
+    dcpu = displaycpu
 
 def close():
     import tracing, tracefile
@@ -58,9 +61,9 @@ def itrace(opcode, indirect=False, address=None):
 def itraceend(dispon):
     if dispon:
         trace('L=%1.1o AC=%6.6o DX=%5.5o DY=%6.6o\n' %
-                   (MainCPU.L, MainCPU.AC, DisplayCPU.DX, DisplayCPU.DY))
+                   (cpu.L, cpu.AC, dcpu.DX, dcpu.DY))
     else:
-        trace('L=%1.1o AC=%6.6o\n' % (MainCPU.L, MainCPU.AC))
+        trace('L=%1.1o AC=%6.6o\n' % (cpu.L, cpu.AC))
 
 def comment(msg):
     tracefile.write(msg+'\n')

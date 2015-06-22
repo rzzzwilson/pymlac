@@ -101,7 +101,7 @@ class Memory(object):
 
         if self.corefile:
             try:
-                loadcore(self.corefile)
+                self.loadcore(self.corefile)
             except IOError:
                 self.clear_core()
         else:

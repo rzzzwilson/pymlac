@@ -30,8 +30,9 @@ from threading import *
 import wx
 
 import Display
+import DisplayCPU
 from Globals import *
-import Imlac
+#import Imlac
 
 import Memory
 import Ptr
@@ -251,15 +252,15 @@ def main():
 
     # Initialize the emulator.
     boot_rom = 'ptr'    # default ROM loader
-    Imlac.init(0, TRACE_FILENAME, None, None, boot_rom, CORE_FILENAME)
+#    Imlac.init(0, TRACE_FILENAME, None, None, boot_rom, CORE_FILENAME)
 
     # now perform operations
     for (operation, args) in ops:
         if operation == 'boot':
-            Memory.set_ROM(args)
+            self.memory.set_ROM(args)
             Trace.comment('Bootstrap ROM set to %s' % args.upper())
         elif operation == 'clear':
-            Memory.clear_core()
+            self.memory.clear_core()
             Trace.comment('Core cleared')
         elif operation == 'load_ptp':
             Ptp.mount(args)
@@ -273,29 +274,31 @@ def main():
         elif operation == 'run':
             MainCPU.PC = args
             Trace.comment('Running from address %06o' % args)
-            if Imlac.tracestart:
-                Trace.comment('DPC\tDisplay\t\tPC\tMain\t\tRegs')
-                Trace.comment('------  -------------   ------  --------------  '
+#            if Imlac.tracestart:
+            Trace.comment('DPC\tDisplay\t\tPC\tMain\t\tRegs')
+            Trace.comment('------  -------------   ------  --------------  '
                               '-----------------------')
-            Imlac.run()
+            self.run()
+#            Imlac.run()
             Trace.comment('Imlac halted')
         elif operation == 'set':
             Trace.comment("Setting memory from file '%s'" % args)
         elif operation == 'trace':
             if args == 'off':
-                Imlac.tracestart = None
-                Imlac.traceend = None
+#                Imlac.tracestart = None
+#                Imlac.traceend = None
+                pass
             else:
                 (start, end) = args
-                Imlac.tracestart = start
-                Imlac.traceend = end
-            tstart = Imlac.tracestart
-            if tstart is not None:
-                tstart = '%06o' % tstart
-            tend = Imlac.traceend
-            if tend is not None:
-                tend = '%06o' % tend
-            Trace.comment('Trace set to (%s, %s)' % (tstart, tend))
+#                Imlac.tracestart = start
+#                Imlac.traceend = end
+#            tstart = Imlac.tracestart
+#            if tstart is not None:
+#                tstart = '%06o' % tstart
+#            tend = Imlac.traceend
+#            if tend is not None:
+#                tend = '%06o' % tend
+#            Trace.comment('Trace set to (%s, %s)' % (tstart, tend))
         elif operation == 'ttyin':
             TtyIn.mount(args)
             Trace.comment("File '%s' mounted on TTYIN" % args)
@@ -306,16 +309,16 @@ def main():
             Trace.comment("Viewing memory from file '%s'" % args)
         elif operation == 'write':
             if args == 'on':
-                Memory.using_rom = True
+                self.memory.using_rom = True
             elif args == 'off':
-                Memory.using_rom = False
+                self.memory.using_rom = False
             else:
                 abort("Invalid view arg: %s" % args)
             Trace.comment('ROM write protect set %s' % args.upper())
         else:
             abort('Invalid internal operation: %s' % operation)
 
-    Imlac.close(CORE_FILENAME)
+#    Imlac.close(CORE_FILENAME)
 
 class Led_1(object):
     def __init__(self, parent, label, x, y, off, on):
@@ -364,255 +367,255 @@ class Led_16(object):
             mask = mask >> 1
 
 
-class PymlacFrame(wx.Frame):
-    """a frame with two panels"""
-
-    WIDTH_SCREEN = 1024
-    HEIGHT_SCREEN = 1024
-    WIDTH_CONSOLE = 330 # 400 # 256
-    HEIGHT_CONSOLE = HEIGHT_SCREEN
-
-    SCREEN_COLOUR = (0, 0, 0)
-    CONSOLE_COLOUR = (255, 223, 169)
-    PHOSPHOR_COLOUR = '#F0F000'	# yellow
-    #PHOSPHOR_COLOUR = '#40FF40'	# green
-
-    V_MARGIN = 20
-    CTL_MARGIN = 15
-    LED_MARGIN = 5
-
-    IMAGE_LED_OFF = 'images/led_off.png'
-    IMAGE_LED_ON = 'images/led_on.png'
-
-    INC = 0.01
-
-    def __init__(self, parent=None, id=-1, title=None):
-        wx.Frame.__init__(self, parent, id, title)
-
-        self.make_gui()
-        self.run()
-
-    def make_gui(self):
-        self.screen = wx.Panel(self,
-                               size=(self.WIDTH_SCREEN, self.HEIGHT_SCREEN),
-                               pos=(0,0))
-        self.screen.SetBackgroundColour(self.SCREEN_COLOUR)
-        self.console = wx.Panel(self, style=wx.SIMPLE_BORDER,
-                                size=(self.WIDTH_CONSOLE, self.HEIGHT_SCREEN),
-                                pos=(self.WIDTH_SCREEN,0))
-        self.console.SetBackgroundColour(self.CONSOLE_COLOUR)
-
-        python_png = wx.Image('images/PythonPowered.png',
-                              wx.BITMAP_TYPE_PNG).ConvertToBitmap()
-        python_height = python_png.GetHeight()
-        python_width = python_png.GetWidth()
-
-        wxpython_png = wx.Image('images/wxPython2.png',
-                                wx.BITMAP_TYPE_PNG).ConvertToBitmap()
-        wxpython_height = wxpython_png.GetHeight()
-        wxpython_width = wxpython_png.GetWidth()
-
-        h_margin = (self.WIDTH_CONSOLE - wxpython_width - python_width) / 3
-
-        png_height = max(python_height, wxpython_height) + self.V_MARGIN
-
-        v_margin = (png_height - python_height)/2
-        python_ypos = self.HEIGHT_CONSOLE - png_height + v_margin
-        v_margin = (png_height - wxpython_height)/2
-        wxpython_ypos = self.HEIGHT_CONSOLE -  png_height + v_margin
-
-        wx.StaticBitmap(self.console, -1, python_png,
-                        pos=(h_margin, python_ypos))
-        wx.StaticBitmap(self.console, -1, wxpython_png,
-                        pos=(python_width + 2*h_margin, wxpython_ypos))
-
-        self.png_height = png_height
-
-        led_off = wx.Image('images/led_off.png',
-                           wx.BITMAP_TYPE_PNG).ConvertToBitmap()
-        led_on = wx.Image('images/led_on.png',
-                          wx.BITMAP_TYPE_PNG).ConvertToBitmap()
-
-        y_pos = 8
-        self.led_l = Led_1(self.console, 'l', self.CTL_MARGIN, y_pos,
-                           led_off, led_on)
-        self.led_ac = Led_16(self.console, 'ac', 3*self.CTL_MARGIN, y_pos,
-                             led_off, led_on)
-        y_pos += 35
-        self.led_pc = Led_16(self.console, 'pc', 3*self.CTL_MARGIN, y_pos,
-                             led_off, led_on)
-
-
-        y_pos = 305
-        wx.StaticText(self.console, -1, 'ptr', pos=(self.CTL_MARGIN, y_pos))
-        y_pos += 15
-        self.txt_ptrFile = wx.TextCtrl(self.console, -1,
-                                       pos=(self.CTL_MARGIN, y_pos),
-                                       size=(self.WIDTH_CONSOLE-2*self.CTL_MARGIN, 25))
-        y_pos += 30
-
-        wx.StaticText(self.console, -1, 'ptp', pos=(self.CTL_MARGIN, y_pos))
-        y_pos += 15
-        self.txt_ptpFile = wx.TextCtrl(self.console, -1,
-                                       pos=(self.CTL_MARGIN, y_pos),
-                                       size=(self.WIDTH_CONSOLE-2*self.CTL_MARGIN, 25))
-        y_pos += 15
-
-        dc = wx.PaintDC(self.console)
-        dc.SetPen(wx.Pen('black', 1))
-        dc.DrawLine(0, self.HEIGHT_CONSOLE - self.png_height,
-                    self.WIDTH_CONSOLE-1, self.HEIGHT_CONSOLE - self.png_height)
-
-        for (x, y) in self.led_ac.ticks:
-            dc.DrawLine(x, y, x, y+5)
-        first = self.led_ac.ticks[0]
-        last = self.led_ac.ticks[-1]
-        (x1, y1) = first
-        (x2, y2) = last
-        dc.DrawLine(x1, y2+5, x2, y2+5)
-
-        for (x, y) in self.led_pc.ticks:
-            dc.DrawLine(x, y, x, y+5)
-        first = self.led_pc.ticks[0]
-        last = self.led_pc.ticks[-1]
-        (x1, y1) = first
-        (x2, y2) = last
-        dc.DrawLine(x1, y2+5, x2, y2+5)
-
-        self.y_offset = 0
-        self.y_sign = +1
-
-        self.Fit()
-
-    def run_machine(self, ops):
-        """Run the console options."""
-
-        for (operation, args) in ops:
-            if operation == 'boot':
-                Memory.set_ROM(args)
-                Trace.comment('Bootstrap ROM set to %s' % args.upper())
-                self.on_paint()
-            elif operation == 'clear':
-                Memory.clear_core()
-                Trace.comment('Core cleared')
-                self.on_paint()
-            elif operation == 'load_ptp':
-                Ptp.mount(args)
-                Trace.comment("File '%s' mounted on PTP" % args)
-                self.on_paint()
-            elif operation == 'load_ptr':
-                Ptr.mount(args)
-                Trace.comment("File '%s' mounted on PTR" % args)
-                self.on_paint()
-            elif operation == 'data':
-                MainCPU.DS = args
-                Trace.comment('Dataswitch value set to %06o' % args)
-                self.on_paint()
-            elif operation == 'run':
-                MainCPU.PC = args
-                Trace.comment('Running from address %06o' % args)
-                if Imlac.tracestart:
-                    Trace.comment('DPC\tDisplay\t\tPC\tMain\t\tRegs')
-                    Trace.comment('------  -------------   ------  --------------  '
-                                  '-----------------------')
-                self.on_paint()
-                Imlac.run()
-                self.on_paint()
-                Trace.comment('Imlac halted')
-                self.on_paint()
-            elif operation == 'set':
-                Trace.comment("Setting memory from file '%s'" % args)
-                self.on_paint()
-            elif operation == 'trace':
-                if args == 'off':
-                    Imlac.tracestart = None
-                    Imlac.traceend = None
-                else:
-                    (start, end) = args
-                    Imlac.tracestart = start
-                    Imlac.traceend = end
-                tstart = Imlac.tracestart
-                if tstart is not None:
-                    tstart = '%06o' % tstart
-                tend = Imlac.traceend
-                if tend is not None:
-                    tend = '%06o' % tend
-                Trace.comment('Trace set to (%s, %s)' % (tstart, tend))
-                self.on_paint()
-            elif operation == 'ttyin':
-                TtyIn.mount(args)
-                Trace.comment("File '%s' mounted on TTYIN" % args)
-                self.on_paint()
-            elif operation == 'ttyout':
-                TtyOut.mount(args)
-                Trace.comment("File '%s' mounted on TTYOUT" % args)
-                self.on_paint()
-            elif operation == 'view':
-                Trace.comment("Viewing memory from file '%s'" % args)
-                self.on_paint()
-            elif operation == 'write':
-                if args == 'on':
-                    Memory.using_rom = True
-                elif args == 'off':
-                    Memory.using_rom = False
-                else:
-                    abort("Invalid view arg: %s" % args)
-                Trace.comment('ROM write protect set %s' % args.upper())
-                self.on_paint()
-            else:
-                abort('Invalid internal operation: %s' % operation)
-
-        Imlac.close(CORE_FILENAME)
-
-
-    def on_paint(self, event=None):
-        global count
-
-        # establish the painting surface
-        dc = wx.PaintDC(self.screen)
-        dc.SetBackground(wx.Brush(self.SCREEN_COLOUR, 1))
-        dc.SetPen(wx.Pen(self.PHOSPHOR_COLOUR, 1))
-        dc.Clear()
-        if self.y_sign > 0:
-            self.y_offset = self.y_offset + self.INC
-            if self.y_offset > self.HEIGHT_SCREEN-1:
-                self.y_sign = -1
-                self.y_offset = self.HEIGHT_SCREEN-1
-        else:
-            self.y_offset = self.y_offset - self.INC
-            if self.y_offset < 0:
-                self.y_sign = +1
-                self.y_offset = 0
-        dc.DrawLine(0, int(self.y_offset), self.WIDTH_SCREEN-1, int(self.HEIGHT_SCREEN-self.y_offset-1))
-        dc.DrawLine(0, int(self.HEIGHT_SCREEN-self.y_offset-1), self.WIDTH_SCREEN-1, int(self.y_offset))
-
-        dc = wx.PaintDC(self.console)
-        #dc.SetPen(wx.Pen('black', wx.DOT))
-        dc.SetPen(wx.Pen('black', 1))
-        dc.DrawLine(0, self.HEIGHT_CONSOLE - self.png_height,
-                    self.WIDTH_CONSOLE-1, self.HEIGHT_CONSOLE - self.png_height)
-
-        for (x, y) in self.led_ac.ticks:
-            dc.DrawLine(x, y, x, y+5)
-        first = self.led_ac.ticks[0]
-        last = self.led_ac.ticks[-1]
-        (x1, y1) = first
-        (x2, y2) = last
-        dc.DrawLine(x1, y2+5, x2, y2+5)
-
-        for (x, y) in self.led_pc.ticks:
-            dc.DrawLine(x, y, x, y+5)
-        first = self.led_pc.ticks[0]
-        last = self.led_pc.ticks[-1]
-        (x1, y1) = first
-        (x2, y2) = last
-        dc.DrawLine(x1, y2+5, x2, y2+5)
-
-        count += 1
-        self.led_ac.set_value(count)
-
-
-        pass
+#class PymlacFrame(wx.Frame):
+#    """a frame with two panels"""
+#
+#    WIDTH_SCREEN = 1024
+#    HEIGHT_SCREEN = 1024
+#    WIDTH_CONSOLE = 330 # 400 # 256
+#    HEIGHT_CONSOLE = HEIGHT_SCREEN
+#
+#    SCREEN_COLOUR = (0, 0, 0)
+#    CONSOLE_COLOUR = (255, 223, 169)
+#    PHOSPHOR_COLOUR = '#F0F000'	# yellow
+#    #PHOSPHOR_COLOUR = '#40FF40'	# green
+#
+#    V_MARGIN = 20
+#    CTL_MARGIN = 15
+#    LED_MARGIN = 5
+#
+#    IMAGE_LED_OFF = 'images/led_off.png'
+#    IMAGE_LED_ON = 'images/led_on.png'
+#
+#    INC = 0.01
+#
+#    def __init__(self, parent=None, id=-1, title=None):
+#        wx.Frame.__init__(self, parent, id, title)
+#
+#        self.make_gui()
+#        self.run()
+#
+#    def make_gui(self):
+#        self.screen = wx.Panel(self,
+#                               size=(self.WIDTH_SCREEN, self.HEIGHT_SCREEN),
+#                               pos=(0,0))
+#        self.screen.SetBackgroundColour(self.SCREEN_COLOUR)
+#        self.console = wx.Panel(self, style=wx.SIMPLE_BORDER,
+#                                size=(self.WIDTH_CONSOLE, self.HEIGHT_SCREEN),
+#                                pos=(self.WIDTH_SCREEN,0))
+#        self.console.SetBackgroundColour(self.CONSOLE_COLOUR)
+#
+#        python_png = wx.Image('images/PythonPowered.png',
+#                              wx.BITMAP_TYPE_PNG).ConvertToBitmap()
+#        python_height = python_png.GetHeight()
+#        python_width = python_png.GetWidth()
+#
+#        wxpython_png = wx.Image('images/wxPython2.png',
+#                                wx.BITMAP_TYPE_PNG).ConvertToBitmap()
+#        wxpython_height = wxpython_png.GetHeight()
+#        wxpython_width = wxpython_png.GetWidth()
+#
+#        h_margin = (self.WIDTH_CONSOLE - wxpython_width - python_width) / 3
+#
+#        png_height = max(python_height, wxpython_height) + self.V_MARGIN
+#
+#        v_margin = (png_height - python_height)/2
+#        python_ypos = self.HEIGHT_CONSOLE - png_height + v_margin
+#        v_margin = (png_height - wxpython_height)/2
+#        wxpython_ypos = self.HEIGHT_CONSOLE -  png_height + v_margin
+#
+#        wx.StaticBitmap(self.console, -1, python_png,
+#                        pos=(h_margin, python_ypos))
+#        wx.StaticBitmap(self.console, -1, wxpython_png,
+#                        pos=(python_width + 2*h_margin, wxpython_ypos))
+#
+#        self.png_height = png_height
+#
+#        led_off = wx.Image('images/led_off.png',
+#                           wx.BITMAP_TYPE_PNG).ConvertToBitmap()
+#        led_on = wx.Image('images/led_on.png',
+#                          wx.BITMAP_TYPE_PNG).ConvertToBitmap()
+#
+#        y_pos = 8
+#        self.led_l = Led_1(self.console, 'l', self.CTL_MARGIN, y_pos,
+#                           led_off, led_on)
+#        self.led_ac = Led_16(self.console, 'ac', 3*self.CTL_MARGIN, y_pos,
+#                             led_off, led_on)
+#        y_pos += 35
+#        self.led_pc = Led_16(self.console, 'pc', 3*self.CTL_MARGIN, y_pos,
+#                             led_off, led_on)
+#
+#
+#        y_pos = 305
+#        wx.StaticText(self.console, -1, 'ptr', pos=(self.CTL_MARGIN, y_pos))
+#        y_pos += 15
+#        self.txt_ptrFile = wx.TextCtrl(self.console, -1,
+#                                       pos=(self.CTL_MARGIN, y_pos),
+#                                       size=(self.WIDTH_CONSOLE-2*self.CTL_MARGIN, 25))
+#        y_pos += 30
+#
+#        wx.StaticText(self.console, -1, 'ptp', pos=(self.CTL_MARGIN, y_pos))
+#        y_pos += 15
+#        self.txt_ptpFile = wx.TextCtrl(self.console, -1,
+#                                       pos=(self.CTL_MARGIN, y_pos),
+#                                       size=(self.WIDTH_CONSOLE-2*self.CTL_MARGIN, 25))
+#        y_pos += 15
+#
+#        dc = wx.PaintDC(self.console)
+#        dc.SetPen(wx.Pen('black', 1))
+#        dc.DrawLine(0, self.HEIGHT_CONSOLE - self.png_height,
+#                    self.WIDTH_CONSOLE-1, self.HEIGHT_CONSOLE - self.png_height)
+#
+#        for (x, y) in self.led_ac.ticks:
+#            dc.DrawLine(x, y, x, y+5)
+#        first = self.led_ac.ticks[0]
+#        last = self.led_ac.ticks[-1]
+#        (x1, y1) = first
+#        (x2, y2) = last
+#        dc.DrawLine(x1, y2+5, x2, y2+5)
+#
+#        for (x, y) in self.led_pc.ticks:
+#            dc.DrawLine(x, y, x, y+5)
+#        first = self.led_pc.ticks[0]
+#        last = self.led_pc.ticks[-1]
+#        (x1, y1) = first
+#        (x2, y2) = last
+#        dc.DrawLine(x1, y2+5, x2, y2+5)
+#
+#        self.y_offset = 0
+#        self.y_sign = +1
+#
+#        self.Fit()
+#
+#    def run_machine(self, ops):
+#        """Run the console options."""
+#
+#        for (operation, args) in ops:
+#            if operation == 'boot':
+#                Memory.set_ROM(args)
+#                Trace.comment('Bootstrap ROM set to %s' % args.upper())
+#                self.on_paint()
+#            elif operation == 'clear':
+#                Memory.clear_core()
+#                Trace.comment('Core cleared')
+#                self.on_paint()
+#            elif operation == 'load_ptp':
+#                Ptp.mount(args)
+#                Trace.comment("File '%s' mounted on PTP" % args)
+#                self.on_paint()
+#            elif operation == 'load_ptr':
+#                Ptr.mount(args)
+#                Trace.comment("File '%s' mounted on PTR" % args)
+#                self.on_paint()
+#            elif operation == 'data':
+#                MainCPU.DS = args
+#                Trace.comment('Dataswitch value set to %06o' % args)
+#                self.on_paint()
+#            elif operation == 'run':
+#                MainCPU.PC = args
+#                Trace.comment('Running from address %06o' % args)
+#                if Imlac.tracestart:
+#                    Trace.comment('DPC\tDisplay\t\tPC\tMain\t\tRegs')
+#                    Trace.comment('------  -------------   ------  --------------  '
+#                                  '-----------------------')
+#                self.on_paint()
+#                Imlac.run()
+#                self.on_paint()
+#                Trace.comment('Imlac halted')
+#                self.on_paint()
+#            elif operation == 'set':
+#                Trace.comment("Setting memory from file '%s'" % args)
+#                self.on_paint()
+#            elif operation == 'trace':
+#                if args == 'off':
+#                    Imlac.tracestart = None
+#                    Imlac.traceend = None
+#                else:
+#                    (start, end) = args
+#                    Imlac.tracestart = start
+#                    Imlac.traceend = end
+#                tstart = Imlac.tracestart
+#                if tstart is not None:
+#                    tstart = '%06o' % tstart
+#                tend = Imlac.traceend
+#                if tend is not None:
+#                    tend = '%06o' % tend
+#                Trace.comment('Trace set to (%s, %s)' % (tstart, tend))
+#                self.on_paint()
+#            elif operation == 'ttyin':
+#                TtyIn.mount(args)
+#                Trace.comment("File '%s' mounted on TTYIN" % args)
+#                self.on_paint()
+#            elif operation == 'ttyout':
+#                TtyOut.mount(args)
+#                Trace.comment("File '%s' mounted on TTYOUT" % args)
+#                self.on_paint()
+#            elif operation == 'view':
+#                Trace.comment("Viewing memory from file '%s'" % args)
+#                self.on_paint()
+#            elif operation == 'write':
+#                if args == 'on':
+#                    Memory.using_rom = True
+#                elif args == 'off':
+#                    Memory.using_rom = False
+#                else:
+#                    abort("Invalid view arg: %s" % args)
+#                Trace.comment('ROM write protect set %s' % args.upper())
+#                self.on_paint()
+#            else:
+#                abort('Invalid internal operation: %s' % operation)
+#
+#        Imlac.close(CORE_FILENAME)
+#
+#
+#    def on_paint(self, event=None):
+#        global count
+#
+#        # establish the painting surface
+#        dc = wx.PaintDC(self.screen)
+#        dc.SetBackground(wx.Brush(self.SCREEN_COLOUR, 1))
+#        dc.SetPen(wx.Pen(self.PHOSPHOR_COLOUR, 1))
+#        dc.Clear()
+#        if self.y_sign > 0:
+#            self.y_offset = self.y_offset + self.INC
+#            if self.y_offset > self.HEIGHT_SCREEN-1:
+#                self.y_sign = -1
+#                self.y_offset = self.HEIGHT_SCREEN-1
+#        else:
+#            self.y_offset = self.y_offset - self.INC
+#            if self.y_offset < 0:
+#                self.y_sign = +1
+#                self.y_offset = 0
+#        dc.DrawLine(0, int(self.y_offset), self.WIDTH_SCREEN-1, int(self.HEIGHT_SCREEN-self.y_offset-1))
+#        dc.DrawLine(0, int(self.HEIGHT_SCREEN-self.y_offset-1), self.WIDTH_SCREEN-1, int(self.y_offset))
+#
+#        dc = wx.PaintDC(self.console)
+#        #dc.SetPen(wx.Pen('black', wx.DOT))
+#        dc.SetPen(wx.Pen('black', 1))
+#        dc.DrawLine(0, self.HEIGHT_CONSOLE - self.png_height,
+#                    self.WIDTH_CONSOLE-1, self.HEIGHT_CONSOLE - self.png_height)
+#
+#        for (x, y) in self.led_ac.ticks:
+#            dc.DrawLine(x, y, x, y+5)
+#        first = self.led_ac.ticks[0]
+#        last = self.led_ac.ticks[-1]
+#        (x1, y1) = first
+#        (x2, y2) = last
+#        dc.DrawLine(x1, y2+5, x2, y2+5)
+#
+#        for (x, y) in self.led_pc.ticks:
+#            dc.DrawLine(x, y, x, y+5)
+#        first = self.led_pc.ticks[0]
+#        last = self.led_pc.ticks[-1]
+#        (x1, y1) = first
+#        (x2, y2) = last
+#        dc.DrawLine(x1, y2+5, x2, y2+5)
+#
+#        count += 1
+#        self.led_ac.set_value(count)
+#
+#
+#        pass
 
 
 
@@ -652,11 +655,15 @@ class _InterpreterEvent(wx.PyCommandEvent):
 class InterpreterThread(Thread):
     """Worker Thread Class."""
 
-    def __init__(self, parent):
+    def __init__(self, parent, cpu, dcpu):
         """Init Worker Thread Class."""
+
         Thread.__init__(self)
         self.parent = parent
         self._want_abort = 0
+        self.cpu = cpu
+        self.dcpu = dcpu
+
         # This starts the thread running on creation, but you could
         # also make the GUI thread responsible for calling this
         self.start()
@@ -679,10 +686,39 @@ class InterpreterThread(Thread):
 
     def run(self):
         """Run the interpreter."""
+        
+        self.cpu.running = True
+        while self.execute_once() > 0: pass
+        self.cpu.running = False
 
-        Imlac.run()
         self.RaiseInterpreterStop()
 
+    def execute_once():
+        if traceend is None:
+            if self.cpu.PC == tracestart:
+                Trace.settrace(True)
+            else:
+                Trace.settrace(self.cpu.PC >= tracestart and self.cpu.PC <= traceend)
+        
+        if self.dcpu.ison():
+            Trace.trace('%6.6o' % self.dcpu.DPC)
+            Trace.trace('\t')
+        
+        instruction_cycles = self.dcpu.execute_one_instruction()
+        
+        Trace.trace('%6.6o\t' % self.cpu.PC)
+        
+        instruction_cycles += self.cpu.execute_one_instruction()
+        
+        Trace.itraceend(self.dcpu.ison())
+        
+        self.__tick_all(instruction_cycles)
+        
+        if not self.dcpu.ison() and not self.cpu.running:
+            return 0
+        
+        return instruction_cycles
+        
     def abort(self):
         """abort worker thread."""
         # Method for use by main thread to signal an abort
@@ -744,14 +780,21 @@ class DisplayFrame(wx.Frame):
     def run_machine(self):
         """Run the interpreter."""
 
-# FIXME create all devices, build the Imlac machine
-        self.memory = Memory.Memory(boot_rom=DefaultBootROM, corefile=DefaultCoreFile)
+        # create device, construct machine
+        self.kbd = None # Kbd.Kbd()
+        self.ttyin = None # TtyIn.TtyIn()
+        self.ttyout = None # TtyOut.TtyOut()
+        self.memory = Memory.Memory(boot_rom=DefaultBootROM, core=DefaultCoreFile)
         self.ptr = Ptr.Ptr()
         self.ptp = Ptp.Ptp()
-        self.display = Display.Display(self.memory)
+        self.display = Display.Display(self)
         self.dcpu = DisplayCPU.DisplayCPU(self.display, self.memory)
-        self.cpu = MainCPU.MainCPU(self.ptr, self.ptp,
-                                   self.display, self.dcpu, self.memory)
+        self.cpu = MainCPU.MainCPU(self.memory, self.display, self.dcpu,
+                                   self.kbd, self.ttyin, self.ttyout,
+                                   self.ptr, self.ptp)
+
+        Trace.init(TRACE_FILENAME, self.cpu, self.dcpu)
+        tracestart = traceend = None
 
         # get and execute the operations list
         ops = get_options()
@@ -760,66 +803,66 @@ class DisplayFrame(wx.Frame):
                 time.sleep(1)
 
             if operation == 'boot':
-                Memory.set_ROM(args)
+                self.memory.set_ROM(args)
                 Trace.comment('Bootstrap ROM set to %s' % args.upper())
             elif operation == 'clear':
-                Memory.clear_core()
+                self.memory.clear_core()
                 Trace.comment('Core cleared')
             elif operation == 'load_ptp':
                 Ptp.mount(args)
                 Trace.comment("File '%s' mounted on PTP" % args)
             elif operation == 'load_ptr':
-                Ptr.mount(args)
+                self.ptr.mount(args)
                 Trace.comment("File '%s' mounted on PTR" % args)
             elif operation == 'data':
-                MainCPU.DS = args
+                self.cpu.DS = args
                 Trace.comment('Dataswitch value set to %06o' % args)
             elif operation == 'run':
-                MainCPU.PC = args
+                self.cpu.PC = args
                 Trace.comment('Running from address %06o' % args)
-                if Imlac.tracestart:
+                if tracestart:
                     Trace.comment('DPC\tDisplay\t\tPC\tMain\t\tRegs')
                     Trace.comment('------  -------------   ------  --------------  '
                                   '-----------------------')
-                self.interpreter = InterpreterThread(self)
+                self.interpreter = InterpreterThread(self, self.cpu, self.dcpu)
                 self.running = True
             elif operation == 'set':
                 Trace.comment("Setting memory from file '%s'" % args)
             elif operation == 'trace':
                 if args == 'off':
-                    Imlac.tracestart = None
-                    Imlac.traceend = None
+                    tracestart = None
+                    traceend = None
                 else:
                     (start, end) = args
-                    Imlac.tracestart = start
-                    Imlac.traceend = end
-                tstart = Imlac.tracestart
+                    tracestart = start
+                    traceend = end
+                tstart = tracestart
                 if tstart is not None:
                     tstart = '%06o' % tstart
-                tend = Imlac.traceend
+                tend = traceend
                 if tend is not None:
                     tend = '%06o' % tend
                 Trace.comment('Trace set to (%s, %s)' % (tstart, tend))
             elif operation == 'ttyin':
-                TtyIn.mount(args)
+                self.ttyin.mount(args)
                 Trace.comment("File '%s' mounted on TTYIN" % args)
             elif operation == 'ttyout':
-                TtyOut.mount(args)
+                self.ttyout.mount(args)
                 Trace.comment("File '%s' mounted on TTYOUT" % args)
             elif operation == 'view':
                 Trace.comment("Viewing memory from file '%s'" % args)
             elif operation == 'write':
                 if args == 'on':
-                    Memory.using_rom = True
+                    self.memory.using_rom = True
                 elif args == 'off':
-                    Memory.using_rom = False
+                    self.memory.using_rom = False
                 else:
                     abort("Invalid view arg: %s" % args)
                 Trace.comment('ROM write protect set %s' % args.upper())
             else:
                 abort('Invalid internal operation: %s' % operation)
 
-        Imlac.close(CORE_FILENAME)
+#        Imlac.close(CORE_FILENAME)
 
 def excepthook(type, value, tb):
     """Handler for uncaught exceptions."""
