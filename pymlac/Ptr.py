@@ -104,7 +104,7 @@ class Ptr(object):
         if self.cycle_count <= 0:
             if self.device_ready:
                 self.device_ready = False
-                self.cycle_count += self.ReadyCycles
+                self.cycle_count += self.NotReadyCycles
             else:
                 self.device_ready = True
                 self.cycle_count += self.ReadyCycles

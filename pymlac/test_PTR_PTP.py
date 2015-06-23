@@ -6,8 +6,7 @@ Test the pymlac papertape reader code.
 
 Usage: test_PTR_PTP.py <options>
 
-where <filename> is a papertape file (*.ptp)
-  and <options> is zero or more of:
+where <options> is zero or more of:
           -h    print this help and stop
 """
 

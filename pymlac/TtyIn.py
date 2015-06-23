@@ -1,81 +1,99 @@
 #!/usr/bin/python 
 
 """
-Emulate the Input TTY (TTYIN).
+Emulate the Input TTY device (TTYIN).
 """
 
 from Globals import *
 
-
-# define various internal states
-DEVICE_NOT_READY = 0
-DEVICE_READY = 1
-TTYIN_CHARS_PER_SECOND = 1000
-DEVICE_READY_CYCLES = int(CYCLES_PER_SECOND / TTYIN_CHARS_PER_SECOND)
-
-# module-level state variables
-filename = None
-open_file = None
-value = 0
-atEOF = 1
-cycle_count = 0
-isready = DEVICE_NOT_READY
+import log
+log = log.Log('test_CPU.log', log.Log.DEBUG)
 
 
-def init():
-    global filename, open_file, value, atEOF, cycle_count, isready
+class TtyIn(object):
 
-    filename = None
-    open_file = None
-    value = 0
-    atEOF = 1
-    cycle_count = 0
-    isready = DEVICE_NOT_READY
+    # define various internal states
+    DEVICE_NOT_READY = 0
+    DEVICE_READY = 1
+    TTYIN_CHARS_PER_SECOND = 1000
+    DEVICE_READY_CYCLES = int(CYCLES_PER_SECOND / TTYIN_CHARS_PER_SECOND)
+    
+    
+    def __init__(self):
+        """Initialize the TTYIN device."""
+    
+        log('TTYIN: Initializing device')
 
-def mount(fname):
-    global filename, open_file, value, atEOF, cycle_count, isready
+        self.filename = None
+        self.open_file = None
+        self.value = 0
+        self.atEOF = True
+        self.cycle_count = 0
+        self.status = self.DEVICE_NOT_READY
 
-    filename = fname
-    open_file = open(filename, 'r')
-    value = 0
-    atEOF = 0
-    cycle_count = DEVICE_READY_CYCLES
-    isready = DEVICE_NOT_READY
+        log('TTYIN: DEVICE_READY_CYCLES=%d' % self.DEVICE_READY_CYCLES)
+    
+    def mount(self, fname):
+        """Mount a file on the TTYIN device."""
+    
+        log('TTYIN: Mounting file %s on device' % fname)
 
-def dismount():
-    global filename, open_file, value, atEOF, cycle_count, isready
+        self.filename = fname
+        self.open_file = open(fname, 'r')
+        self.value = 0
+        self.atEOF = False
+        self.cycle_count = self.DEVICE_READY_CYCLES
+        self.status = self.DEVICE_NOT_READY
+    
+    def dismount(self):
+        """Dismount the file on the TTYIN device."""
+    
+        log('TTYIN: Dismounting file %s' % self.filename)
 
-    if open_file:
-        open_file.close()
-    filename = None
-    open_file = None
-    value = 0
-    atEOF = 1
-    isready = DEVICE_NOT_READY
+        if self.open_file:
+            self.open_file.close()
+        self.filename = None
+        self.open_file = None
+        self.value = 0
+        self.atEOF = True
+        self.status = self.DEVICE_NOT_READY
+    
+    def read(self):
+        """Return the current device value."""
 
-def read():
-    return value
+        log('TTYIN: Reading device, value is %03o' % self.value)
 
-def ready():
-    return (isready == DEVICE_READY)
+        return self.value
+    
+    def ready(self):
+        """Return device status."""
 
-def clear():
-    global filename, open_file, value, atEOF, cycle_count, isready
+        log("TTYIN: Device 'ready' status is %s" % str(self.status == self.DEVICE_READY))
 
-    isready = DEVICE_NOT_READY
+        return (self.status == self.DEVICE_READY)
+    
+    def clear(self):
+        """Clear the device 'ready' status."""
+    
+        log("TTYIN: Clearing device 'ready' status")
 
-def tick(cycles):
-    global filename, open_file, value, atEOF, cycle_count, isready
+        self.status = self.DEVICE_NOT_READY
+    
+    def tick(self, cycles):
+        """Advance the device state by 'cycles' number of CPU cycles."""
+    
+        log("TTYIN: Doing 'tick' with %d cycles, .atEOF is %s" % (cycles, str(self.atEOF)))
 
-    if (not atEOF):
-        cycle_count -= cycles
-        if cycle_count <= 0:
-            cycle_count = DEVICE_READY_CYCLES
-            value = open_file.read(1)
-            isready = DEVICE_READY
-            if len(value) < 1:
-                atEOF = 1
-                value = 0
-                cycle_count = 0
-                isready = DEVICE_NOT_READY
-
+        if (not self.atEOF):
+            log('TTYIN: .cycle_count=%d' % self.cycle_count)
+            self.cycle_count -= cycles
+            if self.cycle_count <= 0:
+                self.cycle_count = self.DEVICE_READY_CYCLES
+                self.value = self.open_file.read(1)
+                self.status = self.DEVICE_READY
+                if len(self.value) < 1:
+                    # EOF on input file
+                    self.atEOF = True
+                    self.value = 0
+                    self.cycle_count = 0
+                self.value = ord(self.value)
