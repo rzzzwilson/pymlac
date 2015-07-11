@@ -31,6 +31,8 @@ def error(msg):
 def create_tty_file(filename):
     """Create a TTY file."""
     
+    print('create_tty_file(%s)' % filename)
+
     # create a test file
     with open(filename, 'wb') as fd:
         # leader
@@ -65,6 +67,8 @@ def mount_dismount(filename):
 
 def read_tty(filename):
     """Mount a file and read from it."""
+
+    print('read_tty(%s)' % filename)
 
     ttyin = TtyIn.TtyIn()
     ttyin.mount(filename)
