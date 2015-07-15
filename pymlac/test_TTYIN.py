@@ -31,21 +31,15 @@ def error(msg):
 def create_tty_file(filename):
     """Create a TTY file."""
     
-    print('create_tty_file(%s)' % filename)
-
     # create a test file
     with open(filename, 'wb') as fd:
         # leader
         for _ in range(16):
             fd.write(chr(0))
     
-        for v in range(1, 256):
+        for v in range(1, 33):
             fd.write(chr(v))
     
-        # trailer
-        for _ in range(16):
-            fd.write(chr(0))
-
 def no_mounted_file():
     ttyin = TtyIn.TtyIn()
 
@@ -68,21 +62,17 @@ def mount_dismount(filename):
 def read_tty(filename):
     """Mount a file and read from it."""
 
-    print('read_tty(%s)' % filename)
-
     ttyin = TtyIn.TtyIn()
     ttyin.mount(filename)
 
     # read leader
     byte = None
-    count = 0
+    count = 1
     while True:
         while not ttyin.ready():
             ttyin.tick(1)
         byte = ttyin.read()
-        print('byte=%s' % str(byte))
-        while ttyin.ready():                                                   
-            ttyin.tick(1)
+        ttyin.clear()
         if byte != 0:
             break
         count += 1
@@ -90,35 +80,15 @@ def read_tty(filename):
     print('%d bytes of leader' % count)
 
     # read body, already read first byte
-    byte = None
     count = 1
-    while True:
+    while count < 32:
         while not ttyin.ready():
             ttyin.tick(1)
         byte = ttyin.read()
-        while ttyin.ready():                                                   
-            ttyin.tick(1)
-        if byte == 0:
-            break
+        ttyin.clear()
         count += 1
-        print('count=%d' % count)
     
     print('%d bytes of body' % count)
-    
-    # read trailer, already read first byte
-    byte = None
-    count = 1
-    while True:
-        while not ttyin.ready():
-            ttyin.tick(1)
-        byte = ttyin.read()
-        while ttyin.ready():                                                   
-            ttyin.tick(1)
-        if byte != 0:
-            break
-        count += 1
-    
-    print('%d bytes of trailer' % count)
     
     # now dismount the file
     ttyin.dismount()

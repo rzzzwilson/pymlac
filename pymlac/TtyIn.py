@@ -90,14 +90,13 @@ class TtyIn(object):
         """Advance the device state by 'cycles' number of CPU cycles."""
 
         if not self.atEOF:
-            log("TTYIN: Doing 'tick' with %d cycles, .atEOF is %s, .cycle_count=%d"
+            log("TTYIN: Doing 'tick' cycle=%d, .atEOF=%s, .cycle_count=%d"
                     % (cycles, str(self.atEOF), self.cycle_count))
             self.cycle_count -= cycles
             if self.cycle_count <= 0:
-                log('TTYIN: .cycle_count expired, read new character')
                 self.cycle_count += self.DEVICE_READY_CYCLES
-                self.value = self.open_file.read(1)
                 self.status = self.DEVICE_READY
+                self.value = self.open_file.read(1)
                 if len(self.value) < 1:
                     # EOF on input file
                     self.atEOF = True
@@ -105,4 +104,7 @@ class TtyIn(object):
                     self.cycle_count = 0
                     self.status = self.DEVICE_NOT_READY
                     log('TTYIN: EOF set on device (file %s)' % self.filename)
+                else:
+                    log('TTYIN: .cycle_count expired, new character is %s (%03o)'
+                            % (self.value, ord(self.value[0])))
                 self.value = ord(self.value)
