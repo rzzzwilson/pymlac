@@ -4,7 +4,7 @@
 """
 Test the pymlac display widget.
 
-Usage: test_pymlac_display.py [-h]
+Usage: test_Display.py [-h]
 """
 
 
