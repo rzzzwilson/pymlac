@@ -1,10 +1,27 @@
-#!/usr/bin/python
+# !/usr/bin/python
 
 """
 Emulate the Keyboard (KBD).
 
 We must emulate funny Imlac key values.
 """
+
+# The Imlac keyboard maintains an 11-bit value representing the ASCII value of
+# the pressed key and any simultaneously pressed control keys:
+#
+#      5   6   7   8   9  10  11  12  13  14  14
+#    +---+---+---+---+---+---+---+---+---+---+---+
+#    | R | C | S |       ASCII key code          |
+#    +---+---+---+---+---+---+---+---+---+---+---+
+#
+# This 11-bit value is read into the AC when requested at the shown bit places.
+# Bit 8, the ASCII high bit, is always zero on the Imlac.
+#
+# The R, C and S bits represent the state of the Repeat, Control and Shift keys,
+# respectively.
+#
+# When the keyboard flag is cleard (either KCF or KRC instructions) the 8-bit
+# ASCII buffer is cleared but the three status bits R, C and S are left alone.
 
 
 class Kbd(object):
@@ -64,11 +81,10 @@ class Kbd(object):
     def __init__(self):
         self.value = 0
         self.clear()
+        self.ready = False
 
     def handle_events(self, event):
         """Handle a KEY event from wxPython."""
-
-        pass
 
     #    for event in pygame.event.get():
     #        if (event.type == KEYDOWN):
@@ -87,7 +103,7 @@ class Kbd(object):
         return self.ready
 
     def clear(self):
-        self.ready = 0
+        self.ready = False
 
     def read(self):
         return self.value

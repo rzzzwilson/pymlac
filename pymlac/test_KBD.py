@@ -2,57 +2,117 @@
 # -*- coding: utf-8 -*-
 
 """
-Test the pymlac keyboard code.
+Test the pymlac keyboard emulation.
 
-Usage: test_KBD.py <options>
-
-where <options> is zero or more of:
-          -h    print this help and stop
+Usage: test_KBD.py [-h]
 """
 
 
+import wx
 import Kbd
 
+# if we don't have log.py, don't crash                                           
+try:                                                                             
+    import log                                                     
+    log = log.Log('test_KBD.log', log.Log.DEBUG)                                     
+except ImportError:                                                              
+    def log(*args, **kwargs):                                                    
+        pass                                                                     
 
-def main():
-    """Test the keyboard device."""
 
-    kbd = Kbd.Kbd()
+######
+# Various demo constants
+######
 
+WindowTitleHeight = 22
+DefaultAppSize = (400, 200+WindowTitleHeight)
+
+################################################################################
+# The main application frame
+################################################################################
+
+class TestFrame(wx.Frame):
+    def __init__(self):
+        wx.Frame.__init__(self, None, size=DefaultAppSize,
+                          title=('Test pymlac KBD'))
+        self.SetMinSize(DefaultAppSize)
+        self.panel = wx.Panel(self, wx.ID_ANY)
+        self.panel.ClearBackground()
+
+        # build the GUI
+        box = wx.BoxSizer(wx.VERTICAL)
+        self.display = wx.TextCtrl(self.panel)
+        box.Add(self.display, proportion=1, border=1, flag=wx.EXPAND)
+        self.panel.SetSizer(box)
+        self.panel.Layout()
+        self.Centre()
+        self.Show(True)
+
+        self.display.Bind(wx.EVT_KEY_DOWN, self.OnKeyDown)
+        self.display.Bind(wx.EVT_KEY_UP, self.OnKeyUp)
+
+    def OnKeyDown(self, event):
+        """Handle a "key down" event."""
+
+        self.display.AppendText('DOWN: Modifiers=%s, GetKeyCode=%s, UnicodeKey=%s\n'
+                                % (str(event.GetModifiers()),
+                                   str(event.GetKeyCode()),
+                                   str(event.GetUnicodeKey())))
+        self.display.Refresh()
+        if wx.WXK_LEFT == event.GetKeyCode():
+            print('LEFT key')
+
+#        print('DOWN: Modifiers=%s, GetKeyCode=%s, UnicodeKey=%s'
+#                % (str(event.GetModifiers()), str(event.GetKeyCode()), str(event.GetUnicodeKey())))
+
+    def OnKeyUp(self, event):
+        """Handle a "key up" event."""
+
+#        print('UP: Modifiers=%s, GetKeyCode=%s, UnicodeKey=%s'
+#                % (str(event.GetModifiers()), str(event.GetKeyCode()), str(event.GetUnicodeKey())))
 
 ################################################################################
 
 if __name__ == '__main__':
     import sys
     import getopt
+    import traceback
 
+    # print some usage information
     def usage(msg=None):
         if msg:
-            print('*'*60)
-            print(msg)
-            print('*'*60)
-        print(__doc__)
+            print(msg+'\n')
+        print(__doc__)        # module docstring used
 
-    # handle command line options
+    # our own handler for uncaught exceptions
+    def excepthook(type, value, tb):
+        msg = '\n' + '=' * 80
+        msg += '\nUncaught exception:\n'
+        msg += ''.join(traceback.format_exception(type, value, tb))
+        msg += '=' * 80 + '\n'
+        print msg
+        sys.exit(1)
+
+    # plug our handler into the python system
+    sys.excepthook = excepthook
+
+    # decide which tiles to use, default is GMT
+    argv = sys.argv[1:]
+
     try:
-        (opts, args) = getopt.gnu_getopt(sys.argv, "h", ["help"])
-    except getopt.GetoptError:
+        (opts, args) = getopt.getopt(argv, 'h', ['help'])
+    except getopt.error:
         usage()
-        sys.exit(10)
-    
-    for (opt, arg) in opts:
-        if opt in ("-h", "--help"):
+        sys.exit(1)
+
+    for (opt, param) in opts:
+        if opt in ['-h', '--help']:
             usage()
             sys.exit(0)
 
-    # we should have NO parameters
-    if len(args) != 1:
-        bad_args = ''
-        for a in args[1:]:
-            bad_args += ' ' + str(a)
-        usage('Unrecognized param(s): %s' % bad_args)
-        sys.exit(10)
+    # start wxPython app
+    app = wx.App()
+    TestFrame().Show()
+    app.MainLoop()
+    sys.exit(0)
 
-    # run the tests
-    main()
-    
