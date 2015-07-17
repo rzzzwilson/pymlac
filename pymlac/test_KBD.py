@@ -39,6 +39,9 @@ class TestFrame(wx.Frame):
         self.panel = wx.Panel(self, wx.ID_ANY)
         self.panel.ClearBackground()
 
+        # instantiate the keyboard device
+        self.kbd = Kbd.Kbd()
+
         # build the GUI
         box = wx.BoxSizer(wx.VERTICAL)
         self.display = wx.TextCtrl(self.panel)
@@ -54,19 +57,21 @@ class TestFrame(wx.Frame):
     def OnKeyDown(self, event):
         """Handle a "key down" event."""
 
-        self.display.AppendText('DOWN: Modifiers=%s, GetKeyCode=%s, UnicodeKey=%s\n'
-                                % (str(event.GetModifiers()),
-                                   str(event.GetKeyCode()),
-                                   str(event.GetUnicodeKey())))
-        self.display.Refresh()
-        if wx.WXK_LEFT == event.GetKeyCode():
-            print('LEFT key')
+        self.kbd.handle_down_event(event)
 
-#        print('DOWN: Modifiers=%s, GetKeyCode=%s, UnicodeKey=%s'
-#                % (str(event.GetModifiers()), str(event.GetKeyCode()), str(event.GetUnicodeKey())))
+#        log('event=%s' % str(dir(event)))
+#        self.display.AppendText('DOWN: Modifiers=%04x, GetKeyCode=%02x, UnicodeKey=%s\n'
+#                                % (event.GetModifiers(),
+#                                   event.GetKeyCode(),
+#                                   str(event.GetUnicodeKey())))
+#        self.display.Refresh()
+#        if wx.WXK_LEFT == event.GetKeyCode():
+#            print('LEFT key')
 
     def OnKeyUp(self, event):
         """Handle a "key up" event."""
+
+        self.kbd.handle_up_event(event)
 
 #        print('UP: Modifiers=%s, GetKeyCode=%s, UnicodeKey=%s'
 #                % (str(event.GetModifiers()), str(event.GetKeyCode()), str(event.GetUnicodeKey())))

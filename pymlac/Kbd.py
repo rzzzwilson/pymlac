@@ -79,25 +79,19 @@ class Kbd(object):
 
 
     def __init__(self):
-        self.value = 0
+        self.kbd_buffer = 0
+        self.modifiers = 0
         self.clear()
-        self.ready = False
 
-    def handle_events(self, event):
-        """Handle a KEY event from wxPython."""
+    def handle_down_event(self, event):
+        """Handle a KEY DOWN event from wxPython."""
 
-    #    for event in pygame.event.get():
-    #        if (event.type == KEYDOWN):
-    #            if (event.key < 300) and ord(KeyVal[event.key]) != 0:
-    #                self.value = ord(KeyVal[event.key])
-    #                if (event.mod & 0x03 or event.mod & 0x2000):	# handle SHIFT
-    #                    self.value = ord(SKeyVal[event.key]) | 0x0100
-    #                if (event.mod & 0x00C0):				# handle CONTROL
-    #                    self.value = self.value | 0x0200
-    #                if (event.mod & 0x0300):				# handle REPEAT
-    #                    self.value = self.value | 0x0400
-    #                self.ready = 1
-    #                return
+        print('DOWN: event=%s' % str(dir(event)))
+
+    def handle_up_event(self, event):
+        """Handle a KEY UP event from wxPython."""
+
+        print('UP: event=%s' % str(dir(event)))
 
     def is_ready(self):
         return self.ready
@@ -106,4 +100,4 @@ class Kbd(object):
         self.ready = False
 
     def read(self):
-        return self.value
+        return self.kbd_buffer
