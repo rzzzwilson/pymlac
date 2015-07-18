@@ -79,7 +79,8 @@ required.  The options are:
 -c                            clears core including bootstrap ROM, if write enabled
 ```
 ```
--cf <filename>                sets the name of the core file to read and write (default 'pymlac.core')
+-cf <filename>                sets the name of the core file to read and write
+                              (default file is 'pymlac.core')
 ```
 ```
 -d <value>                    sets the console data switches to the <value>
