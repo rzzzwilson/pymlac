@@ -22,6 +22,24 @@ We must emulate funny Imlac key values.
 #
 # When the keyboard flag is cleard (either KCF or KRC instructions) the 8-bit
 # ASCII buffer is cleared but the three status bits R, C and S are left alone.
+#
+##############################
+#
+# The wxPython event provides the following keyboard events:
+#    wx.EVT_KEY_DOWN    when a key is pressed
+#    wx.EVT_KEY_UP      when a key is pressed
+#    wx.EVT_CHAR        when a fully modified ASCII char value is found
+#
+# In this code we use the UP/DOWN events to keep track of the modifiers
+# and we use the CHAR event to change the key buffer value.  We do it this way
+# because on the Imlac the modifiers (R, C and S flags) are seperate from the
+# keyboard value and are not cleared by the KCF or KRC instructions.  This means
+# Imlac code could check for the modifier flags alone at any time, so we have to
+# keep track of the modifiers which DON'T raise a CHAR event.  We therefore need
+# to handle the key UP/DOWN events for the modifiers.
+#
+# Since most modern keyboards don't have a REPEAT key (they use auto-repeat) the
+# R flag will always be 0.
 
 
 class Kbd(object):
@@ -77,27 +95,74 @@ class Kbd(object):
                '\000\206\204\205\210\202\217\216\000\214\000\000\000\000\000\000'#11
                '\000\000\000\000\000\000\000\000\000\000\000\000\000')           #12
 
+    # define the keycode values for modifier keys
+    KeyShift = 0x0132
+    KeyControl = 0x018c
+
+    # modifier key flags
+    FlagR = 0           # REPEAT key, always 0
+    FlagC = 0           # CONTROL key
+    FlagS = 0           # SHIFT key
+
 
     def __init__(self):
-        self.kbd_buffer = 0
-        self.modifiers = 0
         self.clear()
 
-    def handle_down_event(self, event):
-        """Handle a KEY DOWN event from wxPython."""
+        # .clear() doesn't clear flags
+        self.FlagR = 0
+        self.FlagC = 0
+        self.FlagS = 0
 
-        print('DOWN: event=%s' % str(dir(event)))
+    def handle_down_event(self, event):
+        """Handle a KEY DOWN event from wxPython.
+
+        This is only to track modifier keys.
+        """
+
+        modifiers = event.GetModifiers()
+        keycode = event.GetKeyCode()
+
+        print('DOWN: Modifiers=%04x, GetKeyCode=%04x' % (modifiers, keycode))
+
+        if keycode == self.KeyShift:
+            self.FlagS = 1
+        elif keycode == self.KeyControl:
+            self.FlagC = 1
+
+        event.Skip()
 
     def handle_up_event(self, event):
-        """Handle a KEY UP event from wxPython."""
+        """Handle a KEY UP event from wxPython.
 
-        print('UP: event=%s' % str(dir(event)))
+        This is only to track modifier keys.
+        """
 
-    def is_ready(self):
-        return self.ready
+        modifiers = event.GetModifiers()
+        keycode = event.GetKeyCode()
+
+        print('  UP: Modifiers=%04x, GetKeyCode=%04x' % (modifiers, keycode))
+
+        if keycode == self.KeyShift:
+            self.FlagS = 0
+        elif keycode == self.KeyControl:
+            self.FlagC = 0
+
+        event.Skip()
+
+    def handle_char_event(self, event):
+        """Handle a CHAR key event."""
+
+        self.buffer = event.GetKeyCode()
+        print('NEW: %04x' % ord(self.buffer))
+        self.ready = True
 
     def clear(self):
+        """Clear keyboard buffer and READY flag."""
+
         self.ready = False
+        self.buffer = 0
 
     def read(self):
-        return self.kbd_buffer
+        """Read keyboard buffer and modifier keys."""
+
+        return (self.buffer & 0xff) + (self.FlagC << 9) + (self.FlagS << 8)
