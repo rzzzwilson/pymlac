@@ -60,6 +60,7 @@ class DisplayCPU(object):
         return result
 
     def doDEIMByte(self, byte):
+        print('doDEIMByte')
         if byte & 0x80:			# increment?
             prevDX = self.DX
             prevDY = self.DY

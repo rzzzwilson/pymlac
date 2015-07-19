@@ -83,6 +83,7 @@ class Ptr(object):
     def read(self):
         """Read papertape value."""
 
+        print('Ptr: value=%04o' % self.value)
         return self.value
 
     def eof(self):

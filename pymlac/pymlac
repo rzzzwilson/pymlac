@@ -14,6 +14,8 @@ from Globals import *
 import Memory
 import Ptr
 import Ptp
+import TtyIn
+import TtyOut
 import Kbd
 import MainCPU
 import Display
@@ -326,8 +328,8 @@ class PymlacFrame(wx.Frame):
         # consruct the Imlac machine
         self.ptr = Ptr.Ptr()
         self.ptp = Ptp.Ptp()
-        self.ttyin = None
-        self.ttyout = None
+        self.ttyin = TtyIn.TtyIn()
+        self.ttyout = TtyOut.TtyOut()
         self.kbd = Kbd.Kbd()
         self.memory = Memory.Memory()
         self.display = Display.Display(self.panel)
@@ -349,9 +351,6 @@ class PymlacFrame(wx.Frame):
         self.lock = False
 
         self.Refresh()
-
-        self.display.draw(0, 0, 2047, 2047)
-        self.display.draw(2047, 0, 0, 2047, dotted=True)
 
         # start running
         self.run_machine()
@@ -459,6 +458,8 @@ class PymlacFrame(wx.Frame):
                 self.Refresh()
             else:
                 abort('Invalid internal operation: %s' % operation)
+
+            self.memory.savecore('after_%s.core' % operation)
 
 #        Imlac.close(CORE_FILENAME)
 
