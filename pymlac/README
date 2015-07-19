@@ -1,3 +1,11 @@
 This is the pymlac simulator.
 
-The main CPU works.  You can test it by doing "make test".
+Test programs for most devices are:
+    test_CPU.py
+    test_Display.py
+    test_KBD.py
+    test_Memory.py
+    test_PTR_PTP.py
+    test_TTYIN.py
+    test_TTYOUT.py
+    test_pymlac_display.py

@@ -25,7 +25,7 @@ except ImportError:
 ######
 
 WindowTitleHeight = 22
-DefaultAppSize = (200, 200+WindowTitleHeight)
+DefaultAppSize = (600, 600+WindowTitleHeight)
 
 ################################################################################
 # The main application frame
