@@ -81,6 +81,13 @@ class TestFrame(wx.Frame):
         char_str = chr(char)
         if char_str not in string.printable:
             char_str = '<unprintable>'
+        elif char_str in string.whitespace:
+            if char_str == '\t':
+                char_str = '<TAB>'
+            elif char_str == ' ':
+                char_str = '<SPACE>'
+            else:
+                char_str = '<whitespace>'
         R = (value >> 10) & 0x01
         C = (value >> 9) & 0x01
         S = (value >> 8) & 0x01
@@ -89,22 +96,19 @@ class TestFrame(wx.Frame):
                                 % (R, C, S, char, char_str))
         self.display.Refresh()
 
-
     def OnKeyDown(self, event):
         """Handle a "key down" event."""
 
-#        self.display.AppendText('DOWN: Modifiers=%04x, GetKeyCode=%04x\n'
-#                                % (event.GetModifiers(), event.GetKeyCode()))
-#        self.display.Refresh()
+        print('DOWN: Modifiers=%04x, GetKeyCode=%04x'
+              % (event.GetModifiers(), event.GetKeyCode()))
 
         self.kbd.handle_down_event(event)
 
     def OnKeyUp(self, event):
         """Handle a "key up" event."""
 
-#        self.display.AppendText('UP: Modifiers=%04x, GetKeyCode=%04x\n'
-#                                % (event.GetModifiers(), event.GetKeyCode()))
-#        self.display.Refresh()
+        print('UP: Modifiers=%04x, GetKeyCode=%04x'
+              % (event.GetModifiers(), event.GetKeyCode()))
 
         self.kbd.handle_up_event(event)
 
