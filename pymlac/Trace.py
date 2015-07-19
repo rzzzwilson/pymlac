@@ -21,7 +21,7 @@ def init(filename, maincpu, displaycpu):
 
     tracing = True
     tracefile = open(filename, 'w')
-    trace('pymlac %s trace\n\n' % PYMLAC_VERSION)
+    trace('%s trace\n%s\n' % (PYMLAC_VERSION, '-'*60))
     tracing = False
     comment = None
 
@@ -42,6 +42,7 @@ def trace(msg):
 def deimtrace(opcode, code):
     if tracing:
         tracefile.write('%s\t%s\t' % (opcode, code))
+        tracefile.flush()
 
 def dtrace(opcode, address=None):
     if tracing:
@@ -49,6 +50,7 @@ def dtrace(opcode, address=None):
             tracefile.write('%s\t\t' % opcode)
         else:
             tracefile.write('%s\t%5.5o\t' % (opcode, address))
+        tracefile.flush()
 
 def itrace(opcode, indirect=False, address=None):
     if tracing:
@@ -57,6 +59,7 @@ def itrace(opcode, indirect=False, address=None):
             tracefile.write('%s\t%s\t' % (opcode, char))
         else:
             tracefile.write('%s\t%s%5.5o\t' % (opcode, char, address))
+        tracefile.flush()
 
 def itraceend(dispon):
     if dispon:
@@ -64,9 +67,11 @@ def itraceend(dispon):
                    (cpu.L, cpu.AC, dcpu.DX, dcpu.DY))
     else:
         trace('L=%1.1o AC=%6.6o\n' % (cpu.L, cpu.AC))
+    tracefile.flush()
 
 def comment(msg):
     tracefile.write(msg+'\n')
+    tracefile.flush()
 
 
 def settrace(new_tracing):

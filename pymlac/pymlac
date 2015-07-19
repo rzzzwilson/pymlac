@@ -354,7 +354,7 @@ class PymlacFrame(wx.Frame):
         self.display.draw(2047, 0, 0, 2047, dotted=True)
 
         # start running
-        self.run()
+        self.run_machine()
 
     def OnSize(self, event):
         """Maintain square window."""
@@ -368,7 +368,7 @@ class PymlacFrame(wx.Frame):
 
         event.Skip()
 
-    def run(self):
+    def run_machine(self):
         # get operations list
         ops = handle_options()
 
@@ -461,6 +461,73 @@ class PymlacFrame(wx.Frame):
                 abort('Invalid internal operation: %s' % operation)
 
 #        Imlac.close(CORE_FILENAME)
+
+
+    def close(self, corefile=None):
+        if corefile:
+            Memory.savecore(corefile)
+        sys.exit()
+
+#    def set_ROM(self, type):
+#        self.memory.set_ROM(type)
+
+#    def set_boot(self, romtype):
+#        pass
+
+    def __tick_all(self, cycles):
+        self.ptr.tick(cycles)
+        self.ptp.tick(cycles)
+#        self.ttyin.tick(cycles)
+#        self.ttyout.tick(cycles)
+
+    def set_trace(self, tstart, tend=None):
+        """Set trace to required range of values."""
+
+        global tracestart, traceend
+
+        if tstart:
+            tracestart = tstart
+            traceend = tend
+            Trace.tracing = True
+        else:
+            Trace.tracing = False
+
+    def execute_once(self):
+        if self.traceend is None:
+            if self.cpu.PC == self.tracestart:
+                Trace.settrace(True)
+        else:
+            Trace.settrace(self.cpu.PC >= self.tracestart and
+                           self.cpu.PC <= traceend)
+
+        if self.display_cpu.ison():
+            Trace.trace('%6.6o' % self.display_cpu.DPC)
+        Trace.trace('\t')
+
+        instruction_cycles = self.display_cpu.execute_one_instruction()
+
+        Trace.trace('%6.6o\t' % self.cpu.PC)
+
+        instruction_cycles += self.cpu.execute_one_instruction()
+
+        Trace.itraceend(self.display_cpu.ison())
+
+        self.__tick_all(instruction_cycles)
+
+        if not self.display_cpu.ison() and not self.cpu.running:
+            return 0
+
+        return instruction_cycles
+
+    def run(self):
+        """Start the machine and run until it halts."""
+
+        self.cpu.running = True
+
+        while self.execute_once() > 0:
+            pass
+
+        self.cpu.running = False
 
 #    def on_paint(self, event=None):
 #        global count
