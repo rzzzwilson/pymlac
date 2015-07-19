@@ -8,4 +8,4 @@ Test programs for most devices are:
     test_PTR_PTP.py
     test_TTYIN.py
     test_TTYOUT.py
-    test_pymlac_display.py
+They are all automatic, except for test_KBD.py, which requires user interaction.
