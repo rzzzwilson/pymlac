@@ -54,9 +54,6 @@ class _BufferedCanvas(wx.Panel):
         style   wxPython style
         """
 
-        print('__init__: self=%s' % str(self))
-        print('__init__: parent=%s' % str(parent))
-
         wx.Panel.__init__(self, parent, id, pos, size, style)
 
         # Bind events
