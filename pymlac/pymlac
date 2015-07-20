@@ -380,11 +380,11 @@ class PymlacFrame(wx.Frame):
         self.DS = 0100000            # dataswitches   
         self.trace_filename = TRACE_FILENAME
         self.core_filename = CORE_FILENAME
-#        Imlac.init(0, TRACE_FILENAME, None, None, boot_rom, CORE_FILENAME)
         Trace.init(TRACE_FILENAME, self.cpu, self.display_cpu)
 
         # now perform operations
         for (operation, args) in ops:
+            print('%s: operation=%s, args=%s' % ('*'*60, operation, str(args)))
             if operation == 'boot':
                 self.memory.set_ROM(args)
                 Trace.comment('Bootstrap ROM set to %s' % args.upper())
