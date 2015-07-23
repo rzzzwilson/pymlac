@@ -177,6 +177,7 @@ class Memory(object):
             self.using_rom = True
             i = self.ROM_START
             for ptr_value in self.PTR_ROM_IMAGE:
+                print('Storing %07o at address %07o' % (ptr_value, i))
                 self.memory[i] = ptr_value
                 i += 1
         elif romtype == 'tty':
@@ -228,19 +229,19 @@ class Memory(object):
 
         return address
 
-#    def str_trace(msg=None):                                                         
-#        """Get a traceback string."""                                                
-#
-#        import traceback
-#                                                             
-#        result = []                                                                  
-#
-#        if msg:                                                                      
-#            result.append(msg+'\n')                                                  
-#
-#        result.extend(traceback.format_stack())                                      
-#
-#        return ''.join(result)                 
+    def str_trace(self, msg=None):                                                         
+        """Get a traceback string."""                                                
+
+        import traceback
+                                                             
+        result = []                                                                  
+
+        if msg:                                                                      
+            result.append(msg+'\n')                                                  
+
+        result.extend(traceback.format_stack())                                      
+
+        return ''.join(result)                 
 
     def put(self, value, address, indirect):
         """Put a value into a memory address.
@@ -256,9 +257,24 @@ class Memory(object):
             Trace.comment('Attempt to write to ROM')
             return
 
+        print('Storing value %07o at address %07o' % (MASK_16(value), address))
+
         try:
             self.memory[address] = MASK_16(value)
         except IndexError:
             raise RuntimeError('Bad address: %06o (max mem=%06o, ADDRMASK=%06o)'
                                % (address, len(self.memory), ADDRMASK))
+
+    def dump(self, low, high):
+        """Dump memory in range [low, high] inclusive to a file."""
+
+        with open('x.dump', 'wb') as fd:                                     
+            for i in range(high - low + 1):
+                val = self.fetch(low + i, False)
+                high = val >> 8                                              
+                low = val & 0xff                                             
+                data = struct.pack('B', high)                                
+                fd.write(data)                                               
+                data = struct.pack('B', low)                                 
+                fd.write(data)                                               
 

@@ -191,6 +191,19 @@ def handle_options():
                     op = ('write', next_arg)
                 else:
                     abort("-w option must be 'ON' or 'OFF'")
+            elif arg == '-x':
+                next_arg = get_next(options, index,
+                                    "-x option must be dump range")
+                index += 1
+                addr = next_arg.split(',')
+                if len(addr) == 1:
+                    abort("-x option must be dump range: lower,higher")
+                elif len(addr) == 2:
+                    lower = check_int(addr[0], "-x option must be dump range: lower,higher")
+                    higher = check_int(addr[1], "-x option must be dump range: lower,higher")
+                else:
+                    abort("-t option must be dump range: lower,higher")
+                op = ('x', (lower, higher))
             else:
                 usage()
         else:
@@ -220,6 +233,8 @@ def usage():
     print('      -ttyout <file>              mount <file> on the teletype writer')
     print('      -v <viewfile>               prints memory locations from file')
     print('      -w (on|off)                 turn ROM writability ON or OFF')
+    print('      -x <low>,<high>             dumps memory to file:')
+    print("                                    -x 100,200 dumps memory between 100 and 200 to 'x.dump'")
     sys.exit()
 
 
@@ -292,6 +307,10 @@ def main():
             else:
                 abort("Invalid view arg: %s" % args)
             Trace.comment('ROM write protect set %s' % args.upper())
+        elif operation == 'x':
+            (low, high) = args
+            Memory.dump(args)
+            Trace.comment('Memory dumped: %07o to %07o' % (low, high))
         else:
             abort('Invalid internal operation: %s' % operation)
 
@@ -456,6 +475,10 @@ class PymlacFrame(wx.Frame):
                     abort("Invalid view arg: %s" % args)
                 Trace.comment('ROM write protect set %s' % args.upper())
                 self.Refresh()
+            elif operation == 'x':
+                (low, high) = args
+                self.memory.dump(low, high)
+                Trace.comment('Memory dumped: %07o to %07o' % (low, high))
             else:
                 abort('Invalid internal operation: %s' % operation)
 
@@ -529,52 +552,6 @@ class PymlacFrame(wx.Frame):
             pass
 
         self.cpu.running = False
-
-#    def on_paint(self, event=None):
-#        global count
-#
-#        # establish the painting surface
-#        dc = wx.PaintDC(self.screen)
-#        dc.SetBackground(wx.Brush(self.SCREEN_COLOUR, 1))
-#        dc.SetPen(wx.Pen(self.PHOSPHOR_COLOUR, 1))
-#        dc.Clear()
-#        if self.y_sign > 0:
-#            self.y_offset = self.y_offset + self.INC
-#            if self.y_offset > self.HEIGHT_SCREEN-1:
-#                self.y_sign = -1
-#                self.y_offset = self.HEIGHT_SCREEN-1
-#        else:
-#            self.y_offset = self.y_offset - self.INC
-#            if self.y_offset < 0:
-#                self.y_sign = +1
-#                self.y_offset = 0
-#        dc.DrawLine(0, int(self.y_offset), self.WIDTH_SCREEN-1, int(self.HEIGHT_SCREEN-self.y_offset-1))
-#        dc.DrawLine(0, int(self.HEIGHT_SCREEN-self.y_offset-1), self.WIDTH_SCREEN-1, int(self.y_offset))
-#
-#        dc = wx.PaintDC(self.console)
-#        #dc.SetPen(wx.Pen('black', wx.DOT))
-#        dc.SetPen(wx.Pen('black', 1))
-#        dc.DrawLine(0, self.HEIGHT_CONSOLE - self.png_height,
-#                    self.WIDTH_CONSOLE-1, self.HEIGHT_CONSOLE - self.png_height)
-#
-#        for (x, y) in self.led_ac.ticks:
-#            dc.DrawLine(x, y, x, y+5)
-#        first = self.led_ac.ticks[0]
-#        last = self.led_ac.ticks[-1]
-#        (x1, y1) = first
-#        (x2, y2) = last
-#        dc.DrawLine(x1, y2+5, x2, y2+5)
-#
-#        for (x, y) in self.led_pc.ticks:
-#            dc.DrawLine(x, y, x, y+5)
-#        first = self.led_pc.ticks[0]
-#        last = self.led_pc.ticks[-1]
-#        (x1, y1) = first
-#        (x2, y2) = last
-#        dc.DrawLine(x1, y2+5, x2, y2+5)
-#
-#        count += 1
-#        self.led_ac.set_value(count)
 
 
 # run it ...

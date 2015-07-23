@@ -169,9 +169,9 @@ TRACE_FILENAME = 'pymlac.trace'
 CYCLES_PER_SECOND = int(1000000 / 1.8)
 
 # Definitions of boot ROM code type
-ROM_PTR = 1
-ROM_TTY = 2
-ROM_NONE = 3
+ROM_PTR = 'ptr'
+ROM_TTY = 'tty'
+ROM_NONE = None
 
 # The 4K 'local' mask to remove high bits
 ADDRHIGHMASK = 0x7800
