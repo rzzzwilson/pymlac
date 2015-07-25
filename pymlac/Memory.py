@@ -122,37 +122,45 @@ class Memory(object):
     def loadcore(self, filename=None):
         """Load core from a file.  Read 16 bit values as big-endian."""
 
-        if filename is None:
+        if not filename:
             filename = self.corefile
-        if filename:
-            self.memory = []
-            try:
-                with open(filename, 'rb') as fd:
-                    while True:
-                        data = fd.read(1)
-                        if data == '':
-                            break
-                        high = struct.unpack('B', data)[0]
-                        low = struct.unpack('B', fd.read(1))[0]
-                        val = (high << 8) + low
-                        self.memory.append(val)
-            except struct.error:
-                raise RuntimeError('Core file %s is corrupt!' % filename)
+
+        self.memory = []
+        try:
+            with open(filename, 'rb') as fd:
+                while True:
+                    high = fd.read(1)
+                    if high == '':
+                        break
+                    low = fd.read(1)
+                    val = (ord(high) << 8) + ord(low)
+
+#                    high = struct.unpack('B', high)[0]
+#                    low = struct.unpack('B', fd.read(1))[0]
+#                    val = (high << 8) + low
+
+                    self.memory.append(val)
+        except struct.error:
+            raise RuntimeError('Core file %s is corrupt!' % filename)
 
     def savecore(self, filename=None):
-        """Save core in a file.  Write 16 bit values as big-endian."""
+        """Save core in a file.  Write 16 bit values big-endian."""
 
-        if filename is None:
+        if not filename:
             filename = self.corefile
-        if filename:
-            with open(filename, 'wb') as fd:
-                for val in self.memory:
-                    high = val >> 8
-                    low = val & 0xff
-                    data = struct.pack('B', high)
-                    fd.write(data)
-                    data = struct.pack('B', low)
-                    fd.write(data)
+
+        with open(filename, 'wb') as fd:
+            for val in self.memory:
+                high = val >> 8
+                low = val & 0xff
+
+#                data = struct.pack('B', high)
+#                fd.write(data)
+#                data = struct.pack('B', low)
+#                fd.write(data)
+
+                fd.write(chr(high))
+                fd.write(chr(low))
 
     def set_PTR_ROM(self):
         """Set addresses 040 to 077 as PTR ROM."""

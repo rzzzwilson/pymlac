@@ -534,7 +534,10 @@ class PymlacFrame(wx.Frame):
 
         instruction_cycles += self.cpu.execute_one_instruction()
 
-        Trace.itraceend(self.display_cpu.ison())
+        if instruction_cycles > 0:
+            Trace.itraceend(self.display_cpu.ison())
+        else:
+
 
         self.__tick_all(instruction_cycles)
 

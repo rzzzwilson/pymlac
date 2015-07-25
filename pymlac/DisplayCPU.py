@@ -76,14 +76,14 @@ class DisplayCPU(object):
                     self.display.draw(prevDX, prevDY, self.DX, self.DY)
         else:				# micro instructions
             if byte & 0x40:
-                self.Mode = self.self.MODE_NORMAL
+                self.Mode = self.MODE_NORMAL
             if byte & 0x20:		# DRJM
                 if self.DRSindex <= 0:
                     Trace.comment('\nDRS stack underflow at display address %6.6o'
                                   % (self.DPC - 1))
                     self.illegal()
                 self.DRSindex -= 1
-                self.DPC = DRS[DRSindex]
+                self.DPC = self.DRS[self.DRSindex]
             if byte & 0x10:
                 self.DX += 0x08
             if byte & 0x08:
@@ -98,7 +98,8 @@ class DisplayCPU(object):
             Trace.dtrace('')
             return 0
 
-        instruction = self.memory.get(self.DPC, 0)
+#        instruction = self.memory.get(self.DPC, 0)
+        instruction = self.memory.fetch(self.DPC, False)
         self.DPC = MASK_MEM(self.DPC + 1)
 
         if self.Mode == self.MODE_DEIM:
