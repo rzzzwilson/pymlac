@@ -40,8 +40,10 @@ class _BufferedCanvas(wx.Panel):
     buffer = None
 
     # max coordinates of scaled display                                          
-    ScaleMaxX = 2048                                                            
-    ScaleMaxY = 2048                                                            
+#    ScaleMaxX = 2048                                                            
+#    ScaleMaxY = 2048                                                            
+    ScaleMaxX = 512                                                            
+    ScaleMaxY = 512                                                            
 
     def __init__(self, parent, id=wx.ID_ANY, pos=wx.DefaultPosition,
                  size=wx.DefaultSize, style=wx.NO_FULL_REPAINT_ON_RESIZE):
@@ -183,7 +185,8 @@ class Display(_BufferedCanvas):
                 pen.SetWidth(3)
             dc.SetPen(pen)
         
-            dc.DrawLine(x1, y1, x2, y2)
+            dc.DrawLine(4*x1, self.ScaleMaxY - 4*y1,
+                        4*x2, self.ScaleMaxY - 4*y2)
 
     def syncclear(self):
         self.Sync40hz = 0

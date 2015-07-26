@@ -32,7 +32,8 @@ count = 1
 
 # display window 
 WindowTitleHeight = 22
-DefaultAppSize = (600, 600+WindowTitleHeight)
+#DefaultAppSize = (600, 600+WindowTitleHeight)
+DefaultAppSize = (1024, 1024+WindowTitleHeight)
 
 
 def abort(msg):
