@@ -403,7 +403,6 @@ class PymlacFrame(wx.Frame):
 
         # now perform operations
         for (operation, args) in ops:
-            print('%s: operation=%s, args=%s' % ('*'*60, operation, str(args)))
             if operation == 'boot':
                 self.memory.set_ROM(args)
                 Trace.comment('Bootstrap ROM set to %s' % args.upper())
@@ -517,27 +516,34 @@ class PymlacFrame(wx.Frame):
             Trace.tracing = False
 
     def execute_once(self):
+        # decide if trace should be on/off
         if self.traceend is None:
             if self.cpu.PC == self.tracestart:
                 Trace.settrace(True)
         else:
             Trace.settrace(self.cpu.PC >= self.tracestart and
-                           self.cpu.PC <= traceend)
+                           self.cpu.PC <= self.traceend)
 
+        # execute and trace the Display CPU
         if self.display_cpu.ison():
             Trace.trace('%6.6o' % self.display_cpu.DPC)
         Trace.trace('\t')
 
         instruction_cycles = self.display_cpu.execute_one_instruction()
 
-        Trace.trace('%6.6o\t' % self.cpu.PC)
-
-        instruction_cycles += self.cpu.execute_one_instruction()
-
-        if instruction_cycles > 0:
-            Trace.itraceend(self.display_cpu.ison())
+        # execute and trace the Main CPU
+        if self.cpu.running:
+            Trace.trace('%6.6o\t' % self.cpu.PC)
         else:
+            Trace.trace('\t')
 
+        cpu_cycles = self.cpu.execute_one_instruction()
+        instruction_cycles += cpu_cycles
+
+        if cpu_cycles < 1:
+            Trace.trace('\t\t')
+
+        Trace.itraceend(self.display_cpu.ison())
 
         self.__tick_all(instruction_cycles)
 

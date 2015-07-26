@@ -8,13 +8,6 @@ The Imlac main CPU.
 import sys
 
 from Globals import *
-#import DisplayCPU
-#import Memory
-#import Ptr
-#import Ptp
-#import TtyIn
-#import TtyOut
-#import Kbd
 import Trace
 
 
@@ -228,7 +221,6 @@ class MainCPU(object):
     def i_DAC(self, indirect, address, instruction):
         address = self.memory.eff_address(address, indirect)
         self.memory.put(self.AC, address, False)
-        print('DAC: stored %07o at address %07o' % (self.AC, address))
         Trace.itrace('DAC', indirect, address)
         return 3 if indirect else 2
 

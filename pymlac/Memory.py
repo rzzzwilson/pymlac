@@ -185,7 +185,6 @@ class Memory(object):
             self.using_rom = True
             i = self.ROM_START
             for ptr_value in self.PTR_ROM_IMAGE:
-                print('Storing %07o at address %07o' % (ptr_value, i))
                 self.memory[i] = ptr_value
                 i += 1
         elif romtype == 'tty':
@@ -264,8 +263,6 @@ class Memory(object):
         if self.using_rom and self.ROM_START <= address <= self.ROM_END:
             Trace.comment('Attempt to write to ROM')
             return
-
-        print('Storing value %07o at address %07o' % (MASK_16(value), address))
 
         try:
             self.memory[address] = MASK_16(value)
