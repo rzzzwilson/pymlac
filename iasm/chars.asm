@@ -16,15 +16,16 @@ loop	dsn 			; wait until display is off
 	law	dsub		; start display
 	dla			; 
 	don			; 
+	hlt			; DEBUG
 	jmp	loop		; keep going
 hbit	data	0100000		; high bit mask
 ;-------------------------------
 ; Display list subroutine - show all ASCII chars
 ;-------------------------------
-dsub	dsts	1		; 
-	dlxa	020		; 
+;dsub	dsts	1		; 
+dsub	dlxa	020		; 
 	dlya	0200		; 
-	dsts	0		;
+	;dsts	0		;
 	djms	dlist0		;
 	dlxa	020		; 
 	dlya	0160		; 
@@ -39,59 +40,59 @@ dsub	dsts	1		;
 	dlya	0100		; 
 	djms	dlist4		;
 
-	dsts	1		; 
-	dlxa	020		; 
-	dlya	0240		; 
-	dsts	1		;
-	djms	dlist0		;
-	dlxa	020		; 
-	dlya	0220		; 
-	djms	dlist1		;
-	dlxa	020		; 
-	dlya	0200		; 
-	djms	dlist2		;
-	dlxa	020		; 
-	dlya	0160		; 
-	djms	dlist3		;
-	dlxa	020		; 
-	dlya	0140		; 
-	djms	dlist4		;
+;	dsts	1		; 
+;	dlxa	020		; 
+;	dlya	0240		; 
+;	dsts	1		;
+;	djms	dlist0		;
+;	dlxa	020		; 
+;	dlya	0220		; 
+;	djms	dlist1		;
+;	dlxa	020		; 
+;	dlya	0200		; 
+;	djms	dlist2		;
+;	dlxa	020		; 
+;	dlya	0160		; 
+;	djms	dlist3		;
+;	dlxa	020		; 
+;	dlya	0140		; 
+;	djms	dlist4		;
+;
+;	dsts	1		; 
+;	dlxa	020		; 
+;	dlya	0240		; 
+;	dsts	2		;
+;	djms	dlist0		;
+;	dlxa	020		; 
+;	dlya	0220		; 
+;	djms	dlist1		;
+;	dlxa	020		; 
+;	dlya	0200		; 
+;	djms	dlist2		;
+;	dlxa	020		; 
+;	dlya	0160		; 
+;	djms	dlist3		;
+;	dlxa	020		; 
+;	dlya	0140		; 
+;	djms	dlist4		;
 
-	dsts	1		; 
-	dlxa	020		; 
-	dlya	0240		; 
-	dsts	2		;
-	djms	dlist0		;
-	dlxa	020		; 
-	dlya	0220		; 
-	djms	dlist1		;
-	dlxa	020		; 
-	dlya	0200		; 
-	djms	dlist2		;
-	dlxa	020		; 
-	dlya	0160		; 
-	djms	dlist3		;
-	dlxa	020		; 
-	dlya	0140		; 
-	djms	dlist4		;
-
-	dsts	1		; 
-	dlxa	020		; 
-	dlya	0300		; 
-	dsts	3		;
-	djms	dlist0		;
-	dlxa	020		; 
-	dlya	0260		; 
-	djms	dlist1		;
-	dlxa	020		; 
-	dlya	0240		; 
-	djms	dlist2		;
-	dlxa	020		; 
-	dlya	0220		; 
-	djms	dlist3		;
-	dlxa	020		; 
-	dlya	0200		; 
-	djms	dlist4		;
+;	dsts	1		; 
+;	dlxa	020		; 
+;	dlya	0300		; 
+;	dsts	3		;
+;	djms	dlist0		;
+;	dlxa	020		; 
+;	dlya	0260		; 
+;	djms	dlist1		;
+;	dlxa	020		; 
+;	dlya	0240		; 
+;	djms	dlist2		;
+;	dlxa	020		; 
+;	dlya	0220		; 
+;	djms	dlist3		;
+;	dlxa	020		; 
+;	dlya	0200		; 
+;	djms	dlist4		;
 	dhlt			; 
 ;-------------------------------
 ; Display list subroutine - show all ASCII chars
