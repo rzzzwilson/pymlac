@@ -1,0 +1,541 @@
+#!/usr/bin/env python
+# -*- coding: iso-8859-1 -*-
+
+"""
+GUI front-end to the IMLAC intelligent disassembler.
+"""
+
+
+import os
+import os.path
+import wx
+import wx.grid
+import pickle
+import binimport
+import disasmm
+import disasmd
+import disasmdata
+import processmain
+import processdisplay
+import processdata
+import mem
+
+
+PROGRAMNAME = "idasm"
+PROGRAMVERSION = "0.2"
+
+objwildcard = "Papertape files (*.ptp)|*.ptp|All files (*.*)|*.*"
+projwildcard = "Project files (*.idasm)|*.idasm|All files (*.*)|*.*"
+
+grid = None
+mem = None
+frame = None
+projectName = ""
+
+DEFPROJSUFFIX = ".idasm"
+DEFASMSUFFIX = ".asm"
+DEFPTPSUFFIX = ".ptp"
+
+def effAddr(address):
+    return address & 03777
+
+def newCycleNumber():
+    cycle = 0
+    while True:
+        cycle += 1
+        yield cycle
+
+
+newcycle = newCycleNumber()
+
+
+def loadProject(filename):
+    f = open(filename, "rb")
+    result = pickle.Unpickler(f).load()
+    f.close()
+    return result
+
+
+def saveProject(filename):
+    global mem, grid
+    f = open(filename, "wb")
+    p = pickle.Pickler(f, -1)
+    p.dump(mem)
+    del p
+    f.close()
+
+
+def writeASM(filename):
+    global mem
+    if not filename.endswith('.asm'):
+        filename = filename + '.asm'
+    address = -1
+    lines = ""
+
+    addrlist = mem.keys()
+    addrlist.sort()
+
+    for addr in addrlist:
+        addrint = int(addr, 8)
+        code = mem.getCode(addrint)
+        opcode = mem.getOp(addrint)
+        field = mem.getFld(addrint)
+        lab = mem.getLabcount(addrint)
+        ref = mem.getRef(addrint)
+        label = ""
+        if lab > 0:
+            label = "L%05o" % effAddr(int(addr, 8))
+        if ref:
+            if field[0] == '*':
+                field = "*L%s" % field[1:]
+            else:
+                field = "L%s" % field
+
+        if addrint != address:
+            if addrint >= 0:
+                lines += "\t\t\t;\n"
+            lines += "\tORG\t%05o\t; addr  code\n" % addrint
+            address = addrint
+        lines += "%s\t%s\t%s\t; %s %07o\n" % (label, opcode, field, addr, code)
+        address += 1
+    lines += "\tEND\t\t;\n"
+    f = open(filename, "w")
+    f.writelines(lines)
+    f.close
+
+def fillGrid(grid, mem):
+    importrows = mem.len()
+    currentrows = grid.GetNumberRows()
+
+    if currentrows > importrows:
+        grid.DeleteRows(0, (currentrows - importrows))
+    elif importrows > currentrows:
+        grid.AppendRows(importrows - currentrows)
+
+    addrlist = mem.keys()
+    addrlist.sort()
+
+    importrows = len(addrlist)
+    currentrows = grid.GetNumberRows()
+
+    if currentrows > importrows:
+        grid.DeleteRows(0, (currentrows - importrows))
+    elif importrows > currentrows:
+        grid.AppendRows(importrows - currentrows)
+
+    i = 0
+    for address in addrlist:
+        addr = int(address, 8)
+        code = mem.getCode(addr)
+        opcode = mem.getOp(addr)
+        field = mem.getFld(addr)
+        lab = mem.getLabcount(addr)
+        ref = mem.getRef(addr)
+        label = ""
+        if lab > 0:
+            label = "L%05o" % effAddr(addr)
+        if ref:
+            if field[0] == '*':
+                field = "*L%s" % field[1:]
+            else:
+                field = "L%s" % field
+        grid.SetCellValue(i, 0, label)
+        grid.SetCellValue(i, 1, opcode)
+        grid.SetCellValue(i, 2, field)
+        grid.SetCellValue(i, 3, address)
+        grid.SetCellValue(i, 4, "%06o" % code)
+        i += 1
+    grid.ForceRefresh()
+
+
+class MyPopupMenu(wx.Menu):
+    def __init__(self, WinName):
+        global grid
+        rows = grid.GetSelectedRows()
+        
+        wx.Menu.__init__(self)
+        self.WinName = WinName
+
+        item = wx.MenuItem(self, wx.NewId(), "Process as MAIN instructions")
+        self.AppendItem(item)
+        self.Bind(wx.EVT_MENU, self.popupDoMain, item)
+
+        item = wx.MenuItem(self, wx.NewId(), "Process as DISPLAY instructions")
+        self.AppendItem(item)
+        self.Bind(wx.EVT_MENU, self.popupDoDisplay, item)
+
+        item = wx.MenuItem(self, wx.NewId(), "Process as DATA instructions")
+        self.AppendItem(item)
+        self.Bind(wx.EVT_MENU, self.popupDoData, item)
+
+        self.AppendSeparator()
+
+        item = wx.MenuItem(self, wx.NewId(), "Set reference")
+        self.AppendItem(item)
+        self.Bind(wx.EVT_MENU, self.popupSetRef, item)
+        if len(rows) > 1:
+            item.Enable(False)
+
+        item = wx.MenuItem(self, wx.NewId(), "Clear reference")
+        self.AppendItem(item)
+        self.Bind(wx.EVT_MENU, self.popupClearRef, item)
+        if len(rows) > 1:
+            item.Enable(False)
+
+        self.AppendSeparator()
+
+        item = wx.MenuItem(self, wx.NewId(), "DEBUG: print types")
+        self.AppendItem(item)
+        self.Bind(wx.EVT_MENU, self.popupDoType, item)
+
+    def popupDoMain(self, event):
+        global grid, mem, newcycle, frame
+        rows = grid.GetSelectedRows()
+        addrlist = []
+        for row in rows:
+            addrlist.append(int(grid.GetCellValue(row, 3), 8))
+        thiscycle = newcycle.next()
+        mem.setUndo()
+        processmain.process(mem, addrlist, thiscycle)
+        fillGrid(grid, mem)
+        grid.ClearSelection()
+        frame.enableUndo(True)
+
+    def popupDoDisplay(self, event):
+        global grid, mem, newcycle
+        rows = grid.GetSelectedRows()
+        addrlist = []
+        for row in rows:
+            addrlist.append(int(grid.GetCellValue(row, 3), 8))
+        thiscycle = newcycle.next()
+        mem.setUndo()
+        processdisplay.process(mem, addrlist, thiscycle)
+        fillGrid(grid, mem)
+        grid.ClearSelection()
+        frame.enableUndo(True)
+
+    def popupDoData(self, event):
+        global grid, mem, newcycle
+        thiscycle = newcycle.next()
+        mem.setUndo()
+        for row in grid.GetSelectedRows():
+            addr = int(grid.GetCellValue(row, 3), 8)
+            processdata.process(mem, addr, thiscycle)
+        fillGrid(grid, mem)
+        grid.ClearSelection()
+        frame.enableUndo(True)
+
+    def popupSetRef(self, event):
+        global grid, mem
+        row = grid.GetSelectedRows()[0]
+        addrstr = grid.GetCellValue(row, 3)
+        addr = int(addrstr, 8)
+        ref = mem.getRef(addr)
+        memref = int(mem.getFld(addr), 8)
+        mem.setUndo()
+        if ref:
+            mem.decLab(memref)
+        mem.incLab(memref)
+        mem.setRef(addr)
+        fillGrid(grid, mem)
+        grid.ClearSelection()
+        frame.enableUndo(True)
+
+    def popupClearRef(self, event):
+        global grid, mem
+        row = grid.GetSelectedRows()[0]
+        addrstr = grid.GetCellValue(row, 3)
+        addr = int(addrstr, 8)
+        ref = mem.getRef(addr)
+        memref = int(mem.getFld(addr), 8)
+        if ref:
+            mem.setUndo()
+            mem.decLab(memref)
+            mem.clearRef(addr)
+            fillGrid(grid, mem)
+            grid.ClearSelection()
+            frame.enableUndo(True)
+
+    def popupDoType(self, event):
+        global grid, mem
+        for row in grid.GetSelectedRows():
+            addrstr = grid.GetCellValue(row, 3)
+            addr = int(addrstr, 8)
+            word = mem.getCode(addr)
+            cycle = mem.getCycle(addr)
+            type = mem.getType(addr)
+            lab = mem.getLabcount(addr)
+            ref = mem.getRef(addr)
+            print "row %d, addr=%s, code=%05o, cycle=%d, type=%s, lab=%s, ref=%s" % \
+                        (row, addrstr, word, cycle, type, lab, ref)
+
+
+
+class MyFrame(wx.Frame):
+    def __init__(self, *args, **kwds):
+        global grid
+#        kwds["style"] = wx.MINIMIZE_BOX | wx.SYSTEM_MENU | \
+#                            wx.CLOSE_BOX | wx.CAPTION
+        wx.Frame.__init__(self, *args, **kwds)
+        self.grid = wx.grid.Grid(self, -1, size=(353, 800))
+        grid = self.grid
+        self.__set_properties()
+        self.__do_layout()
+        self.Centre()
+        self.Bind(wx.grid.EVT_GRID_CELL_RIGHT_CLICK, \
+                    self.onGridCellRightClick, self.grid)
+
+    def __set_properties(self):
+        self.SetTitle(PROGRAMNAME + " " + PROGRAMVERSION)
+        status = self.CreateStatusBar(2, 0)
+        status.SetMinHeight(100)
+        self.SetStatusWidths([280, 70])
+        self.menu = self.initMenus()
+        self.initGrid()
+
+    def __do_layout(self):
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(self.grid, 1, wx.EXPAND, 0)
+        self.SetSizer(sizer)
+        sizer.Fit(self)
+        self.Layout()
+
+    def initMenus(self):
+        result = wx.MenuBar()
+        fileMenu = wx.Menu()
+        fileMenu.Append(100, "Load Project", "Load disassembly project")
+        self.saveMenuitem = fileMenu.Append(101, "Save Project", "Save disassembly project")
+        self.saveAsMenuitem = fileMenu.Append(102, "Save Project As ...", \
+                                "Save disassembly project to new file")
+        fileMenu.AppendSeparator()
+        fileMenu.Append(103, "Import Binary File", \
+                                "Import an Imlac binary file")
+        self.writeASMMenuitem = fileMenu.Append(104, "Write Assembler", \
+                                "Write an assembler source file")
+        fileMenu.AppendSeparator()
+        fileMenu.Append(199, "Exit", "Exit the program")
+        result.Append(fileMenu, "File")
+
+        editMenu = wx.Menu()
+        self.editMenu = editMenu.Append(309, "Undo", "Undo last change")
+        self.enableUndo(False)
+        result.Append(editMenu, "Edit")
+
+        helpMenu = wx.Menu()
+        self.helpMenu = helpMenu.Append(202, "Help", "Help on using this program")
+        self.helpMenu.Enable(False)
+        helpMenu.AppendSeparator()
+        helpMenu.Append(203, "About", "About this program")
+        result.Append(helpMenu, "Help")
+        self.SetMenuBar(result)
+
+        self.Bind(wx.EVT_MENU, self.Menu100, id=100)
+        self.Bind(wx.EVT_MENU, self.Menu101, id=101)
+        self.Bind(wx.EVT_MENU, self.Menu102, id=102)
+        self.Bind(wx.EVT_MENU, self.Menu103, id=103)
+        self.Bind(wx.EVT_MENU, self.Menu104, id=104)
+        self.Bind(wx.EVT_MENU, self.Menu199, id=199)
+
+        self.Bind(wx.EVT_MENU, self.Menu202, id=202)
+        self.Bind(wx.EVT_MENU, self.Menu203, id=203)
+
+        self.Bind(wx.EVT_MENU, self.Menu309, id=309)
+
+        self.enableSaveWrite(False)
+        return result
+
+    def enableSaveWrite(self, enable):
+        self.saveMenuitem.Enable(enable)
+        self.saveAsMenuitem.Enable(enable)
+        self.writeASMMenuitem.Enable(enable)
+
+    def enableUndo(self, enable):
+        self.editMenu.Enable(enable)
+
+    def initGrid(self):
+        self.grid.CreateGrid(0, 5)
+        self.grid.EnableGridLines(False)
+        self.grid.SetSelectionMode(1)
+        self.grid.SetDefaultRowSize(15)
+        self.grid.SetRowLabelSize(37)
+        self.grid.SetColLabelSize(20)
+        self.grid.SetDefaultCellAlignment(wx.ALIGN_LEFT, wx.ALIGN_CENTER)
+        self.grid.SetColLabelValue(0, "Label")
+        self.grid.SetColSize(0, 65)
+        self.grid.SetColLabelValue(1, "Op")
+        self.grid.SetColSize(1, 65)
+        self.grid.SetColLabelValue(2, "Field")
+        self.grid.SetColSize(2, 65)
+        self.grid.SetColLabelValue(3, "Address")
+        self.grid.SetColSize(3, 65)
+        self.grid.SetColLabelValue(4, "Code")
+        self.grid.SetColSize(4, 65)
+        self.grid.DisableDragColSize()
+        self.grid.DisableDragRowSize()
+        self.grid.DisableDragColMove()
+        self.grid.EnableEditing(False)
+        self.grid.SetColLabelAlignment(wx.ALIGN_LEFT, wx.ALIGN_BOTTOM)
+        self.grid.SetRowLabelAlignment(wx.ALIGN_RIGHT, wx.ALIGN_CENTER)
+        self.AddrAttr = wx.grid.GridCellAttr()
+        self.AddrAttr.SetBackgroundColour(wx.NamedColour('papayawhip'))
+        self.grid.SetColAttr(3, self.AddrAttr)
+        self.CodeAttr = wx.grid.GridCellAttr()
+        self.CodeAttr.SetBackgroundColour(wx.NamedColour('lightgrey'))
+        self.grid.SetColAttr(4, self.CodeAttr)
+        self.grid.ForceRefresh()
+
+
+    def onGridCellRightClick(self, event):
+        if self.grid.GetSelectedRows():
+            self.PopupMenu(MyPopupMenu("test"), event.GetPosition())
+        else:
+            self.grid.ClearSelection()
+        event.Skip()
+
+    def Menu100(self, event):
+        global mem, projectName
+        filename = None
+        dlg = wx.FileDialog(self, message="Choose a project file to load",
+                            defaultDir=os.getcwd(), defaultFile=projectName,
+                            wildcard=projwildcard,
+                            style=wx.OPEN | wx.CHANGE_DIR)
+        if dlg.ShowModal() == wx.ID_OK:
+            filename = dlg.GetPaths()[0]
+            self.grid.ClearGrid()
+            mem = loadProject(filename)
+            fillGrid(self.grid, mem)
+            projectName = os.path.basename(filename)
+            if projectName.endswith(DEFPROJSUFFIX):
+                projectName = projectName[:-len(DEFPROJSUFFIX)]
+        dlg.Destroy()
+        self.enableSaveWrite(True)
+        mem.clearUndo()
+        self.enableUndo(False)
+
+    def Menu101(self, event):
+        global mem, projectName
+        filename = projectName + DEFPROJSUFFIX
+        if projectName == "":
+            dlg = wx.FileDialog(self,
+                                message="Choose a project file to save to",
+                                defaultDir=os.getcwd(), defaultFile="",
+                                wildcard=projwildcard,
+                                style=wx.SAVE | wx.CHANGE_DIR)
+            if dlg.ShowModal() == wx.ID_OK:
+                filename = dlg.GetPaths()[0]
+                if not filename.endswith(DEFPROJSUFFIX):
+                    filename = filename + DEFPROJSUFFIX
+                    projectName = os.path.basename(filename)
+                    if projectName.endswith(DEFPROJSUFFIX):
+                        projectName = projectName[:-len(DEFPROJSUFFIX)]
+            dlg.Destroy()
+        saveProject(filename)
+
+    def Menu102(self, event):
+        global mem, projectName
+        dlg = wx.FileDialog(self,
+                            message="Choose a project file to save as",
+                            defaultDir=os.getcwd(), defaultFile="",
+                            wildcard=projwildcard,
+                            style=wx.SAVE | wx.CHANGE_DIR)
+        if dlg.ShowModal() == wx.ID_OK:
+            filename = dlg.GetPaths()[0]
+            saveProject(filename)
+            projectName = os.path.basename(filename)
+            if projectName.endswith(DEFPROJSUFFIX):
+                projectName = projectName[:-len(DEFPROJSUFFIX)]
+        dlg.Destroy()
+
+    def Menu103(self, event):
+        global mem, projectName
+        filename = None
+        dlg = wx.FileDialog(self, message="Choose an IMLAC object file to load",
+                            defaultDir=os.getcwd(), defaultFile="",
+                            wildcard=objwildcard,
+                            style=wx.OPEN | wx.CHANGE_DIR)
+        if dlg.ShowModal() == wx.ID_OK:
+            filename = dlg.GetPaths()[0]
+            self.grid.ClearGrid()
+            mem = binimport.ptpimport(filename)
+            addrlist = mem.keys()
+            addrlist.sort()
+            importrows = len(addrlist)
+            currentrows = self.grid.GetNumberRows()
+            if currentrows > importrows:
+                self.grid.DeleteRows(0, (currentrows - importrows))
+            elif importrows > currentrows:
+                self.grid.AppendRows(importrows - currentrows)
+            i = 0
+            for addr in addrlist:
+                (code, op, fld, labcount, ref, type, cycle) = mem.getMem(int(addr, 8))
+                self.grid.SetCellValue(i, 1, op)
+                self.grid.SetCellValue(i, 2, fld)
+                self.grid.SetCellValue(i, 3, addr)
+                self.grid.SetCellValue(i, 4, "%06o" % code)
+                i += 1
+            self.grid.ForceRefresh()
+            projectName = os.path.basename(filename)
+            if projectName.endswith(DEFPTPSUFFIX):
+                projectName = projectName[:-len(DEFPTPSUFFIX)]
+        dlg.Destroy()
+        self.enableSaveWrite(True)
+        mem.clearUndo()
+        self.enableUndo(False)
+
+
+    def Menu104(self, event):
+        global mem, grid, projectName
+        filename = None
+        dlg = wx.FileDialog(self,
+                            message="Choose an IMLAC assembler file to write",
+                            defaultDir=os.getcwd(),
+                            defaultFile=projectName + DEFASMSUFFIX,
+                            wildcard=objwildcard,
+                            style=wx.SAVE | wx.CHANGE_DIR)
+        if dlg.ShowModal() == wx.ID_OK:
+            filename = dlg.GetPaths()[0]
+            writeASM(filename)
+            projectName = os.path.basename(filename)
+            if projectName.endswith(DEFASMSUFFIX):
+                projectName = projectName[:-len(DEFASMSUFFIX)]
+        dlg.Destroy()
+
+    def Menu199(self, event):
+        self.Close()
+
+    def Menu202(self, event):
+        print "Would show help here"
+
+    def Menu203(self, event):
+        from wx.lib.wordwrap import wordwrap
+        info = wx.AboutDialogInfo()
+        info.Name = PROGRAMNAME
+        info.Version = PROGRAMVERSION
+        info.Copyright = "\n(C) 2007 Autotelic Systems"
+        info.WebSite = ("http://www.manontroppo.org", "www.manontroppo.org")
+        info.Description = wordwrap("\nidasm is an interactive disassembler for "
+                                    "IMLAC object files\n",
+                                    350, wx.ClientDC(self))
+        info.License = wordwrap("Licenced under the GPL (version 2)", 500, wx.ClientDC(self))
+        wx.AboutBox(info)
+
+    def Menu309(self, event):
+        global mem, grid
+        mem.undoX()
+        fillGrid(grid, mem)
+
+
+
+class MyApp(wx.App):
+    def OnInit(self):
+        global frame
+        wx.InitAllImageHandlers()
+        frame = MyFrame(None, -1, "")
+        self.SetTopWindow(frame)
+        frame.Show()
+        return 1
+
+
+if __name__ == "__main__":
+    app = MyApp(0)
+    app.MainLoop()
