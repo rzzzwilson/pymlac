@@ -160,6 +160,7 @@ class Display(_BufferedCanvas):
         """
 
         self.drawlist.append((x1, y1, x2, y2, dotted))
+        log('Draw: x1,y1=%d,%d, x2,y2=%d,%d, dotted=%s' % (x1, y1, x2, y2, str(dotted)))
         self.Update()
 
     def clear(self):
