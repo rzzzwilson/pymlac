@@ -66,6 +66,7 @@ import os
 from Globals import *
 import MainCPU
 import Memory
+import Trace
 
 import log
 log = log.Log('test_CPU.log', log.Log.DEBUG)
@@ -306,7 +307,7 @@ class TestCPU(object):
         else:
             log.debug('Operation: %s' % op)
 
-    def execute(self, test):
+    def execute(self, test, filename):
         """Execute test string in 'test'."""
 
         # set globals
@@ -318,10 +319,11 @@ class TestCPU(object):
         result = []
 
         self.memory = Memory.Memory()
-        #self.cpu = MainCPU.MainCPU(memory, display, displaycpu, kbd, ttyin, ttyout, ptp, ptr)
         self.cpu = MainCPU.MainCPU(self.memory, None, None, None, None, None, None, None)
         self.cpu.running = True
         self.display_state = False
+
+        Trace.init(filename+'.trace', self.cpu, None)
 
         # clear memory and registers to 0 first
         self.allmem(0)
@@ -450,7 +452,7 @@ class TestCPU(object):
         # now do each test
         for test in tests:
             log.debug('Executing test: %s' % test)
-            self.execute(test)
+            self.execute(test, filename)
 
 ################################################################################
 
