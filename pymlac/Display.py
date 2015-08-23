@@ -40,10 +40,10 @@ class _BufferedCanvas(wx.Panel):
     buffer = None
 
     # max coordinates of scaled display                                          
-#    ScaleMaxX = 2048                                                            
-#    ScaleMaxY = 2048                                                            
-    ScaleMaxX = 512                                                            
-    ScaleMaxY = 512                                                            
+    ScaleMaxX = 2048                                                            
+    ScaleMaxY = 2048                                                            
+#    ScaleMaxX = 512                                                            
+#    ScaleMaxY = 512                                                            
 
     def __init__(self, parent, id=wx.ID_ANY, pos=wx.DefaultPosition,
                  size=wx.DefaultSize, style=wx.NO_FULL_REPAINT_ON_RESIZE):
@@ -133,9 +133,11 @@ class Display(_BufferedCanvas):
     SYNC_HZ = 40
     SYNC_40HZ_CYCLE_COUNT = int(CYCLES_PER_SECOND / SYNC_HZ)
 
-    # max coorcinates of pymlac display                                          
-    ScaleMaxX = 2048                                                            
-    ScaleMaxY = 2048                                                            
+    # max coordinates of pymlac display                                          
+#    ScaleMaxX = 2048                                                            
+#    ScaleMaxY = 2048                                                            
+    ScaleMaxX = 1024                                                            
+    ScaleMaxY = 1024                                                            
 
 
     def __init__(self, parent, **kwargs):
@@ -186,8 +188,8 @@ class Display(_BufferedCanvas):
                 pen.SetWidth(3)
             dc.SetPen(pen)
         
-            dc.DrawLine(4*x1, self.ScaleMaxY - 4*y1,
-                        4*x2, self.ScaleMaxY - 4*y2)
+            dc.DrawLine(x1, self.ScaleMaxY - y1,
+                        x2, self.ScaleMaxY - y2)
 
     def syncclear(self):
         self.Sync40hz = 0
