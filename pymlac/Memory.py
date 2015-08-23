@@ -8,6 +8,7 @@ Emulate the Imlac Memory.
 import struct
 
 from Globals import *
+import Trace
 
 
 class Memory(object):
@@ -261,7 +262,7 @@ class Memory(object):
             address = self.memory[address] & ADDRMASK
 
         if self.using_rom and self.ROM_START <= address <= self.ROM_END:
-            Trace.comment('Attempt to write to ROM')
+            Trace.comment('Attempt to write to ROM address %07o' % address)
             return
 
         try:
