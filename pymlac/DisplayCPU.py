@@ -71,8 +71,8 @@ class DisplayCPU(object):
                 self.DY -= (byte & 0x03)
             else:
                 self.DY += (byte & 0x03)
-                if byte & 0x40:
-                    self.display.draw(prevDX, prevDY, self.DX, self.DY)
+            if byte & 0x40:
+                self.display.draw(prevDX, prevDY, self.DX, self.DY)
         else:				# micro instructions
             if byte & 0x40:
                 self.Mode = self.MODE_NORMAL
