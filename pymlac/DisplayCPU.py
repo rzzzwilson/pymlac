@@ -22,7 +22,7 @@ class DisplayCPU(object):
     ######
 
     DPC = 0				# display CPU program counter
-    DRS = [0, 0, 0, 0, 0, 0, 0, 0]	# display CPU ???
+    DRS = [0, 0, 0, 0, 0, 0, 0, 0]	# display CPU stack
     DRSindex = 0			# display CPU ???
     DIB = 0				# display CPU ???
     DX = 0				# display CPU draw X register
@@ -97,7 +97,6 @@ class DisplayCPU(object):
             Trace.dtrace('')
             return 0
 
-#        instruction = self.memory.get(self.DPC, 0)
         instruction = self.memory.fetch(self.DPC, False)
         self.DPC = MASK_MEM(self.DPC + 1)
 
