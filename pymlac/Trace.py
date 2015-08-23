@@ -73,7 +73,6 @@ def comment(msg):
     tracefile.write(msg+'\n')
     tracefile.flush()
 
-
 def settrace(new_tracing):
     global tracing
 
