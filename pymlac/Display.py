@@ -162,7 +162,7 @@ class Display(_BufferedCanvas):
         """
 
         self.drawlist.append((x1, y1, x2, y2, dotted))
-        log('Draw: x1,y1=%d,%d, x2,y2=%d,%d, dotted=%s' % (x1, y1, x2, y2, str(dotted)))
+#        log('Draw: x1,y1=%d,%d, x2,y2=%d,%d, dotted=%s' % (x1, y1, x2, y2, str(dotted)))
         self.Update()
 
     def clear(self):
@@ -182,10 +182,10 @@ class Display(_BufferedCanvas):
         for (x1, y1, x2, y2, dotted) in self.drawlist:
             if not dotted:
                 pen.SetStyle(wx.SOLID)
-                pen.SetWidth(2)
+                pen.SetWidth(1)
             else:
                 pen.SetStyle(wx.DOT)
-                pen.SetWidth(3)
+                pen.SetWidth(2)
             dc.SetPen(pen)
         
             dc.DrawLine(x1, self.ScaleMaxY - y1,

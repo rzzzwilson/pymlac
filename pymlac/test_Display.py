@@ -55,8 +55,31 @@ class TestFrame(wx.Frame):
 
         self.Refresh()
 
-        self.display.draw(0, 0, 2047, 2047)
-        self.display.draw(2047, 0, 0, 2047, dotted=True)
+        self.display.draw(0, 0, 1024, 1024)
+        self.display.draw(1024, 0, 0, 1024)
+        self.display.draw(512, 0, 1024, 512)
+        self.display.draw(1024, 512, 512, 1024)
+        self.display.draw(512, 1024, 0, 512)
+        self.display.draw(0, 512, 512, 0)
+
+#        self.display.draw(0, 0, 1023, 1023)
+#        self.display.draw(1023, 0, 0, 1023)
+#        self.display.draw(511, 0, 1023, 511)
+#        self.display.draw(1023, 511, 511, 1023)
+#        self.display.draw(511, 1023, 0, 511)
+#        self.display.draw(0, 511, 511, 0)
+
+        for x in (0, 256, 512, 768, 1024):
+            self.display.draw(x, 0, x, 1024, dotted=True)
+
+        for y in (0, 256, 512, 768, 1024):
+            self.display.draw(0, y, 1024, y, dotted=True)
+
+#        for x in (0, 255, 511, 766, 1023):
+#            self.display.draw(x, 0, x, 1023, dotted=True)
+#
+#        for y in (0, 255, 511, 766, 1023):
+#            self.display.draw(0, y, 1023, y, dotted=True)
 
     def OnSize(self, event):
         """Maintain square window."""
