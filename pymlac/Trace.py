@@ -6,6 +6,7 @@ The Imlac trace stuff.
 
 
 import time
+import datetime
 
 from Globals import *
 
@@ -67,6 +68,16 @@ def itraceend(dispon):
                    (cpu.L, cpu.AC, dcpu.DX, dcpu.DY))
     else:
         trace('L=%1.1o AC=%6.6o\n' % (cpu.L, cpu.AC))
+
+# time the instruction execution
+#    # get time
+#    to = datetime.datetime.now()
+#    hr = to.hour
+#    min = to.minute
+#    sec = to.second
+#    msec = to.microsecond
+#    trace('  %02d:%02d:%02d.%06d' % (hr, min, sec, msec))
+
     tracefile.flush()
 
 def comment(msg):
