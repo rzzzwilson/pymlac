@@ -93,6 +93,7 @@ Debug(char *fmt, ...)
     vsprintf(buff, fmt, ap);
     fprintf(stdout, "%s\n", buff);
     va_end(ap);
+    fflush(stdout);
 }
 
 

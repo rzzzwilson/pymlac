@@ -11,6 +11,8 @@ where <filename> is a file of test instructions and
           -h    prints this help and stops
 """
 
+import time
+
 # We implement a small interpreter to test the CPU.  The test code is read in
 # from a file:
 #
@@ -93,7 +95,9 @@ class TestCPU(object):
             fd.write('\tend\n')
 
         # now assemble file
-        os.system('../iasm/iasm -l %s.lst %s.asm' % (self.AsmFilename, self.AsmFilename))
+        #cmd = '../iasm/iasm -l %s.lst %s.asm >xyzzy 2>&1' % (self.AsmFilename, self.AsmFilename)
+        cmd = '../iasm/iasm -l %s.lst %s.asm' % (self.AsmFilename, self.AsmFilename)
+        res = os.system(cmd)
 
         # read the listing file to get assembled opcode (second line)
         with open(self.AsmFilename+'.lst', 'rb') as fd:

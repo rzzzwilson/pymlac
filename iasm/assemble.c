@@ -375,7 +375,7 @@ Description : Delimit label, opcode and address fields of assembler line.
             : field   - address of address field pointer (returned)
             : comment - address of comment string (returned)
     Returns : 
-   Comments : The buffer is broken into shorter strings (destroyed).
+   Comments : 'buffer' is destroyed (broken into shorter strings.
  ******************************************************************************/
 static void
 delimfields(char *buffer,
@@ -401,19 +401,25 @@ delimfields(char *buffer,
     if (*chptr != ';' && *chptr != '\n')
     {
         *opcode = chptr;
-        while (!isspace(*chptr))
+        while (!isspace(*chptr) && *chptr != ';' && *chptr != '\n')
             ++chptr;
-        *chptr = '\0';
-        ++chptr;
+        // at end of opcode
+        if (isspace(*chptr) || *chptr == ';' || *chptr == '\n')
+        {
+            *chptr = '\0';
+            ++chptr;
+        }
 
-        while (isspace(*chptr) && *chptr != ';' && *chptr != '\n')
+        while (*chptr != '\0' && isspace(*chptr) && *chptr != ';' && *chptr != '\n')
             ++chptr;
-        if (*chptr != ';' && *chptr != '\n')
+
+        if (*chptr && *chptr != ';' && *chptr != '\n')
         {
             *field = chptr;
             while (!isspace(*chptr) && *chptr != ';' && *chptr != '\n')
                 ++chptr;
             *chptr = '\0';
+            ++chptr;
             if (strlen(*field) == 0)
                 *field = NULL;
         }
