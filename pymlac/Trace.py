@@ -21,7 +21,7 @@ def init(filename, maincpu, displaycpu):
     global tracing, tracefile, cpu, dcpu
 
     tracing = True
-    tracefile = open(filename, 'w')
+    tracefile = open(filename, 'wa')
     trace('%s trace\n%s\n' % (PYMLAC_VERSION, '-'*60))
     tracing = False
     comment = None
@@ -30,7 +30,7 @@ def init(filename, maincpu, displaycpu):
     dcpu = displaycpu
 
 def close():
-    import tracing, tracefile
+    global tracing, tracefile
 
     tracefile.close()
     tracing = False

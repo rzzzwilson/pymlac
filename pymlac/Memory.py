@@ -90,15 +90,17 @@ class Memory(object):
     memory = []
     using_rom = True
     boot_rom = None
+    rom_protected = False
 
 
-    def __init__(self, boot_rom=ROM_PTR, core=None):
+    def __init__(self, boot_rom=None, core=None):
         """   """
 
         self.corefile = core
         self.boot_rom = boot_rom
-        self.memory = []
+        self.memory = [0]*MEMORY_SIZE
         self.using_rom = boot_rom in [ROM_PTR, ROM_TTY]
+        self.rom_protected = self.using_rom
 
         if self.corefile:
             try:
@@ -116,9 +118,9 @@ class Memory(object):
         If using ROM, that is unchanged.
         """
 
-        for i in range(MEMORY_SIZE):
-            self.memory.append(0)
-        self.set_ROM(self.boot_rom)
+        for address in range(MEMORY_SIZE):
+            if not self.rom_protected or not (self.ROM_START <= address <= self.ROM_END):
+                self.memory[address] = 0
 
     def loadcore(self, filename=None):
         """Load core from a file.  Read 16 bit values as big-endian."""
@@ -136,10 +138,6 @@ class Memory(object):
                     low = fd.read(1)
                     val = (ord(high) << 8) + ord(low)
 
-#                    high = struct.unpack('B', high)[0]
-#                    low = struct.unpack('B', fd.read(1))[0]
-#                    val = (high << 8) + low
-
                     self.memory.append(val)
         except struct.error:
             raise RuntimeError('Core file %s is corrupt!' % filename)
@@ -155,21 +153,19 @@ class Memory(object):
                 high = val >> 8
                 low = val & 0xff
 
-#                data = struct.pack('B', high)
-#                fd.write(data)
-#                data = struct.pack('B', low)
-#                fd.write(data)
-
                 fd.write(chr(high))
                 fd.write(chr(low))
 
     def set_PTR_ROM(self):
         """Set addresses 040 to 077 as PTR ROM."""
 
+        save_flag = self.rom_protected
+        self.rom_protected = False
         i = self.ROM_START
         for ptr_value in self.PTR_ROM_IMAGE:
             self.memory[i] = ptr_value
             i += 1
+        self.rom_protected = save_flag
 
     def set_TTY_ROM(self):
         """Set addresses 040 to 077 as TTY ROM."""
@@ -182,24 +178,16 @@ class Memory(object):
     def set_ROM(self, romtype=None):
         """Set ROM to either PTR or TTY, or disable ROM."""
 
+        save_flag = self.rom_protected
+        self.rom_protected = False
         if romtype == 'ptr':
-            self.using_rom = True
-            i = self.ROM_START
-            for ptr_value in self.PTR_ROM_IMAGE:
-                self.memory[i] = ptr_value
-                i += 1
+            self.set_PTR_ROM()
+            self.rom_protected = True
         elif romtype == 'tty':
-            self.using_rom = True
-            i = self.ROM_START
-            for ptr_value in self.TTY_ROM_IMAGE:
-                self.memory[i] = ptr_value
-                i += 1
+            self.set_TTY_ROM()
+            self.rom_protected = True
         else:
-            self.using_rom = False
-            i = self.ROM_START
-            for _ in self.PTR_ROM_IMAGE:
-                self.memory[i] = 0
-                i += 1
+            self.rom_protected = save_flag
 
     def fetch(self, address, indirect):
         """Get a value from a memory address.
@@ -261,7 +249,8 @@ class Memory(object):
         if indirect:
             address = self.memory[address] & ADDRMASK
 
-        if self.using_rom and self.ROM_START <= address <= self.ROM_END:
+        if self.rom_protected and self.ROM_START <= address <= self.ROM_END:
+            print('Attempt to write to ROM address %07o' % address)
             Trace.comment('Attempt to write to ROM address %07o' % address)
             return
 

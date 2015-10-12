@@ -147,7 +147,7 @@ class TestCPU(object):
         self.memory.put(value, addr, False)
         log.debug('setmem: After, Memory at %07o is %07o' % (addr, self.memory.fetch(addr, False)))
 
-    def allmem(self, value):
+    def allmem(self, value, ignore=None):
         """Set all of memory to a value.
 
         Remember value to check later.
@@ -183,6 +183,8 @@ class TestCPU(object):
                                   % (mem, value, self.mem_values[mem]))
             else:
                 if value != self.mem_all_value:
+                    print('mem: %s, value: %s, self.mem_all_value: %s'
+                          % (str(type(mem)), str(type(value)), str(type(self.mem_all_value))))
                     result.append('Memory at %07o changed, is %07o, should be %07o'
                                   % (mem, value, self.mem_all_value))
 
@@ -317,8 +319,10 @@ class TestCPU(object):
         # set globals
         self.reg_values = {}
         self.mem_values = {}
-        self.reg_all_value = {}
-        self.mem_all_value = {}
+        #self.reg_all_value = {}
+        #self.mem_all_value = {}
+        self.reg_all_value = 0
+        self.mem_all_value = 0
 
         result = []
 
@@ -327,10 +331,10 @@ class TestCPU(object):
         self.cpu.running = True
         self.display_state = False
 
-        Trace.init(filename+'.trace', self.cpu, None)
+        trace_filename = filename + '.trace'
+        Trace.init(trace_filename, self.cpu, None)
 
-        # clear memory and registers to 0 first
-        self.allmem(0)
+        # clear registers to 0 first
         self.allreg(0)
 
         # interpret the test instructions
