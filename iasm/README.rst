@@ -8,9 +8,9 @@ a listing file can also be produced.
     Usage: iasm <option> <filename>                                           
     
     where <option>   is zero or more of                                       
-                       -bptr     use a papertape boot loader                  
-                       -btty     use a teletype boot loader                   
-                       -l <file> write listing to file <file>                 
+                       -bptr        use a papertape boot loader                  
+                       -btty        use a teletype boot loader                   
+                       -l <file>    write listing to file <file>                 
           <filename> is the file to assemble.                                 
     
     The input filename has the form of 'file.asm' and                         
