@@ -375,7 +375,8 @@ Description : Delimit label, opcode and address fields of assembler line.
             : field   - address of address field pointer (returned)
             : comment - address of comment string (returned)
     Returns : 
-   Comments : 'buffer' is destroyed (broken into shorter strings.
+   Comments : 'buffer' is destroyed (broken into shorter strings).
+            : If any field is empty, return NULL in corresponding pointer.
  ******************************************************************************/
 static void
 delimfields(char *buffer,
@@ -387,41 +388,47 @@ delimfields(char *buffer,
     *label = *opcode = *field = *comment = NULL;
 
     chptr = buffer;
+
+    /* check for a label */
     if (isalpha(*chptr))
     {
         *label = chptr;
-        while (!isspace(*chptr) && *chptr != ';' && *chptr != '\n')
+        while (!isspace(*chptr) && *chptr != ';')
             ++chptr;
-        *chptr = '\0';
-        ++chptr;
+        if (*chptr)
+            *(chptr++) = '\0';
     }
 
-    while (isspace(*chptr) && *chptr != ';' && *chptr != '\n')
-        ++chptr;
-    if (*chptr != ';' && *chptr != '\n')
+    /* if not off end of buffer, look for opcode */
+    if (*chptr)
     {
-        *opcode = chptr;
-        while (!isspace(*chptr) && *chptr != ';' && *chptr != '\n')
+        while (*chptr && isspace(*chptr) && *chptr != ';')
             ++chptr;
-        // at end of opcode
-        if (isspace(*chptr) || *chptr == ';' || *chptr == '\n')
+
+        if (*chptr)
         {
-            *chptr = '\0';
-            ++chptr;
+            *opcode = chptr;
+            while (*chptr && !isspace(*chptr) && *chptr != ';')
+                ++chptr;
+            if (*chptr)
+                *(chptr++) = '\0';
+
         }
+    }
 
-        while (*chptr != '\0' && isspace(*chptr) && *chptr != ';' && *chptr != '\n')
+    /* if not off end of buffer, look for field */
+    if (*chptr)
+    {
+        while (*chptr && isspace(*chptr) && *chptr != ';')
             ++chptr;
 
-        if (*chptr && *chptr != ';' && *chptr != '\n')
+        if (*chptr)
         {
             *field = chptr;
-            while (!isspace(*chptr) && *chptr != ';' && *chptr != '\n')
+            while (*chptr && !isspace(*chptr) && *chptr != ';')
                 ++chptr;
-            *chptr = '\0';
-            ++chptr;
-            if (strlen(*field) == 0)
-                *field = NULL;
+            if (*chptr)
+                *(chptr++) = '\0';
         }
     }
 
