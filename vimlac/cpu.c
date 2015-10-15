@@ -1485,7 +1485,7 @@ page00(WORD instruction)
 /******************************************************************************
 Description : Function to execute one main processor instruction.
  Parameters : 
-    Returns : 
+    Returns : The number of cycles the instruction took.
    Comments : Perform initial decode of 5 bit opcode and either call
             : appropriate emulating function or call further decode function.
  ******************************************************************************/

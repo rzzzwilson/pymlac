@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <assert.h>
 
-#include "vimlac.h"
+#include "imlac.h"
 #include "memory.h"
 
 
@@ -15,6 +15,7 @@ main(int argc, char *argv[])
     WORD addr;
     WORD result;
     FILE *fd;
+    int errors = 0;
 
     // test the "memory clear" function
     mem_clear();
@@ -30,7 +31,7 @@ main(int argc, char *argv[])
         {
             printf("A: mem_get(0x%04x) was 0x%04x, should be 0x%04x\n",
                    addr, mem_get(addr, false), addr);
-            return 1;
+            errors += 1;
         }
     }
 
@@ -44,7 +45,7 @@ main(int argc, char *argv[])
         {
             printf("B: mem_get(0x%04x) was 0x%04x, should be 0x%04x\n",
                    addr, mem_get(addr, false), addr);
-            return 1;
+            errors += 1;
         }
     }
 
@@ -57,26 +58,26 @@ main(int argc, char *argv[])
     if (result != 1)
     {
 	printf("C: auto-index at address 010 not indirectly addressing\n");
-	return 1;
+        errors += 1;
     }
     result = mem_get(010, false);
     if (result != 1)
     {
 	printf("D: auto-index at address 010 not incrementing\n");
-	return 1;
+        errors += 1;
     }
     mem_put(010, false, 0xffff);
     result = mem_get(010, true);
     if (result != 0)
     {
 	printf("E: auto-index at address 010 not indirectly addressing\n");
-	return 1;
+        errors += 1;
     }
     result = mem_get(010, false);
     if (result != 0)
     {
 	printf("F: auto-index at address 010 not incrementing\n");
-	return 1;
+        errors += 1;
     }
 
     // check 017, make sure address wrap-around works
@@ -88,26 +89,26 @@ main(int argc, char *argv[])
     if (result != 0)
     {
 	printf("G: auto-index at address 017 not indirectly addressing\n");
-	return 1;
+        errors += 1;
     }
     result = mem_get(017, false);
     if (result != 2)
     {
 	printf("H: auto-index at address 017 not incrementing\n");
-	return 1;
+        errors += 1;
     }
     mem_put(017, false, 0x3fff);
     result = mem_get(017, true);
     if (result != 2)
     {
 	printf("I: auto-index at address 017 not indirectly addressing\n");
-	return 1;
+        errors += 1;
     }
     result = mem_get(017, false);
     if (result != 0x4000)
     {
 	printf("J: auto-index at address 017 not incrementing\n");
-	return 1;
+        errors += 1;
     }
 
     // now save memory to a file
@@ -115,24 +116,22 @@ main(int argc, char *argv[])
     mem_clear();
     for (addr = 0; addr < MEM_SIZE; ++addr)
         mem_put(addr, false, addr);
-    fd = fopen("imlac.core", "wb");
-    mem_save_core(fd);
-    fclose(fd);
+    mem_save_core("imlac.core");
 
     // clear memory and read core file back in
     mem_clear();
-    fd = fopen("imlac.core", "rb");
-    mem_load_core(fd);
-    fclose(fd);
+    mem_load_core("imlac.core");
     for (addr = 0; addr < MEM_SIZE; ++addr)
     {
         if (mem_get(addr, false) != addr)
         {
             printf("K: mem_get(0x%04x) was 0x%04x, should be 0x%04x\n",
                    addr, mem_get(addr, false), addr);
-            return 1;
+            errors += 1;
         }
     }
+
+    printf("%d errors found\n", errors);
 
     return 0;
 }

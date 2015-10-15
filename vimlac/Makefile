@@ -2,9 +2,9 @@ OFILES = vimlac.o cpu.o dcpu.o ptr.o ptp.o memory.o kb.o ttyin.o ttyout.o trace.
 
 CFLAGS=-shared -fPIC -O2 -Wall -ansi -pedantic -std=c99 -g
 
-test:	vimlac.py vimlac
-	#python vimlac.py -ptr test_add.ptp -r 040 -r 0100
-	vimlac
+#test:	vimlac.py vimlac
+#	#python vimlac.py -ptr test_add.ptp -r 040 -r 0100
+#	vimlac
 
 vimlac:	${OFILES} Makefile
 	#gcc -o vimlac.so -shared -fPIC ${OFILES}

@@ -1,12 +1,13 @@
 /*
- * Interface for the vimlac emulator.
+ * Global definitions for the imlac simulator.
  */
 
-#ifndef VIMLAC_H
-#define VIMLAC_H
+#ifndef IMLAC_H
+#define IMLAC_H
 
 #include <stddef.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <stdbool.h>
 #include <stdarg.h>
 #include <string.h>
