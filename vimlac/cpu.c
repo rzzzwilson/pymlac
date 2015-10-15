@@ -6,11 +6,11 @@
  *                                                                            *
 \******************************************************************************/
 
-#include "vimlac.h"
+#include "imlac.h"
 #include "cpu.h"
 #include "dcpu.h"
 #include "memory.h"
-#include "kb.h"
+#include "kbd.h"
 #include "ptr.h"
 #include "ptp.h"
 #include "ttyin.h"
@@ -492,7 +492,7 @@ Description : Emulate the DSF instruction.
 static int
 i_DSF(void)
 {
-    if (dcpu_on())
+    if (dcpu_running())
         r_PC = (r_PC + 1) & WORD_MASK;
 
     trace("DSF\t");
@@ -529,7 +529,7 @@ Description : Emulate the DSN instruction.
 static int
 i_DSN(void)
 {
-    if (!dcpu_on())
+    if (!dcpu_running())
         r_PC = (r_PC + 1) & WORD_MASK;
 
     trace("DSN\t");
@@ -585,7 +585,7 @@ Description : Emulate the IMLAC KCF instruction.
 static int
 i_KCF(void)
 {
-    kb_clear_flag();
+    kbd_clear_flag();
 
     trace("KCF\t");
 
@@ -602,7 +602,7 @@ Description : Emulate the IMLAC KRB instruction.
 static int
 i_KRB(void)
 {
-    r_AC |= kb_get_char();
+    r_AC |= kbd_get_char();
 
     trace("KRB\t");
 
@@ -619,8 +619,8 @@ Description : Emulate the IMLAC KRC instruction.
 static int
 i_KRC(void)
 {
-    r_AC |= kb_get_char();
-    kb_clear_flag();
+    r_AC |= kbd_get_char();
+    kbd_clear_flag();
 
     trace("KRC\t");
 
@@ -637,7 +637,7 @@ Description : Emulate the IMLAC KSF instruction.
 static int
 i_KSF(void)
 {
-    if (kb_ready())
+    if (kbd_ready())
         r_PC = (r_PC + 1) & WORD_MASK;
 
     trace("KSF\t");
@@ -655,7 +655,7 @@ Description : Emulate the IMLAC KSN instruction.
 static int
 i_KSN(void)
 {
-    if (!kb_ready())
+    if (!kbd_ready())
         r_PC = (r_PC + 1) & WORD_MASK;
 
     trace("KSN\t");
@@ -673,7 +673,9 @@ Description : Emulate the IMLAC PUN instruction.
 static int
 i_PUN(void)
 {
-    ptp_punch(r_AC & 0xff);
+    char value = r_AC & 0xff;
+
+    ptp_punch(value);
 
     trace("PUN\t");
 
@@ -937,7 +939,9 @@ Description : Emulate the IMLAC TPC instruction.
 static int
 i_TPC(void)
 {
-    ttyout_send(r_AC & 0xff);
+    BYTE value = r_AC & 0xff;
+
+    ttyout_send(value);
     ttyout_clear_flag();
 
     trace("TPC\t");
@@ -1116,7 +1120,7 @@ Description : Emulate the IMLAC DLA instruction.
 static int
 i_DLA(void)
 {
-    dcpu_set_PC(r_AC);
+    dcpu_set_DPC(r_AC);
 
     trace("DLA\t");
 

@@ -1,58 +1,53 @@
 /*
- * Implementation for the imlac PTR (papertape reader) device.
+ * Implementation for the imlac PTP (papertape punch) device.
  */
 
 #include "imlac.h"
-#include "ptr.h"
+#include "ptp.h"
 
 
 /*****
- * constants for the PTR device
+ * constants for the PTP device
  *
- * The device reads at 300 chars/second, so we work out how many imlac
+ * The device punches at 100 chars/second, so we work out how many imlac
  * machine cycles data is ready/notready at a 30%/70% ready cycle.
  ******/
 
-#define CHARS_PER_SECOND    300
+#define CHARS_PER_SECOND    100
 #define CYCLES_PER_CHAR     (CPU_HERZ / CHARS_PER_SECOND)
 #define READY_CYCLES        (int)((3 * CYCLES_PER_CHAR) / 10)
 #define NOT_READY_CYCLES    (int)((7 * CYCLES_PER_CHAR) / 10)
 
-#define PTR_EOF             0377
-
 /*****
- * State variables for the PTR device
+ * State variables for the PTP device
  ******/
 
 static bool motor_on = false;
 static bool device_ready = false;
 static FILE *open_file;
 static char *filename = NULL;
-static bool at_eof = false;
-static BYTE value = PTR_EOF;
 static long cycle_count = 0;
+static char value = 0;
 
 
 
 /******************************************************************************
-Description : Mount a papertape file on the PTR device
+Description : Mount a papertape file on the PTP device
  Parameters : fname - pathname of the file to mount
     Returns : 0 if no error, else status code.
    Comments : 
  ******************************************************************************/
-int ptr_mount(char *fname)
+int ptp_mount(char *fname)
 {
     filename = fname;
-    open_file = fopen(fname, "rb");
+    open_file = fopen(fname, "wb");
     if (open_file == NULL)
     {
-        ptr_dismount();
+        ptp_dismount();
         return errno;
     }
     motor_on = false;
     device_ready = false;
-    at_eof = false;
-    value = PTR_EOF;
     cycle_count = NOT_READY_CYCLES;
 
     return 0;
@@ -65,16 +60,14 @@ Description : Dismount papertape file from device.
     Returns : 
    Comments : Turns motor off.
  ******************************************************************************/
-void ptr_dismount(void)
+void ptp_dismount(void)
 {
     if (open_file)
         if (fclose(open_file) != 0)
     filename = NULL;
     open_file = NULL;
     motor_on = false;
-    device_ready = true;
-    at_eof = true;
-    value = PTR_EOF;
+    device_ready = false;
 }
 
 
@@ -84,7 +77,7 @@ Description : Start the papertape device motor.
     Returns : 
    Comments : We don't check if papertape mounted as the real imlac doesn't.
  ******************************************************************************/
-void ptr_start(void)
+void ptp_start(void)
 {
     motor_on = true;
     device_ready = false;
@@ -98,20 +91,21 @@ Description : Turn the papertape device motor off.
     Returns : 
    Comments : 
  ******************************************************************************/
-void ptr_stop(void)
+void ptp_stop(void)
 {
     motor_on = false;
+    device_ready = false;
     cycle_count = NOT_READY_CYCLES;
 }
 
 
 /******************************************************************************
-Description : Read the current value of the papertape device.
+Description : Write the current value to the papertape punch file.
  Parameters : 
     Returns : 
    Comments : 
  ******************************************************************************/
-int ptr_read(void)
+int ptp_punch(BYTE value)
 {
     return value;
 }
@@ -123,7 +117,7 @@ Description : Get the papertape device status.
     Returns : TRUE if device ready, else FALSE.
    Comments : 
  ******************************************************************************/
-bool ptr_ready(void)
+bool ptp_ready(void)
 {
     return device_ready;
 }
@@ -135,10 +129,10 @@ Description : Tick the state machine along a bit.
     Returns : 
    Comments : 
  ******************************************************************************/
-void ptr_tick(long cycles)
+void ptp_tick(long cycles)
 {
     /* if no state change */
-    if (!motor_on || at_eof || open_file == NULL)
+    if (!motor_on || open_file == NULL)
         return;
 
     /* tape in, motor on */
@@ -159,8 +153,6 @@ void ptr_tick(long cycles)
             {   /* assume EOF on file, dismount tape */
 		fclose(open_file);
 		open_file = NULL;
-                at_eof = true;
-                value = PTR_EOF;
             }
         }
     }
