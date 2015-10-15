@@ -100,7 +100,7 @@ class Log(object):
 
     def check_level(self, level):
         """Check the level value for legality.
-        
+
         If 'level' is invalid, raise Exception.  If valid, return value.
         """
 
@@ -112,8 +112,8 @@ class Log(object):
             raise Exception(msg)
 
         if not 0 <= level <= 50:
-            msg = "Logging level invalid: '%s'" % str(level)                                                                                       
-            print(msg)                                                                                                                             
+            msg = "Logging level invalid: '%s'" % str(level)
+            print(msg)
             raise Exception(msg)
 
         return level
