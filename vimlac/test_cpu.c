@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <assert.h>
 
-#include "imlac.h"
+#include "vimlac.h"
 #include "cpu.h"
 #include "memory.h"
 
