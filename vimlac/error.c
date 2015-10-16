@@ -26,5 +26,3 @@ error(char *fmt, ...)
 
     exit(10);
 }
-
-

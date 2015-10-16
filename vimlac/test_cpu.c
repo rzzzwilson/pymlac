@@ -61,6 +61,17 @@
 #include "error.h"
 
 
+// constants
+char *LstFilename = "_#TEST#_.lst";
+char *AsmFilename = "_#TEST#_.asm";
+
+
+/******************************************************************************
+Description : Function to provide help to the befuddled user.
+ Parameters : msg - if not NULL, a message to display
+    Returns : 
+   Comments : 
+ ******************************************************************************/
 void
 usage(char *msg)
 {
@@ -82,6 +93,100 @@ usage(char *msg)
     fprintf(stderr, "      <options> is one or more of\n");
     fprintf(stderr, "          -h    prints this help and stops\n");
 }
+
+
+/******************************************************************************
+Description : Function to return the imlac binary opcode of an instruction.
+ Parameters : addr   - address of the instruction
+            : opcode - string containing the instruction
+    Returns : 
+   Comments : We generate an ASM file, assemble it and pick out the binary
+            : opcode from the LST file.
+ ******************************************************************************/
+int
+assemble(WORD addr, char *opcode)
+{
+    FILE *fd;
+    char buffer[128];
+    WORD result;
+
+    // create the ASM file
+    fd = fopen(AsmFilename, "wb");
+    fprintf(fd, "\torg\t%07o\n", addr);
+    fprintf(fd, "\t%s\n", opcode);
+    fprintf(fd, "\tend\n");
+    fclose(fd);
+
+    // assemble the file
+    sprintf(buffer, "../iasm/iasm -l %s %s", LstFilename, AsmFilename);
+    if (system(buffer) == -1)
+        error("Error doing: %s", buffer);
+   
+    // read LST file for opcode on second line
+    fd = fopen(LstFilename, "rb");
+    if (fgets(buffer, sizeof(buffer), fd) == NULL)
+        error("Error reading %s", LstFilename);
+    if (fgets(buffer, sizeof(buffer), fd) == NULL)
+        error("Error reading %s", LstFilename);
+    if (sscanf(buffer, "%o", &result) != 1)
+        error("Badly formatted assembler output: %s", buffer);
+
+    return result;   
+}
+   
+
+/******************************************************************************
+Description : Function to execute test script.
+ Parameters : script - path to script file to execute
+    Returns : 
+   Comments : 
+ ******************************************************************************/
+int
+execute(char *script)
+{
+    int errors = 0;
+
+    return errors;
+}
+
+#ifdef JUNK
+    def main(self, filename):
+        """Execute CPU tests from 'filename'."""
+
+        log.debug("Running test file '%s'" % filename)
+
+        # get all tests from file
+        with open(filename, 'rb') as fd:
+            lines = fd.readlines()
+
+        # read lines, join continued, get complete tests
+        tests = []
+        test = ''
+        for line in lines:
+            line = line[:-1]        # strip newline
+            if not line:
+                continue            # skip blank lines
+
+            if line[0] == '#':      # a comment
+                continue
+
+            if line[0] == '\t':     # continuation
+                if test:
+                    test += '; '
+                test += line[1:]
+            else:                   # beginning of new test
+                if test:
+                    tests.append(test)
+                test = line
+
+        # flush last test
+        if test:
+            tests.append(test)
+
+        # now do each test
+        for test in tests:
+            log.debug('Executing test: %s' % test)
+#endif
 
 
 int
@@ -114,11 +219,13 @@ main(int argc, char *argv[])
 
     // get filename and make sure it's there
     script = argv[optind];
-    if ((script_fd = fopen(script, "r")) == -1)
+    if ((script_fd = fopen(script, "r")) == NULL)
     {
-        error("File %s doesn't exist or isn't readable: %s\n",
+        error("File %s doesn't exist or isn't readable: %d\n",
                 script, errno);
     }
+
+    errors = execute(script);
 
     printf("%d errors found\n", errors);
 
@@ -127,64 +234,6 @@ main(int argc, char *argv[])
 
 
 #ifdef JUNK
-"""
-Test pymlac CPU opcodes DIRECTLY.
-
-Usage: test_CPU.py [<options>] <filename>
-
-where <filename> is a file of test instructions and
-      <options> is one or more of
-          -h    prints this help and stops
-"""
-
-# We implement a small interpreter to test the CPU.  The test code is read in
-# from a file:
-#
-#    # LAW
-#    setreg ac 012345; setreg l 1; setreg pc 0100; setmem 0100 [LAW 0]; RUN; checkcycles 1; checkreg pc 0101; checkreg ac 0
-#    setreg ac 012345; setreg l 0; setmem 0100 [LAW 0]; RUN 0100
-#            checkcycles 1; checkreg pc 0101; checkreg ac 0
-#
-# The instructions are delimited by ';' characters.  A line beginning with a
-# TAB character is a continuation of the previous line.
-# Lines with '#' in column 1 are comments.
-#
-# The test instructions are:
-#     setreg <name> <value>
-#         where <name> is one of AC, L, PC or DS, value is any value
-#         (all registers are set to 0 initially)
-#
-#     setmem <addr> <value>
-#         where <addr> is an address and value is any value OR
-#         [<instruction>] where the value is the assembled opcode
-#
-#     run [<addr>]
-#         execute one instruction, if optional <addr> is used PC := addr before
-#
-#     checkcycles <number>
-#         check number of executed cycles is <number>
-#
-#     checkreg <name> <value>
-#         check register (AC, L, PC or DS) has value <value>
-#
-#     checkmem <addr> <value>
-#         check that memory at <addr> has <value>
-#
-#     allreg <value>
-#         sets all registers to <value>
-#         a "allreg 0" is assumed before each test
-#
-#     allmem <value>
-#         sets all of memory to <value>
-#         a "allmem 0" is assumed before each test
-#
-# In addition, all of memory is checked for changed values after execution
-# except where an explicit "checkmem <addr> <value>" has been performed.
-# Additionally, registers that aren't explicitly checked are tested to make
-# sure they didn't change.
-#
-# If a test line finds no error, just print the fully assembled test line.
-# If any errors are found, print line followed by all errors.
 
 
 import os

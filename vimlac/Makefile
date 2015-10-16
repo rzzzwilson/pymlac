@@ -1,7 +1,8 @@
 DEVFILES = cpu.o dcpu.o ptr.o ptp.o memory.o kb.o ttyin.o ttyout.o trace.o error.o
 OFILES = vimlac.o $(DEVFILES)
 
-CFLAGS=-shared -fPIC -O2 -Wall -ansi -pedantic -std=c99 -g
+#CFLAGS=-fPIC -O2 -Wall -ansi -pedantic -std=c99 -g
+CFLAGS=-O2 -Wall -ansi -pedantic -std=c99 -g
 
 test:	vimlac.py vimlac
 	#python vimlac.py -ptr test_add.ptp -r 040 -r 0100
