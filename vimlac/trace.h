@@ -1,5 +1,5 @@
 /*
- * Interface for the imlac TRACE routine(s).
+ * Interface for the vimlac trace routines.
  */
 
 #ifndef TRACE_H

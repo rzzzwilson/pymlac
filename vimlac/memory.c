@@ -1,14 +1,13 @@
 /*
- * Implementation of memory for the imlac simulator.
+ * Implementation of vimlac memory.
  *
  * Memory size is a compile-time constant.
- * The code here handles indirect memory references as well
+ * The code here handles indirect memory references as will
  * as the 8 auto-index registers at 010-017 in every 2K block.
  */
 
 #include <stdio.h>
 
-#include "imlac.h"
 #include "memory.h"
 
 
@@ -44,14 +43,6 @@ static WORD memory[MEM_SIZE];
 #define AUTO_INDEX(a)	(((a & INDEX_MASK) >= LOWER_INDEX) && ((a & INDEX_MASK) <= HIGHER_INDEX))
 
 
-/******************************************************************************
-Description : Get a word value from memory.
- Parameters : address  - the address to fetch from
-            : indirect - TRUE if the fetch is to be indirect
-    Returns : The word from memory.
-   Comments : If 'indirect' is TRUE 'address' is the address of a pointer to
-            : the word to fetch.
- ******************************************************************************/
 WORD
 mem_get(WORD address, bool indirect)
 {
@@ -68,15 +59,6 @@ mem_get(WORD address, bool indirect)
     return result;
 }
 
-/******************************************************************************
-Description : Put a word value into memory.
- Parameters : address  - the address to store to
-            : indirect - TRUE if the store is to be indirect
-            : value    - the word value to place into memory
-    Returns : 
-   Comments : If 'indirect' is TRUE 'address' is the address of a pointer to
-            : the word to store into. 
- ******************************************************************************/
 void
 mem_put(WORD address, bool indirect, WORD value)
 {
@@ -91,17 +73,11 @@ mem_put(WORD address, bool indirect, WORD value)
     memory[a & ADDR_MASK] = value;
 }
 
-/******************************************************************************
-Description : Clear memory to zero words.
- Parameters : 
-    Returns : 
-   Comments : If the ROM addresses are read-only, don't clear them.
- ******************************************************************************/
 void
 mem_clear(void)
 {
     if (rom_readonly)
-    {	/* save the ROM contents  and restore after clear */
+    {	/* save the ROM contents */
         WORD rom[ROM_SIZE];
 
         memcpy(rom, &memory[ROM_START], sizeof(WORD)*ROM_SIZE);
@@ -112,12 +88,6 @@ mem_clear(void)
         memset(memory, 0, sizeof(WORD)*MEM_SIZE);
 }
 
-/******************************************************************************
-Description : Set the ROM addresses to a particular ROM setting.
- Parameters : rom - pointer to ROM_SIZE words of OM values
-    Returns : 
-   Comments : Sets the ROM area as read-only.
- ******************************************************************************/
 void
 mem_set_rom(WORD *rom)
 {
@@ -125,24 +95,12 @@ mem_set_rom(WORD *rom)
     memcpy(&memory[ROM_START], rom, sizeof(WORD)*ROM_SIZE);
 }
 
-/******************************************************************************
-Description : Sets the ROM area to be protected or not.
- Parameters : readonly - if TRUE the ROM area is protected
-    Returns : 
-   Comments : 
- ******************************************************************************/
 void
 mem_set_rom_readonly(bool readonly)
 {
     rom_readonly = readonly;
 }
 
-/******************************************************************************
-Description : Load memory from a core save file.
- Parameters : filename - pathname of file to load
-    Returns : 
-   Comments : 
- ******************************************************************************/
 void
 mem_load_core(char *filename)
 {
@@ -164,12 +122,6 @@ mem_load_core(char *filename)
     fclose(fd);
 }
 
-/******************************************************************************
-Description : Save memory to a core save file.
- Parameters : filename - pathname of file to save to
-    Returns : 
-   Comments : 
- ******************************************************************************/
 void
 mem_save_core(char *filename)
 {

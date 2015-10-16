@@ -1,11 +1,11 @@
 /*
- * Interface to the imlac memory routines.
+ * Interface for the vimlac memory.
  */
 
 #ifndef MEMORY_H
 #define MEMORY_H
 
-#include "imlac.h"
+#include "vimlac.h"
 
 #define MEM_SIZE	0x4000
 

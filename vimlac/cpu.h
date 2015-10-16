@@ -1,15 +1,12 @@
 /******************************************************************************\
  *                                  cpu.h                                     *
  *                                 -------                                    *
- *                                                                            *
- *  Implements all main CPU instructions.                                     *
- *                                                                            *
 \******************************************************************************/
 
 #ifndef CPU_H
 #define CPU_H
 
-#include "imlac.h"
+#include "vimlac.h"
 
 /******
  * Exported functions.

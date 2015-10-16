@@ -1,15 +1,15 @@
 /*
- * Implementation for the imlac PTR (papertape reader) device.
+ * Implementation for the vimlac PTR (papertape reader).
  */
 
-#include "imlac.h"
+#include "vimlac.h"
 #include "ptr.h"
 
 
 /*****
  * constants for the PTR device
  *
- * The device reads at 300 chars/second, so we work out how many imlac
+ * The device reads at 300 chars/second, so we work out how many
  * machine cycles data is ready/notready at a 30%/70% ready cycle.
  ******/
 
@@ -33,13 +33,6 @@ static BYTE value = PTR_EOF;
 static long cycle_count = 0;
 
 
-
-/******************************************************************************
-Description : Mount a papertape file on the PTR device
- Parameters : fname - pathname of the file to mount
-    Returns : 0 if no error, else status code.
-   Comments : 
- ******************************************************************************/
 int ptr_mount(char *fname)
 {
     filename = fname;
@@ -59,12 +52,6 @@ int ptr_mount(char *fname)
 }
 
 
-/******************************************************************************
-Description : Dismount papertape file from device.
- Parameters : 
-    Returns : 
-   Comments : Turns motor off.
- ******************************************************************************/
 void ptr_dismount(void)
 {
     if (open_file)
@@ -78,12 +65,6 @@ void ptr_dismount(void)
 }
 
 
-/******************************************************************************
-Description : Start the papertape device motor.
- Parameters : 
-    Returns : 
-   Comments : We don't check if papertape mounted as the real imlac doesn't.
- ******************************************************************************/
 void ptr_start(void)
 {
     motor_on = true;
@@ -92,12 +73,6 @@ void ptr_start(void)
 }
 
 
-/******************************************************************************
-Description : Turn the papertape device motor off.
- Parameters : 
-    Returns : 
-   Comments : 
- ******************************************************************************/
 void ptr_stop(void)
 {
     motor_on = false;
@@ -105,36 +80,18 @@ void ptr_stop(void)
 }
 
 
-/******************************************************************************
-Description : Read the current value of the papertape device.
- Parameters : 
-    Returns : 
-   Comments : 
- ******************************************************************************/
 int ptr_read(void)
 {
     return value;
 }
 
 
-/******************************************************************************
-Description : Get the papertape device status.
- Parameters : 
-    Returns : TRUE if device ready, else FALSE.
-   Comments : 
- ******************************************************************************/
 bool ptr_ready(void)
 {
     return device_ready;
 }
 
 
-/******************************************************************************
-Description : Tick the state machine along a bit.
- Parameters : cycles - number of imlac cycles that have elapsed
-    Returns : 
-   Comments : 
- ******************************************************************************/
 void ptr_tick(long cycles)
 {
     /* if no state change */

@@ -1,5 +1,5 @@
 /*
- * Interface for the imlac PTR (papertape reader).
+ * Interface for the vimlac PTR (papertape reader).
  */
 
 #ifndef PTR_H

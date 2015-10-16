@@ -1,25 +1,23 @@
 /*
- * Implementation for the imlac PTP (papertape punch) device.
+ * Implementation for the vimlac PTP (papertape punch).
  */
 
-#include "imlac.h"
+#include "vimlac.h"
 #include "ptp.h"
 
 
 /*****
  * constants for the PTP device
  *
- * The device punches at 100 chars/second, so we work out how many imlac
- * machine cycles data is ready/notready at a 30%/70% ready cycle.
+ * The device punches at 300 chars/second, so we work out how many
+ * machine cycles device is not ready after punch starts.
  ******/
 
-#define CHARS_PER_SECOND    100
-#define CYCLES_PER_CHAR     (CPU_HERZ / CHARS_PER_SECOND)
-#define READY_CYCLES        (int)((3 * CYCLES_PER_CHAR) / 10)
-#define NOT_READY_CYCLES    (int)((7 * CYCLES_PER_CHAR) / 10)
+#define CHARS_PER_SECOND    300
+#define NOT_READY_CYCLES    (int) (CPU_HERZ / CHARS_PER_SECOND)
 
 /*****
- * State variables for the PTP device
+ * State variables for the PTR device
  ******/
 
 static bool motor_on = false;
@@ -27,16 +25,8 @@ static bool device_ready = false;
 static FILE *open_file;
 static char *filename = NULL;
 static long cycle_count = 0;
-static char value = 0;
 
 
-
-/******************************************************************************
-Description : Mount a papertape file on the PTP device
- Parameters : fname - pathname of the file to mount
-    Returns : 0 if no error, else status code.
-   Comments : 
- ******************************************************************************/
 int ptp_mount(char *fname)
 {
     filename = fname;
@@ -54,12 +44,6 @@ int ptp_mount(char *fname)
 }
 
 
-/******************************************************************************
-Description : Dismount papertape file from device.
- Parameters : 
-    Returns : 
-   Comments : Turns motor off.
- ******************************************************************************/
 void ptp_dismount(void)
 {
     if (open_file)
@@ -67,16 +51,10 @@ void ptp_dismount(void)
     filename = NULL;
     open_file = NULL;
     motor_on = false;
-    device_ready = false;
+    device_ready = true;
 }
 
 
-/******************************************************************************
-Description : Start the papertape device motor.
- Parameters : 
-    Returns : 
-   Comments : We don't check if papertape mounted as the real imlac doesn't.
- ******************************************************************************/
 void ptp_start(void)
 {
     motor_on = true;
@@ -85,50 +63,29 @@ void ptp_start(void)
 }
 
 
-/******************************************************************************
-Description : Turn the papertape device motor off.
- Parameters : 
-    Returns : 
-   Comments : 
- ******************************************************************************/
 void ptp_stop(void)
 {
     motor_on = false;
-    device_ready = false;
     cycle_count = NOT_READY_CYCLES;
 }
 
 
-/******************************************************************************
-Description : Write the current value to the papertape punch file.
- Parameters : 
-    Returns : 
-   Comments : 
- ******************************************************************************/
-int ptp_punch(BYTE value)
+void ptp_punch(BYTE value)
 {
-    return value;
+    if (motor_on && open_file != NULL)
+    {
+        putc(value, open_file);
+        cycle_count = NOT_READY_CYCLES;
+    }
 }
 
 
-/******************************************************************************
-Description : Get the papertape device status.
- Parameters : 
-    Returns : TRUE if device ready, else FALSE.
-   Comments : 
- ******************************************************************************/
 bool ptp_ready(void)
 {
     return device_ready;
 }
 
 
-/******************************************************************************
-Description : Tick the state machine along a bit.
- Parameters : cycles - number of imlac cycles that have elapsed
-    Returns : 
-   Comments : 
- ******************************************************************************/
 void ptp_tick(long cycles)
 {
     /* if no state change */
@@ -139,21 +96,8 @@ void ptp_tick(long cycles)
     cycle_count -= cycles;
     if (cycle_count <= 0L)
     {
-        if (device_ready)
-        {
-            device_ready = false;
-            cycle_count += NOT_READY_CYCLES;
-	    value = 0;
-        }
-        else
-        {
+        if (!device_ready)
             device_ready = true;
-            cycle_count += READY_CYCLES;
-            if (fread(&value, sizeof(BYTE), 1, open_file) != 1)
-            {   /* assume EOF on file, dismount tape */
-		fclose(open_file);
-		open_file = NULL;
-            }
-        }
+        cycle_count = 0;
     }
 }

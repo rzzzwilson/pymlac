@@ -1,28 +1,24 @@
 /******************************************************************************\
- *                                  dcpu.h                                    *
- *                                 --------                                   *
- *                                                                            *
- *  Implements all display CPU instructions.                                  *
- *                                                                            *
+ *                                 dcpu.h                                     *
+ *                                --------                                    *
 \******************************************************************************/
 
 #ifndef DCPU_H
 #define DCPU_H
 
-#include "imlac.h"
+#include "vimlac.h"
 
 /******
  * Exported functions.
  ******/
 
-bool dcpu_running(void);
 void dcpu_start(void);
 void dcpu_stop(void);
-void dcpu_set_DRSindex(WORD);
 int dcpu_execute_one(void);
-WORD dcpu_get_AC(void);
-WORD dcpu_get_DPC(void);
-WORD dcpu_get_prev_DPC(void);
-void dcpu_set_DPC(WORD dpc);
+WORD dcpu_get_PC(void);
+void dcpu_set_PC(WORD value);
+void dcpu_set_DRSindex(int index);
+bool dcpu_on(void);
+
 
 #endif
