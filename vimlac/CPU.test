@@ -1,5 +1,6 @@
 # LAW
-setreg ac 0177777; setreg l 1; setmem 0100 [LAW 0]; RUN 0100; checkcycles 1; checkreg pc 0101; checkreg ac 0
+setreg ac 0177777; setreg l 1; setmem 0100 [LAW 0]; RUN 0100;
+    checkcycles 1; checkreg pc 0101; checkreg ac 0
 setreg ac 0177777; setreg l 0; setmem 0100 [LAW 0]; RUN 0100; checkcycles 1; checkreg pc 0101; checkreg ac 0
 setreg ac 0; setreg l 1; setmem 0100 [LAW 0377]; RUN 0100; checkcycles 1; checkreg pc 0101; checkreg ac 0377
 setreg ac 0; setreg l 0; setmem 0100 [LAW 0377]; RUN 0100; checkcycles 1; checkreg pc 0101; checkreg ac 0377

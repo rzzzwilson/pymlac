@@ -53,6 +53,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <ctype.h>
 #include <getopt.h>
 
 #include "vimlac.h"
@@ -62,8 +63,83 @@
 
 
 // constants
-char *LstFilename = "_#TEST#_.lst";
-char *AsmFilename = "_#TEST#_.asm";
+const char *LstFilename = "_#TEST#_.lst";   // LST filename
+const char *AsmFilename = "_#TEST#_.asm";   // ASM filename
+
+const int MaxLineSize = 4096;               // max length of one script line
+
+// command structures
+typedef struct _Command
+{
+    struct _Command *next;
+    char *opcode;
+    char *field1;
+    char *field2;
+} Command;
+
+typedef struct _Test
+{
+    struct _Test *next;
+    int line_number;
+    Command *commands;
+} Test;
+
+
+/******************************************************************************
+Description : Constructor for a Command struct.
+ Parameters : opcode - the opcode value for the struct
+    Returns : The address of a new Command struct.
+   Comments : The ->next, ->field1 and ->field2 fields are NULL.
+ ******************************************************************************/
+Command *
+new_Command(char *opcode)
+{
+    Command *result = (Command *) malloc(sizeof(Command));
+
+    result->opcode = (char *) malloc(strlen(opcode)+1);
+    strcpy(result->opcode, opcode);
+
+    result->next = NULL;
+    result->field1 = NULL;
+    result->field2 = NULL;
+
+    return result;
+}
+
+
+/******************************************************************************
+Description : Constructor for a Command struct.
+ Parameters : line_number - the number of the line that created the Test
+            : commands    - address of chain of commands for Test
+    Returns : The address of a new Test struct.
+   Comments : The ->next field is NULL.
+ ******************************************************************************/
+Test *
+new_Test(int line_number, Command *commands)
+{
+    Test *result = (Test *) malloc(sizeof(Test));
+
+    result->next = NULL;
+    result->line_number = line_number;
+    result->commands = commands;
+
+    return result;
+}
+
+
+/******************************************************************************
+Description : Function to provide help to the befuddled user.
+ Parameters : msg - if not NULL, a message to display
+    Returns : 
+   Comments : 
+ ******************************************************************************/
+char *
+new_String(char *str)
+{
+    char *result = (char *) malloc(strlen(str)+1);
+    strcpy(result, str);
+    return result;
+}
 
 
 /******************************************************************************
@@ -136,6 +212,281 @@ assemble(WORD addr, char *opcode)
    
 
 /******************************************************************************
+Description : Decide if buffer kine should be skipped.
+ Parameters : buffer - address of line buffer
+    Returns : 'true' if line should be skipped (no commands)
+   Comments : Skip if line empty or column 1 is '#'.
+ ******************************************************************************/
+bool
+should_skip(char *buffer)
+{
+    char *scan = buffer;
+
+    if (buffer[0] == '#')
+        return true;
+
+    while (*scan)
+    {
+        if (!isspace(*scan))
+            return false;
+        ++scan;
+    }
+
+    return true;
+}
+
+
+/******************************************************************************
+Description : Parse one command string and populate a new Command struct.
+ Parameters : scan - address of command string
+    Returns : Address of the new Command struct.
+   Comments : result->next is set to NULL.
+            : A command is one, two or three fields.
+ ******************************************************************************/
+Command *
+parse_one_cmd(char *scan)
+{
+    Command *result = NULL;
+    char *opcode;
+    char *field1 = NULL;
+    char *field2 = NULL;
+
+    // find start and end of opcode
+    while (*scan && isspace(*scan))
+        ++scan;
+    opcode = scan;
+    while (*scan && !isspace(*scan))
+        ++scan;
+    *scan = '\0';
+    ++scan;
+
+    // start/end of field1 (if there)
+    while (*scan && isspace(*scan))
+        ++scan;
+    if (*scan)
+    {
+        field1 = scan;
+        while (*scan && !isspace(*scan))
+            ++scan;
+        *scan = '\0';
+        ++scan;
+
+        // field2
+        while (*scan && isspace(*scan))
+            ++scan;
+        if (*scan)
+        {
+            field2 = scan;
+            if (*field2 == '[')
+            {
+                ++field2;
+                while (*scan && !(*scan == ']'))
+                    ++scan;
+                *scan = '\0';
+            }
+            else
+            {
+                while (*scan && !isspace(*scan))
+                    ++scan;
+                *scan = '\0';
+            }
+        }
+    }
+
+    // create new Command struct
+    result = new_Command(opcode);
+
+    if (field1)
+        result->field1 = new_String(field1);
+    else
+        result->field1 = NULL;
+
+    if (field2)
+        result->field2 = new_String(field2);
+    else
+        result->field2 = NULL;
+
+    return result;
+}
+
+
+/******************************************************************************
+Description : Read the command buffer and create a chain of Command structs.
+ Parameters : scriptpath - script filename
+    Returns : Pointer to a chain of Test structs.
+   Comments : 
+ ******************************************************************************/
+Command *
+parse_cmds(char *scan)
+{
+    Command *result = NULL;
+    Command *last_result = NULL;
+    char *end_cmd = NULL;
+    Command *new_cmd = NULL;
+
+    printf("parse_cmds: scan->%s\n", scan);
+
+    // scan the buffer for commands
+    do
+    {
+        char *new_scan = NULL;
+
+        while (*scan && isspace(*scan))
+            ++scan;
+
+        end_cmd = strchr(scan, ';');
+        if (end_cmd)
+        {
+            new_scan = end_cmd + 1;
+            *end_cmd = '\0';
+        }
+
+    printf("parse_cmds: before parse_one_cmd(), scan->%s\n", scan);
+
+        new_cmd = parse_one_cmd(scan);
+
+    printf("parse_cmds: after parse_one_cmd(), result=%p, last_result=%p, new_cmd=%p\n", result, last_result, new_cmd);
+    fflush(stdout);
+
+        if (result == NULL)
+        {
+            result = new_cmd;
+            last_result = result;
+        }
+        else
+        {
+            printf("parse_cmds: last_result->next=%p\n", last_result->next);
+            last_result->next = new_cmd;
+            last_result = new_cmd;
+        }
+
+        scan = new_scan;
+        printf("parse_cmds: bottom of loop, scan=%p\n", scan);
+        fflush(stdout);
+    } while (scan && *scan);
+
+
+    return result;
+}
+
+
+/******************************************************************************
+Description : Read the script file and create a chain of Test structs.
+ Parameters : scriptpath - script filename
+    Returns : Pointer to a chain of Test structs.
+   Comments : 
+ ******************************************************************************/
+Test *
+parse_script(char *scriptpath)
+{
+    Test *head_test = NULL;         // head of Test chain
+    Test *last_test = NULL;         // pointer to last Test found
+    Command *last_cmd = NULL;       // pointer to last Command found
+    char buffer[MaxLineSize];       // buffer to read each line into
+    char *scan;                     // buffer scan pointer
+    FILE *fd;
+    int line_number = 0;
+
+    // open script file
+    fd = fopen(scriptpath, "rb");
+
+    // read script file, handle each line
+    while (true)
+    {
+        // NULL fill buffer so we can tell if line too long
+        memset(buffer, (char) NULL, sizeof(buffer));
+
+        // get next line, break out of loop on end of file
+        if (fgets(buffer, sizeof(buffer), fd) == NULL)
+            break;
+
+        // bump line number and make sure buffer '\0' terminated
+        ++line_number;
+        buffer[MaxLineSize-1] = '\0';
+
+        // decide if line is too long, look for '\n'
+        scan = strchr (buffer, '\n');
+        if (scan == NULL)
+        {   // '\n' not found, line too long!
+            error("File %s: line too long at line number %d",
+                    scriptpath, line_number);
+        }
+        *scan = '\0';                   // remove trailing '\n'
+
+        // if comment or blank line, try again
+        if (should_skip(buffer))
+            continue;
+
+        // DEBUG
+        printf("%03d: %s\n", line_number, buffer);
+
+        // decide if line is new test or continuation
+        if (isspace(buffer[0]))
+        {   // continuation
+            printf("CONTINUE\n");
+
+            // test for continuation without first part of test
+            if (head_test == NULL)
+                error("Test continuation on first code line of test file!?");
+
+            Command *new_cmds = parse_cmds(buffer);
+            printf("Point 1, last_cmd=%p, last_cmd->next=%p\n", last_cmd, last_cmd->next); fflush(stdout);
+
+            last_cmd->next = new_cmds;
+            printf("Point 2\n"); fflush(stdout);
+            while (last_cmd->next)
+                last_cmd = last_cmd->next;
+            printf("Point 3\n"); fflush(stdout);
+            printf("END CONTINUE\n");
+        }
+        else
+        {   // new test
+            printf("NEW\n");
+
+            Test *new_test = new_Test(line_number, parse_cmds(buffer));
+
+            if (head_test == NULL)
+            {   // first test
+                last_test = head_test = new_test;
+            }
+            else
+            {   // add to end of Test chain
+                last_test->next = new_test;
+                last_test = new_test;
+            }
+
+            // move 'last_cmd' to end of command chain
+            for (last_cmd = last_test->commands; last_cmd->next != NULL; last_cmd = last_cmd->next)
+                ;
+
+            printf("END NEW, last_cmd=%p, last_cmd->next=%p\n", last_cmd, last_cmd->next);
+        }
+        fflush(stdout);
+    }
+
+    // close script file
+    fclose(fd);
+
+    return head_test;
+}
+
+
+/******************************************************************************
+Description : Run tests and collect number of errors.
+ Parameters : test - pointer to a chain if Test structs
+    Returns : The number of errors encountered.
+   Comments : 
+ ******************************************************************************/
+int
+run(Test *test)
+{
+    int errors = 0;
+
+    return errors;
+}
+
+
+/******************************************************************************
 Description : Function to execute test script.
  Parameters : script - path to script file to execute
     Returns : 
@@ -144,49 +495,30 @@ Description : Function to execute test script.
 int
 execute(char *script)
 {
-    int errors = 0;
+    printf("execute: ENTER\n");
 
-    return errors;
+    Test *test = NULL;                      // chain of test commands
+
+    // get test commands into massaged form in memory
+    test = parse_script(script);
+
+    printf("execute: test=%p\n", test);
+
+    // DEBUG - print contents of 'test'
+    for (Test *tscan = test; tscan != NULL; tscan = tscan->next)
+    {
+        printf("%03d: ", tscan->line_number);
+
+        for (Command *cscan = tscan->commands; cscan != NULL; cscan = cscan->next)
+            printf("%s %s %s; ", cscan->opcode, cscan->field1, cscan->field2);
+
+        printf("\n");
+        fflush(stdout);
+    }
+
+    // execute tests
+    return run(test);
 }
-
-#ifdef JUNK
-    def main(self, filename):
-        """Execute CPU tests from 'filename'."""
-
-        log.debug("Running test file '%s'" % filename)
-
-        # get all tests from file
-        with open(filename, 'rb') as fd:
-            lines = fd.readlines()
-
-        # read lines, join continued, get complete tests
-        tests = []
-        test = ''
-        for line in lines:
-            line = line[:-1]        # strip newline
-            if not line:
-                continue            # skip blank lines
-
-            if line[0] == '#':      # a comment
-                continue
-
-            if line[0] == '\t':     # continuation
-                if test:
-                    test += '; '
-                test += line[1:]
-            else:                   # beginning of new test
-                if test:
-                    tests.append(test)
-                test = line
-
-        # flush last test
-        if test:
-            tests.append(test)
-
-        # now do each test
-        for test in tests:
-            log.debug('Executing test: %s' % test)
-#endif
 
 
 int

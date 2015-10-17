@@ -22,4 +22,4 @@ test_memory:	test_memory.c memory.c memory.h Makefile
 	gcc -o test_memory memory.c test_memory.c
 
 clean:
-	rm -f *.pyc *.o vimlac test_ptr test_memory *~
+	rm -f *.pyc *.o vimlac test_ptr test_memory *~ _#*#_.*
