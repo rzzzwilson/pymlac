@@ -100,6 +100,20 @@ cpu_get_prev_PC(void)
 
 
 void
+cpu_set_AC(WORD new_ac)
+{
+    r_AC = new_ac;
+}
+
+
+void
+cpu_set_L(WORD new_l)
+{
+    r_L = (new_l && 1);
+}
+
+
+void
 cpu_set_PC(WORD new_pc)
 {
     r_PC = new_pc;
