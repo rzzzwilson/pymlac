@@ -85,6 +85,33 @@ typedef struct _Test
 } Test;
 
 
+int UsedCycles = 0;
+
+
+/******************************************************************************
+Description : Convert a string value into a WORD integer.
+ Parameters : str - address of string holding [0-9] characters
+    Returns : A WORD value containing the integer number in 'str'.
+   Comments : 'str' may contain a decimal or octal string representation.
+ ******************************************************************************/
+WORD
+str2word(char *str)
+{
+    WORD value = 0;
+
+    if (*str == '0')
+    {   // octal
+        sscanf(str, "%o", &value);
+    }
+    else
+    {   // decimal
+        sscanf(str, "%d", &value);
+    }
+
+    return value;
+}
+
+
 /******************************************************************************
 Description : Constructor for a Command struct.
  Parameters : opcode - the opcode value for the struct
@@ -98,6 +125,8 @@ new_Command(char *opcode)
 
     result->opcode = (char *) malloc(strlen(opcode)+1);
     strcpy(result->opcode, opcode);
+    for (char *cptr = result->opcode; *cptr; ++cptr)
+        *cptr = tolower(*cptr);
 
     result->next = NULL;
     result->field1 = NULL;
@@ -131,13 +160,15 @@ new_Test(int line_number, Command *commands)
 Description : Function to provide help to the befuddled user.
  Parameters : msg - if not NULL, a message to display
     Returns : 
-   Comments : 
+   Comments : String is converted to upper case.
  ******************************************************************************/
 char *
 new_String(char *str)
 {
     char *result = (char *) malloc(strlen(str)+1);
     strcpy(result, str);
+    for (char *cptr = result; *cptr; ++cptr)
+        *cptr = tolower(*cptr);
     return result;
 }
 
@@ -179,7 +210,7 @@ Description : Function to return the imlac binary opcode of an instruction.
    Comments : We generate an ASM file, assemble it and pick out the binary
             : opcode from the LST file.
  ******************************************************************************/
-int
+WORD
 assemble(WORD addr, char *opcode)
 {
     FILE *fd;
@@ -206,6 +237,7 @@ assemble(WORD addr, char *opcode)
         error("Error reading %s", LstFilename);
     if (sscanf(buffer, "%o", &result) != 1)
         error("Badly formatted assembler output: %s", buffer);
+    fclose(fd);
 
     return result;   
 }
@@ -250,39 +282,45 @@ parse_one_cmd(char *scan)
     char *opcode;
     char *field1 = NULL;
     char *field2 = NULL;
+    char tmpbuff[16];
+
 
     // find start and end of opcode
-    while (*scan && isspace(*scan))
+    while (*scan && isspace(*scan))     // skip leading space
         ++scan;
     opcode = scan;
     while (*scan && !isspace(*scan))
         ++scan;
-    *scan = '\0';
-    ++scan;
+    if (*scan)
+        *(scan++) = '\0';
 
     // start/end of field1 (if there)
-    while (*scan && isspace(*scan))
+    while (*scan && isspace(*scan))     // skip leading space
         ++scan;
     if (*scan)
-    {
+    {   // we have field1, at least
         field1 = scan;
         while (*scan && !isspace(*scan))
             ++scan;
-        *scan = '\0';
-        ++scan;
+        if (*scan)
+            *(scan++) = '\0';
 
         // field2
-        while (*scan && isspace(*scan))
+        while (*scan && isspace(*scan)) // skip leading space
             ++scan;
         if (*scan)
         {
             field2 = scan;
             if (*field2 == '[')
-            {
+            {   // assembler field
                 ++field2;
                 while (*scan && !(*scan == ']'))
                     ++scan;
                 *scan = '\0';
+                WORD v = str2word(field1);
+                v = assemble(str2word(field1), field2);
+                sprintf(tmpbuff, "%d", v);
+                field2 = tmpbuff;
             }
             else
             {
@@ -324,8 +362,6 @@ parse_cmds(char *scan)
     char *end_cmd = NULL;
     Command *new_cmd = NULL;
 
-    printf("parse_cmds: scan->%s\n", scan);
-
     // scan the buffer for commands
     do
     {
@@ -341,12 +377,7 @@ parse_cmds(char *scan)
             *end_cmd = '\0';
         }
 
-    printf("parse_cmds: before parse_one_cmd(), scan->%s\n", scan);
-
         new_cmd = parse_one_cmd(scan);
-
-    printf("parse_cmds: after parse_one_cmd(), result=%p, last_result=%p, new_cmd=%p\n", result, last_result, new_cmd);
-    fflush(stdout);
 
         if (result == NULL)
         {
@@ -355,14 +386,11 @@ parse_cmds(char *scan)
         }
         else
         {
-            printf("parse_cmds: last_result->next=%p\n", last_result->next);
             last_result->next = new_cmd;
             last_result = new_cmd;
         }
 
         scan = new_scan;
-        printf("parse_cmds: bottom of loop, scan=%p\n", scan);
-        fflush(stdout);
     } while (scan && *scan);
 
 
@@ -417,32 +445,21 @@ parse_script(char *scriptpath)
         if (should_skip(buffer))
             continue;
 
-        // DEBUG
-        printf("%03d: %s\n", line_number, buffer);
-
         // decide if line is new test or continuation
         if (isspace(buffer[0]))
         {   // continuation
-            printf("CONTINUE\n");
-
             // test for continuation without first part of test
             if (head_test == NULL)
                 error("Test continuation on first code line of test file!?");
 
             Command *new_cmds = parse_cmds(buffer);
-            printf("Point 1, last_cmd=%p, last_cmd->next=%p\n", last_cmd, last_cmd->next); fflush(stdout);
 
             last_cmd->next = new_cmds;
-            printf("Point 2\n"); fflush(stdout);
             while (last_cmd->next)
                 last_cmd = last_cmd->next;
-            printf("Point 3\n"); fflush(stdout);
-            printf("END CONTINUE\n");
         }
         else
         {   // new test
-            printf("NEW\n");
-
             Test *new_test = new_Test(line_number, parse_cmds(buffer));
 
             if (head_test == NULL)
@@ -458,16 +475,194 @@ parse_script(char *scriptpath)
             // move 'last_cmd' to end of command chain
             for (last_cmd = last_test->commands; last_cmd->next != NULL; last_cmd = last_cmd->next)
                 ;
-
-            printf("END NEW, last_cmd=%p, last_cmd->next=%p\n", last_cmd, last_cmd->next);
         }
-        fflush(stdout);
     }
 
     // close script file
     fclose(fd);
 
     return head_test;
+}
+
+
+/******************************************************************************
+Description : Set a register to a value
+ Parameters : test - pointer to a Test struct
+    Returns : The number of errors encountered (0 or 1).
+   Comments : Sets globals used to check after execution.
+ ******************************************************************************/
+int
+setreg(char *name, char *fld2)
+{
+    int result = 0;
+    WORD value = str2word(fld2);
+
+    if (strcmp(name, "ac") == 0)
+        cpu_set_AC(value);
+    else if (strcmp(name, "l") == 0)
+        cpu_set_L(value);
+    else if (strcmp(name, "pc") == 0)
+        cpu_set_PC(value);
+    else if (strcmp(name, "ds") == 0)
+        cpu_set_DS(value);
+    else
+    {
+        printf("setreg: bad register name: %s\n", name);
+        result = 1;
+    }
+
+    return result;
+}
+
+/******************************************************************************
+Description : Set a memory cell to a value;
+ Parameters : addr - address of memory cell (string)
+            : fld2 - value to put into cell (string)
+    Returns : The number of errors encountered (0 or 1).
+   Comments : Sets globals used to check after execution.
+ ******************************************************************************/
+int
+setmem(char *addr, char *fld2)
+{
+    WORD address = str2word(addr);
+    WORD value = str2word(fld2);
+
+    mem_put(address, false, value);
+
+    return 0;
+}
+
+
+/******************************************************************************
+Description : Set a memory cell to a value;
+ Parameters : addr - address of memory cell (string)
+            : fld2 - value to put into cell (string)
+    Returns : The number of errors encountered (0 or 1).
+   Comments : Sets globals used to check after execution.
+ ******************************************************************************/
+int
+run_one(char *addr, char *fld2)
+{
+    WORD address = str2word(addr);
+
+    if (addr)
+    {   // force PC to given address
+        cpu_set_PC(address);
+    }
+
+    UsedCycles = cpu_execute_one();
+
+    return 0;
+}
+
+
+/******************************************************************************
+Description : Set a memory cell to a value;
+ Parameters : addr - address of memory cell (string)
+            : fld2 - value to put into cell (string)
+    Returns : The number of errors encountered (0 or 1).
+   Comments : Sets globals used to check after execution.
+ ******************************************************************************/
+int
+checkcycles(char *cycles, char *fld2)
+{
+    WORD c = str2word(cycles);
+
+    if (c != UsedCycles)
+    {
+        printf("Test used %d cycles, exoected %d!?", UsedCycles, c);
+        return 1;
+    }
+
+    return 0;
+}
+
+#ifdef JUNK
+    def checkcycles(self, cycles, var2=None):
+        """Check that opcode cycles used is correct."""
+
+        if cycles != self.used_cycles:
+            return 'Opcode used %d cycles, expected %d' % (self.used_cycles, cycles)
+#endif
+
+#ifdef JUNK
+test_cpu.c:537:22: warning: implicit declaration of function 'run' is invalid in C99 [-Wimplicit-function-declaration]
+error += run(fld1, fld2);
+^
+test_cpu.c:539:22: warning: implicit declaration of function 'checkcycles' is invalid in C99 [-Wimplicit-function-declaration]
+error += checkcycles(fld1, fld2);
+^
+test_cpu.c:541:22: warning: implicit declaration of function 'checkreg' is invalid in C99 [-Wimplicit-function-declaration]
+error += checkreg(fld1, fld2);
+^
+test_cpu.c:543:22: warning: implicit declaration of function 'checkmem' is invalid in C99 [-Wimplicit-function-declaration]
+error += checkmem(fld1, fld2);
+^
+test_cpu.c:545:22: warning: implicit declaration of function 'allreg' is invalid in C99 [-Wimplicit-function-declaration]
+error += allreg(fld1, fld2);
+^
+test_cpu.c:547:22: warning: implicit declaration of function 'allmem' is invalid in C99 [-Wimplicit-function-declaration]
+error += allmem(fld1, fld2);
+^
+test_cpu.c:549:22: warning: implicit declaration of function 'checkrun' is invalid in C99 [-Wimplicit-function-declaration]
+error += checkrun(fld1, fld2);
+^
+test_cpu.c:551:22: warning: implicit declaration of function 'setd' is invalid in C99 [-Wimplicit-function-declaration]
+error += setd(fld1, fld2);
+^
+test_cpu.c:553:22: warning: implicit declaration of function 'checkd' is invalid in C99 [-Wimplicit-function-declaration]
+error += checkd(fld1, fld2);
+#endif
+
+
+/******************************************************************************
+Description : Run one test.
+ Parameters : test - pointer to a Test struct
+    Returns : The number of errors encountered (0 or 1).
+   Comments : 
+ ******************************************************************************/
+int
+run_one_test(Test *test)
+{
+    int error = 0;
+
+    for (Command *cmd = test->commands; cmd; cmd = cmd->next)
+    {
+        char *opcode = cmd->opcode;
+        char *fld1 = cmd->field1;
+        char *fld2 = cmd->field2;
+
+        if (strcmp(opcode, "setreg"), 0)
+            error += setreg(fld1, fld2);
+        else if (strcmp(opcode, "setmem") == 0)
+            error += setmem(fld1, fld2);
+        else if (strcmp(opcode, "run") == 0)
+            error += run_one(fld1, fld2);
+        else if (strcmp(opcode, "checkcycles") == 0)
+            error += checkcycles(fld1, fld2);
+        else if (strcmp(opcode, "checkreg") == 0)
+            error += checkreg(fld1, fld2);
+        else if (strcmp(opcode, "checkmem") == 0)
+            error += checkmem(fld1, fld2);
+        else if (strcmp(opcode, "allreg") == 0)
+            error += allreg(fld1, fld2);
+        else if (strcmp(opcode, "allmem") == 0)
+            error += allmem(fld1, fld2);
+        else if (strcmp(opcode, "checkrun") == 0)
+            error += checkrun(fld1, fld2);
+        else if (strcmp(opcode, "setd") == 0)
+            error += setd(fld1, fld2);
+        else if (strcmp(opcode, "checkd") == 0)
+            error += checkd(fld1, fld2);
+        else
+        {
+            printf("Unrecognized operation '%s' at line %d\n",
+                    opcode, test->line_number);
+            error += 1;
+        }
+    }
+
+    return error;
 }
 
 
@@ -482,6 +677,16 @@ run(Test *test)
 {
     int errors = 0;
 
+    while (test)
+    {
+        printf("Test from line %d, test->next=%p\n", test->line_number, test->next);
+        fflush(stdout);
+
+        errors += run_one_test(test);
+
+        test = test->next;
+    }
+
     return errors;
 }
 
@@ -495,15 +700,12 @@ Description : Function to execute test script.
 int
 execute(char *script)
 {
-    printf("execute: ENTER\n");
-
     Test *test = NULL;                      // chain of test commands
 
     // get test commands into massaged form in memory
     test = parse_script(script);
 
-    printf("execute: test=%p\n", test);
-
+//#ifdef DEBUG
     // DEBUG - print contents of 'test'
     for (Test *tscan = test; tscan != NULL; tscan = tscan->next)
     {
@@ -515,6 +717,7 @@ execute(char *script)
         printf("\n");
         fflush(stdout);
     }
+//#endif
 
     // execute tests
     return run(test);
@@ -551,11 +754,10 @@ main(int argc, char *argv[])
 
     // get filename and make sure it's there
     script = argv[optind];
-    if ((script_fd = fopen(script, "r")) == NULL)
-    {
+    if ((script_fd = fopen(script, "rb")) == NULL)
         error("File %s doesn't exist or isn't readable: %d\n",
                 script, errno);
-    }
+    fclose(script_fd);
 
     errors = execute(script);
 
@@ -566,92 +768,6 @@ main(int argc, char *argv[])
 
 
 #ifdef JUNK
-
-
-import os
-
-from Globals import *
-import MainCPU
-import Memory
-import Trace
-
-import log
-log = log.Log('test_CPU.log', log.Log.DEBUG)
-
-
-class TestCPU(object):
-
-    # temporary assembler file and listfile prefix
-    AsmFilename = '_#ASM#_'
-
-
-    def __init__(self):
-        """Initialize the test."""
-
-        pass
-
-    def assemble(self, addr, opcode):
-        """Assemble a single instruction, return opcode."""
-
-        # create ASM file with instruction
-        with open(self.AsmFilename+'.asm', 'wb') as fd:
-            fd.write('\torg\t%07o\n' % addr)
-            fd.write('\t%s\n' % opcode[1:-1])
-            fd.write('\tend\n')
-
-        # now assemble file
-        #cmd = '../iasm/iasm -l %s.lst %s.asm >xyzzy 2>&1' % (self.AsmFilename, self.AsmFilename)
-        cmd = '../iasm/iasm -l %s.lst %s.asm' % (self.AsmFilename, self.AsmFilename)
-        res = os.system(cmd)
-
-        # read the listing file to get assembled opcode (second line)
-        with open(self.AsmFilename+'.lst', 'rb') as fd:
-            lines = fd.readlines()
-        line = lines[1]
-        (opcode, _) = line.split(None, 1)
-
-        return int(opcode, base=8)
-
-
-    def setreg(self, name, value):
-        """Set register to a value.
-
-        Remember value to check later.
-        """
-
-        self.reg_values[name] = value
-
-        if name == 'ac':
-            self.cpu.AC = value
-        elif name == 'l':
-            self.cpu.L = value & 1
-        elif name == 'pc':
-            self.cpu.PC = value
-        elif name == 'ds':
-            self.cpu.DS = value
-        else:
-            raise Exception('setreg: bad register name: %s' % name)
-
-    def setmem(self, addr, value):
-        """Set memory location to a value."""
-
-        if isinstance(value, basestring):
-            log.debug('setmem: addr=%s, value=%s' % (oct(addr), value))
-        else:
-            log.debug('setmem: addr=%s, value=%s' % (oct(addr), oct(value)))
-
-        # check if we must assemble var2
-        if isinstance(value, basestring) and value[0] == '[':
-            # assemble an instruction
-            value = self.assemble(addr, value)
-            log.debug('setmem: assembled opcode=%07o' % value)
-
-        self.mem_values[addr] = value
-        log.debug('setmem: After, MemValues=%s' % str(self.mem_values))
-
-        self.memory.put(value, addr, False)
-        log.debug('setmem: After, Memory at %07o is %07o' % (addr, self.memory.fetch(addr, False)))
-
     def allmem(self, value, ignore=None):
         """Set all of memory to a value.
 
@@ -824,8 +940,6 @@ class TestCPU(object):
         # set globals
         self.reg_values = {}
         self.mem_values = {}
-        #self.reg_all_value = {}
-        #self.mem_all_value = {}
         self.reg_all_value = 0
         self.mem_all_value = 0
 
