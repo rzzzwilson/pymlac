@@ -58,9 +58,14 @@
 
 #include "vimlac.h"
 #include "cpu.h"
+#include "dcpu.h"
 #include "memory.h"
 #include "error.h"
+#include "log.h"
 
+
+// string comparison macro
+#define STREQ(a, b) (strcmp((a), (b)) == 0)
 
 // constants
 const char *LstFilename = "_#TEST#_.lst";   // LST filename
@@ -75,6 +80,7 @@ typedef struct _Command
     char *opcode;
     char *field1;
     char *field2;
+    char *orig2;
 } Command;
 
 typedef struct _Test
@@ -84,9 +90,23 @@ typedef struct _Test
     Command *commands;
 } Test;
 
+typedef struct _Assoc
+{
+    struct _Assoc *next;
+} Assoc;
 
+
+bool DisplayOn = false;
 int UsedCycles = 0;
+WORD RegAllValue = 0;
+WORD MemAllValue = 0;
+Assoc *RememberReg;
 
+
+void
+remember(Assoc *head, char *name, WORD value)
+{
+}
 
 /******************************************************************************
 Description : Convert a string value into a WORD integer.
@@ -131,6 +151,7 @@ new_Command(char *opcode)
     result->next = NULL;
     result->field1 = NULL;
     result->field2 = NULL;
+    result->orig2 = NULL;
 
     return result;
 }
@@ -282,6 +303,7 @@ parse_one_cmd(char *scan)
     char *opcode;
     char *field1 = NULL;
     char *field2 = NULL;
+    char *orig2 = NULL;
     char tmpbuff[16];
 
 
@@ -313,6 +335,7 @@ parse_one_cmd(char *scan)
             field2 = scan;
             if (*field2 == '[')
             {   // assembler field
+                orig2 = new_String(field2);
                 ++field2;
                 while (*scan && !(*scan == ']'))
                     ++scan;
@@ -343,6 +366,8 @@ parse_one_cmd(char *scan)
         result->field2 = new_String(field2);
     else
         result->field2 = NULL;
+
+    result->orig2 = orig2;
 
     return result;
 }
@@ -497,22 +522,52 @@ setreg(char *name, char *fld2)
     int result = 0;
     WORD value = str2word(fld2);
 
-    if (strcmp(name, "ac") == 0)
+    vlog("Setting register %s to %07o", name, value);
+
+    if (STREQ(name, "ac"))
         cpu_set_AC(value);
-    else if (strcmp(name, "l") == 0)
+    else if (STREQ(name, "l"))
         cpu_set_L(value);
-    else if (strcmp(name, "pc") == 0)
+    else if (STREQ(name, "pc"))
         cpu_set_PC(value);
-    else if (strcmp(name, "ds") == 0)
+    else if (STREQ(name, "ds"))
         cpu_set_DS(value);
     else
     {
+        vlog("setreg: bad register name: %s", name);
         printf("setreg: bad register name: %s\n", name);
         result = 1;
     }
 
     return result;
 }
+
+/******************************************************************************
+Description : Set the display ON or OFF.
+ Parameters : state - string containing 'on' or 'off'
+            : var2  - unused
+    Returns : The number of errors encountered (0 or 1).
+   Comments : 
+ ******************************************************************************/
+int
+setd(char *state, char *var2)
+{
+    vlog("Setting display '%s'", state);
+
+    if (STREQ(state, "on"))
+        dcpu_start();
+    else if (STREQ(state, "off"))
+        dcpu_stop();
+    else
+    {
+        vlog("setd: bad state: %s", state);
+        printf("setd: bad state: %s", state);
+        return 1;
+    }
+
+    return 0;
+}
+
 
 /******************************************************************************
 Description : Set a memory cell to a value;
@@ -527,6 +582,8 @@ setmem(char *addr, char *fld2)
     WORD address = str2word(addr);
     WORD value = str2word(fld2);
 
+    vlog("Setting memory at %07o to %07o", address, value);
+
     mem_put(address, false, value);
 
     return 0;
@@ -534,34 +591,86 @@ setmem(char *addr, char *fld2)
 
 
 /******************************************************************************
-Description : Set a memory cell to a value;
- Parameters : addr - address of memory cell (string)
-            : fld2 - value to put into cell (string)
+Description : Set all registers to a value.
+ Parameters : value - value to put into registers (string)
+            : var2  - unused
     Returns : The number of errors encountered (0 or 1).
-   Comments : Sets globals used to check after execution.
+   Comments : 
  ******************************************************************************/
 int
-run_one(char *addr, char *fld2)
+allreg(char *value, char *var2)
 {
-    WORD address = str2word(addr);
+    int val = str2word(value);
 
-    if (addr)
-    {   // force PC to given address
-        cpu_set_PC(address);
-    }
+    vlog("Setting all registers to %07o", val);
 
-    UsedCycles = cpu_execute_one();
+    RegAllValue = val;
+
+    cpu_set_AC(val);
+    cpu_set_L(val && 1);
+    cpu_set_PC(val);
+    cpu_set_DS(val);
 
     return 0;
 }
 
 
 /******************************************************************************
-Description : Set a memory cell to a value;
- Parameters : addr - address of memory cell (string)
-            : fld2 - value to put into cell (string)
+Description : Set all memory locations to a value.
+ Parameters : value - value to put into memory (string)
+            : var2  - unused
     Returns : The number of errors encountered (0 or 1).
-   Comments : Sets globals used to check after execution.
+   Comments : 
+ ******************************************************************************/
+int
+allmem(char *value, char *var2)
+{
+    int val = str2word(value);
+
+    vlog("Setting all memory to %07o", val);
+
+    MemAllValue = val;
+
+    for (WORD adr = 0; adr < MEM_SIZE; ++adr)
+        mem_put(adr, false, val);
+
+    return 0;
+}
+
+
+/******************************************************************************
+Description : Run one instruction on the CPU.
+ Parameters : addr - address of memory cell (string, may be NULL)
+            : fld2 - unused
+    Returns : The number of errors encountered (0 or 1).
+   Comments : 
+ ******************************************************************************/
+int
+run_one(char *addr, char *fld2)
+{
+    WORD address = str2word(addr);
+
+    vlog("Executing single instruction at %s", (addr) ? addr : "PC");
+
+    if (addr)
+    {   // force PC to given address
+        cpu_set_PC(address);
+    }
+
+    cpu_start();
+    UsedCycles = cpu_execute_one();
+    cpu_stop();
+
+    return 0;
+}
+
+
+/******************************************************************************
+Description : Check that the number of cycles used is as expected.
+ Parameters : cycles - address of memory cell (string)
+            : var2   - unused
+    Returns : The number of errors encountered (0 or 1).
+   Comments : 
  ******************************************************************************/
 int
 checkcycles(char *cycles, char *fld2)
@@ -570,53 +679,182 @@ checkcycles(char *cycles, char *fld2)
 
     if (c != UsedCycles)
     {
-        printf("Test used %d cycles, exoected %d!?", UsedCycles, c);
+        vlog("Test used %d cycles, expected %d!?", UsedCycles, c);
+        printf("Test used %d cycles, expected %d!?\n", UsedCycles, c);
         return 1;
     }
 
     return 0;
 }
 
-#ifdef JUNK
-    def checkcycles(self, cycles, var2=None):
-        """Check that opcode cycles used is correct."""
 
-        if cycles != self.used_cycles:
-            return 'Opcode used %d cycles, expected %d' % (self.used_cycles, cycles)
-#endif
+/******************************************************************************
+Description : Check that a register contents is as expected.
+ Parameters : reg   - string holding register name
+            : value - expected register value (string)
+    Returns : The number of errors encountered (0 or 1).
+   Comments : 
+ ******************************************************************************/
+int
+checkreg(char *reg, char *value)
+{
+    WORD val = str2word(value);
 
-#ifdef JUNK
-test_cpu.c:537:22: warning: implicit declaration of function 'run' is invalid in C99 [-Wimplicit-function-declaration]
-error += run(fld1, fld2);
-^
-test_cpu.c:539:22: warning: implicit declaration of function 'checkcycles' is invalid in C99 [-Wimplicit-function-declaration]
-error += checkcycles(fld1, fld2);
-^
-test_cpu.c:541:22: warning: implicit declaration of function 'checkreg' is invalid in C99 [-Wimplicit-function-declaration]
-error += checkreg(fld1, fld2);
-^
-test_cpu.c:543:22: warning: implicit declaration of function 'checkmem' is invalid in C99 [-Wimplicit-function-declaration]
-error += checkmem(fld1, fld2);
-^
-test_cpu.c:545:22: warning: implicit declaration of function 'allreg' is invalid in C99 [-Wimplicit-function-declaration]
-error += allreg(fld1, fld2);
-^
-test_cpu.c:547:22: warning: implicit declaration of function 'allmem' is invalid in C99 [-Wimplicit-function-declaration]
-error += allmem(fld1, fld2);
-^
-test_cpu.c:549:22: warning: implicit declaration of function 'checkrun' is invalid in C99 [-Wimplicit-function-declaration]
-error += checkrun(fld1, fld2);
-^
-test_cpu.c:551:22: warning: implicit declaration of function 'setd' is invalid in C99 [-Wimplicit-function-declaration]
-error += setd(fld1, fld2);
-^
-test_cpu.c:553:22: warning: implicit declaration of function 'checkd' is invalid in C99 [-Wimplicit-function-declaration]
-error += checkd(fld1, fld2);
-#endif
+    if (STREQ(reg, "ac"))
+    {
+        remember(RememberReg, reg, cpu_get_AC());
+        if (cpu_get_AC() != val)
+        {
+            vlog("AC is %07o, should be %07o", cpu_get_AC(), val);
+            printf("AC is %07o, should be %07o\n", cpu_get_AC(), val);
+            return 1;
+        }
+    }
+    else if (STREQ(reg, "l"))
+    {
+        remember(RememberReg, reg, cpu_get_L());
+        if (cpu_get_L() != val)
+        {
+            vlog("L is %02o, should be %02o", cpu_get_L(), val);
+            printf("L is %02o, should be %02o\n", cpu_get_L(), val);
+            return 1;
+        }
+    }
+    else if (STREQ(reg, "pc"))
+    {
+        remember(RememberReg, reg, cpu_get_PC());
+        if (cpu_get_PC() != val)
+        {
+            vlog("PC is %07o, should be %07o", cpu_get_PC(), val);
+            printf("PC is %07o, should be %07o\n", cpu_get_PC(), val);
+            return 1;
+        }
+    }
+    else if (STREQ(reg, "ds"))
+    {
+        remember(RememberReg, reg, cpu_get_DS());
+        if (cpu_get_DS() != val)
+        {
+            vlog("DS is %07o, should be %07o", cpu_get_DS(), val);
+            printf("DS is %07o, should be %07o\n", cpu_get_DS(), val);
+            return 1;
+        }
+    }
+    else
+    {
+        vlog("checkreg: bad register name: %s", reg);
+        printf("checkreg: bad register name: %s\n", reg);
+        return 1;
+    }
+
+    return 0;
+}
 
 
 /******************************************************************************
-Description : Run one test.
+Description : Check that the display is in the correct state.
+ Parameters : state  - string holding expected display state ('on' or 'off)
+            : unused - unused
+    Returns : The number of errors encountered (0 or 1).
+   Comments : 
+ ******************************************************************************/
+int
+checkd(char *state, char *unused)
+{
+    if ((STREQ(state, "on")) && !DisplayOn)
+    {
+        vlog("Display CPU run state is %s, should be 'ON'",
+                (DisplayOn ? "ON": "OFF"));
+        printf("Display CPU run state is %s, should be 'ON'\n",
+                (DisplayOn ? "ON": "OFF"));
+        return 1;
+    }
+    else if ((STREQ(state, "off")) && DisplayOn)
+    {
+        vlog("DCPU run state is %s, should be 'OFF'",
+                (DisplayOn ? "ON": "OFF"));
+        printf("DCPU run state is %s, should be 'OFF'\n",
+                (DisplayOn ? "ON": "OFF"));
+        return 1;
+    }
+    else
+    {
+        vlog("checkd: state should be 'on' or 'OFF', got %s", state);
+        printf("checkd: state should be 'on' or 'off', got %s\n", state);
+        return 1;
+    }
+
+    return 0;
+}
+
+
+/******************************************************************************
+Description : Check that a memory address contents is as expected.
+ Parameters : address - memory address to check (string)
+            : value   - expected memory value (string)
+    Returns : The number of errors encountered (0 or 1).
+   Comments : 
+ ******************************************************************************/
+int
+checkmem(char *address, char *value)
+{
+    WORD adr = str2word(address);
+    WORD val = str2word(value);
+    WORD memvalue = mem_get(adr, false);
+
+    if (memvalue != val)
+    {
+        vlog("Memory at address %07o is %07o, should be %07o",
+                adr, memvalue, val);
+        printf("Memory at address %07o is %07o, should be %07o\n",
+                adr, memvalue, val);
+        return 1;
+    }
+
+    return 0;
+}
+
+
+/******************************************************************************
+Description : Check that the CPU run state is as expected.
+ Parameters : state  - the expected CPU state (string, 'ON' or 'OFF')
+            : unused - unused
+    Returns : The number of errors encountered (0 or 1).
+   Comments : 
+ ******************************************************************************/
+int
+checkrun(char *state, char *unused)
+{
+
+    if (STREQ(state, "on"))
+    {
+        vlog("CPU run state is '%s', should be '%s'",
+                (cpu_get_state() ? "on": "off"), state);
+        printf("CPU run state is '%s', should be '%s'\n",
+                (cpu_get_state() ? "on": "off"), state);
+        return 1;
+    }
+    else if (STREQ(state, "off"))
+    {
+        vlog("CPU run state is '%s', should be '%s'",
+                (cpu_get_state() ? "on": "off"), state);
+        printf("CPU run state is '%s', should be '%s'\n",
+                (cpu_get_state() ? "on": "off"), state);
+        return 1;
+    }
+    else
+    {
+        vlog("checkrun: state should be 'on' or 'off', got '%s'", state);
+        printf("checkrun: state should be 'on' or 'off', got '%s'\n", state);
+        return 1;
+    }
+
+    return 0;
+}
+
+
+/******************************************************************************
+Description : Run all commands in one test line.
  Parameters : test - pointer to a Test struct
     Returns : The number of errors encountered (0 or 1).
    Comments : 
@@ -625,6 +863,7 @@ int
 run_one_test(Test *test)
 {
     int error = 0;
+    char buffer[256];
 
     for (Command *cmd = test->commands; cmd; cmd = cmd->next)
     {
@@ -632,27 +871,34 @@ run_one_test(Test *test)
         char *fld1 = cmd->field1;
         char *fld2 = cmd->field2;
 
-        if (strcmp(opcode, "setreg"), 0)
+        if (fld2)
+            sprintf(buffer, "%s %s %07o%s",
+                    opcode, fld1, atoi(fld2), (cmd->orig2) ? cmd->orig2 : "");
+        else
+            sprintf(buffer, "%s %s", opcode, fld1);
+        LogPrefix = new_String(buffer);
+
+        if (STREQ(opcode, "setreg"))
             error += setreg(fld1, fld2);
-        else if (strcmp(opcode, "setmem") == 0)
+        else if (STREQ(opcode, "setmem"))
             error += setmem(fld1, fld2);
-        else if (strcmp(opcode, "run") == 0)
+        else if (STREQ(opcode, "run"))
             error += run_one(fld1, fld2);
-        else if (strcmp(opcode, "checkcycles") == 0)
+        else if (STREQ(opcode, "checkcycles"))
             error += checkcycles(fld1, fld2);
-        else if (strcmp(opcode, "checkreg") == 0)
+        else if (STREQ(opcode, "checkreg"))
             error += checkreg(fld1, fld2);
-        else if (strcmp(opcode, "checkmem") == 0)
+        else if (STREQ(opcode, "checkmem"))
             error += checkmem(fld1, fld2);
-        else if (strcmp(opcode, "allreg") == 0)
+        else if (STREQ(opcode, "allreg"))
             error += allreg(fld1, fld2);
-        else if (strcmp(opcode, "allmem") == 0)
+        else if (STREQ(opcode, "allmem"))
             error += allmem(fld1, fld2);
-        else if (strcmp(opcode, "checkrun") == 0)
+        else if (STREQ(opcode, "checkrun"))
             error += checkrun(fld1, fld2);
-        else if (strcmp(opcode, "setd") == 0)
+        else if (STREQ(opcode, "setd"))
             error += setd(fld1, fld2);
-        else if (strcmp(opcode, "checkd") == 0)
+        else if (STREQ(opcode, "checkd"))
             error += checkd(fld1, fld2);
         else
         {
@@ -676,14 +922,44 @@ int
 run(Test *test)
 {
     int errors = 0;
+    char buffer[1024];
 
     while (test)
     {
-        printf("Test from line %d, test->next=%p\n", test->line_number, test->next);
-        fflush(stdout);
+        sprintf(buffer, "%03d", test->line_number);
+        LogPrefix = new_String(buffer);
+        strcpy(buffer, "");
+
+        printf("%03d:", test->line_number);
+
+        for (Command *cscan = test->commands; cscan != NULL; cscan = cscan->next)
+        {
+            if (cscan->field2)
+            {
+                printf(" %s %s %07o%s;",
+                        cscan->opcode, cscan->field1, atoi(cscan->field2), (cscan->orig2) ? cscan->orig2 : "");
+                sprintf(buffer+strlen(buffer), " %s %s %07o%s;",
+                        cscan->opcode, cscan->field1, atoi(cscan->field2), (cscan->orig2) ? cscan->orig2 : "");
+            }
+            else
+            {
+                if (cscan->field1)
+                {
+                    printf(" %s %s;", cscan->opcode, cscan->field1);
+                    sprintf(buffer+strlen(buffer), " %s %s;", cscan->opcode, cscan->field1);
+                }
+                else
+                {
+                    printf(" %s;", cscan->opcode);
+                    sprintf(buffer+strlen(buffer), " %s;", cscan->opcode);
+                }
+            }
+        }
+
+        vlog(buffer+1);
+        printf("\n");
 
         errors += run_one_test(test);
-
         test = test->next;
     }
 
@@ -705,7 +981,7 @@ execute(char *script)
     // get test commands into massaged form in memory
     test = parse_script(script);
 
-//#ifdef DEBUG
+#ifdef DEBUG
     // DEBUG - print contents of 'test'
     for (Test *tscan = test; tscan != NULL; tscan = tscan->next)
     {
@@ -717,7 +993,7 @@ execute(char *script)
         printf("\n");
         fflush(stdout);
     }
-//#endif
+#endif
 
     // execute tests
     return run(test);
@@ -763,360 +1039,6 @@ main(int argc, char *argv[])
 
     printf("%d errors found\n", errors);
 
-    return 0;
+    return errors;
 }
 
-
-#ifdef JUNK
-    def allmem(self, value, ignore=None):
-        """Set all of memory to a value.
-
-        Remember value to check later.
-        """
-
-        log.debug('allmem: setting memory to %07o' % value)
-
-        self.mem_all_value = value
-
-        for mem in range(MEMORY_SIZE):
-            self.memory.put(value, mem, False)
-
-    def allreg(self, value):
-        """Set all registers to a value."""
-
-        self.reg_all_value = value
-
-        self.cpu.AC = value
-        self.cpu.L = value & 1
-        self.cpu.PC = value
-        self.cpu.DS = value
-
-    def check_all_mem(self):
-        """Check memory for unwanted changes."""
-
-        result = []
-
-        for mem in range(MEMORY_SIZE):
-            value = self.memory.fetch(mem, False)
-            if mem in self.mem_values:
-                if value != self.mem_values[mem]:
-                    result.append('Memory at %07o changed, is %07o, should be %07o'
-                                  % (mem, value, self.mem_values[mem]))
-            else:
-                if value != self.mem_all_value:
-                    print('mem: %s, value: %s, self.mem_all_value: %s'
-                          % (str(type(mem)), str(type(value)), str(type(self.mem_all_value))))
-                    result.append('Memory at %07o changed, is %07o, should be %07o'
-                                  % (mem, value, self.mem_all_value))
-
-    def check_all_regs(self):
-        """Check registers for unwanted changes."""
-
-        result = []
-
-        if 'ac' in self.reg_values:
-            if self.cpu.AC != self.reg_values['ac']:
-                result.append('AC changed, is %07o, should be %07o'
-                              % (self.cpu.AC, self.reg_values['ac']))
-        else:
-            if self.cpu.AC != self.reg_all_value:
-                result.append('AC changed, is %07o, should be %07o'
-                              % (self.cpu.AC, self.reg_all_value))
-
-        if 'l' in self.reg_values:
-            if self.cpu.L != self.reg_values['l']:
-                result.append('L changed, is %02o, should be %02o'
-                              % (self.cpu.L, self.reg_values['l']))
-        else:
-            if self.cpu.L != self.reg_all_value & 1:
-                result.append('L changed, is %02o, should be %02o'
-                              % (self.cpu.L, self.reg_all_value & 1))
-
-        if 'pc' in self.reg_values:
-            if self.cpu.PC != self.reg_values['pc']:
-                result.append('PC changed, is %07o, should be %07o'
-                              % (self.cpu.PC, self.reg_values['pc']))
-        else:
-            if self.cpu.PC != self.reg_all_value:
-                result.append('PC changed, is %07o, should be %07o'
-                              % (self.cpu.PC, self.reg_all_value))
-
-        if 'ds' in self.reg_values:
-            if self.cpu.DS != self.reg_values['ds']:
-                result.append('DS changed, is %07o, should be %07o'
-                              % (self.cpu.DS, self.reg_values['ds']))
-        else:
-            if self.cpu.DS != self.reg_all_value:
-                result.append('DS changed, is %07o, should be %07o'
-                              % (self.cpu.DS, self.reg_all_value))
-
-        return result
-
-    def checkreg(self, reg, value):
-        """Check register is as it should be."""
-
-        if reg == 'ac':
-            self.reg_values[reg] = self.cpu.AC
-            if self.cpu.AC != value:
-                return 'AC wrong, is %07o, should be %07o' % (self.cpu.AC, value)
-        elif reg == 'l':
-            self.reg_values[reg] = self.cpu.L
-            if self.cpu.L != value:
-                return 'L wrong, is %02o, should be %02o' % (self.cpu.L, value)
-        elif reg == 'pc':
-            self.reg_values[reg] = self.cpu.PC
-            if self.cpu.PC != value:
-                return 'PC wrong, is %07o, should be %07o' % (self.cpu.PC, value)
-        elif reg == 'ds':
-            self.reg_values[reg] = self.cpu.DS
-            if self.cpu.DS != value:
-                return 'DS wrong, is %07o, should be %07o' % (self.cpu.DS, value)
-        else:
-            raise Exception('checkreg: bad register name: %s' % name)
-
-    def checkmem(self, addr, value):
-        """Check a memory location is as it should be."""
-
-        self.mem_values[addr] = value
-        log.debug('checkmem: After, MemValues=%s' % str(self.mem_values))
-
-        memvalue = self.memory.fetch(addr, False)
-        if memvalue != value:
-            return 'Memory wrong at address %07o, is %07o, should be %07o' % (addr, memvalue, value)
-
-    def checkcycles(self, cycles, var2=None):
-        """Check that opcode cycles used is correct."""
-
-        if cycles != self.used_cycles:
-            return 'Opcode used %d cycles, expected %d' % (self.used_cycles, cycles)
-
-    def run(self, addr, var2):
-        """Execute instruction."""
-
-        if addr is not None:
-            # force PC to given address
-            self.setreg('pc', addr)
-
-        self.used_cycles = self.cpu.execute_one_instruction()
-
-    def checkrun(self, state, var2):
-        """Check CPU run state is as desired."""
-
-        if str(self.cpu.running).lower() != state:
-            return 'CPU run state is %s, should be %s' % (str(self.cpu.running), str(state))
-
-    def setd(self, state, var2):
-        """Set display state."""
-
-        if state == 'on':
-            self.display_state = True
-        elif state == 'off':
-            self.display_state = False
-        else:
-            raise Exception('setd: bad state: %s' % str(state))
-
-    def checkd(self, state, var2):
-        """Check display state is as expected."""
-
-        if state == 'on' and self.display_state is not True:
-            return 'DCPU run state is %s, should be True' % str(self.display_state)
-        if state == 'off' and self.display_state is True:
-            return 'DCPU run state is %s, should be False' % str(self.display_state)
-
-    def debug_operation(self, op, var1, var2):
-        """Write operation to log file."""
-
-        if var1:
-            if var2:
-                log.debug('Operation: %s %s %s' % (op, var1, var2))
-            else:
-                log.debug('Operation: %s %s' % (op, var1))
-        else:
-            log.debug('Operation: %s' % op)
-
-    def execute(self, test, filename):
-        """Execute test string in 'test'."""
-
-        # set globals
-        self.reg_values = {}
-        self.mem_values = {}
-        self.reg_all_value = 0
-        self.mem_all_value = 0
-
-        result = []
-
-        self.memory = Memory.Memory()
-        self.cpu = MainCPU.MainCPU(self.memory, None, None, None, None, None, None, None)
-        self.cpu.running = True
-        self.display_state = False
-
-        trace_filename = filename + '.trace'
-        Trace.init(trace_filename, self.cpu, None)
-
-        # clear registers to 0 first
-        self.allreg(0)
-
-        # interpret the test instructions
-        instructions = test.split(';')
-        for op in instructions:
-            fields = op.split(None, 2)
-            op = fields[0].lower()
-            try:
-                var1 = fields[1].lower()
-            except IndexError:
-                var1 = None
-            try:
-                var2 = fields[2].lower()
-            except IndexError:
-                var2 = None
-
-            self.debug_operation(op, var1, var2)
-
-            # change var strings into numeric values
-            if var1 and var1[0] in '0123456789':
-                if var1[0] == '0':
-                    var1 = int(var1, base=8)
-                else:
-                    var1 = int(var1)
-                var1 &= 0177777
-
-            if var2 and var2[0] in '0123456789':
-                if var2[0] == '0':
-                    var2 = int(var2, base=8)
-                else:
-                    var2 = int(var2)
-                var2 &= 0177777
-
-            if op == 'setreg':
-                r = self.setreg(var1, var2)
-            elif op == 'setmem':
-                r = self.setmem(var1, var2)
-            elif op == 'run':
-                r = self.run(var1, var2)
-            elif op == 'checkcycles':
-                r = self.checkcycles(var1, var2)
-            elif op == 'checkreg':
-                r = self.checkreg(var1, var2)
-            elif op == 'checkmem':
-                r = self.checkmem(var1, var2)
-            elif op == 'allreg':
-                r = self.allreg(var1, var2)
-            elif op == 'allmem':
-                r = self.allmem(var1, var2)
-            elif op == 'checkrun':
-                r = self.checkrun(var1, var2)
-            elif op == 'setd':
-                r = self.setd(var1, var2)
-            elif op == 'checkd':
-                r = self.checkd(var1, var2)
-            else:
-                raise Exception("Unrecognized operation '%s' in: %s" % (op, test))
-
-            if r is not None:
-                result.append(r)
-
-        # now check all memory and regs for changes
-        r = self.check_all_mem()
-        if r:
-            result.append(r)
-
-        r = self.check_all_regs()
-        if r:
-            result.extend(r)
-
-        if result:
-            print(test)
-            print('\t' + '\n\t'.join(result))
-
-        self.memdump('core.txt', 0, 0200)
-
-    def memdump(self, filename, start, number):
-        """Dump memory from 'start' into 'filename', 'number' words dumped."""
-
-        with open(filename, 'wb') as fd:
-            for addr in range(start, start+number, 8):
-                a = addr
-                llen = min(8, start+number - addr)
-                line = '%04o  ' % addr
-                for _ in range(llen):
-                    line += '%06o ' % self.memory.fetch(a, False)
-                    a += 1
-                fd.write('%s\n' % line)
-
-    def main(self, filename):
-        """Execute CPU tests from 'filename'."""
-
-        log.debug("Running test file '%s'" % filename)
-
-        # get all tests from file
-        with open(filename, 'rb') as fd:
-            lines = fd.readlines()
-
-        # read lines, join continued, get complete tests
-        tests = []
-        test = ''
-        for line in lines:
-            line = line[:-1]        # strip newline
-            if not line:
-                continue            # skip blank lines
-
-            if line[0] == '#':      # a comment
-                continue
-
-            if line[0] == '\t':     # continuation
-                if test:
-                    test += '; '
-                test += line[1:]
-            else:                   # beginning of new test
-                if test:
-                    tests.append(test)
-                test = line
-
-        # flush last test
-        if test:
-            tests.append(test)
-
-        # now do each test
-        for test in tests:
-            log.debug('Executing test: %s' % test)
-            self.execute(test, filename)
-
-################################################################################
-
-if __name__ == '__main__':
-    import sys
-    import getopt
-
-    def usage(msg=None):
-        if msg:
-            print('*'*60)
-            print(msg)
-            print('*'*60)
-        print(__doc__)
-
-    try:
-        (opts, args) = getopt.gnu_getopt(sys.argv, "h", ["help"])
-    except getopt.GetoptError:
-        usage()
-        sys.exit(10)
-
-    for opt, arg in opts:
-        if opt in ("-h", "--help"):
-            usage()
-            sys.exit(0)
-
-    if len(args) != 2:
-        usage()
-        sys.exit(10)
-
-    filename = args[1]
-    try:
-        f = open(filename)
-    except IOError:
-        print("Sorry, can't find file '%s'" % filename)
-        sys.exit(10)
-    f.close()
-
-    test = TestCPU()
-    test.main(filename)
-#endif

@@ -66,7 +66,7 @@ cpu_stop(void)
 
 
 /******************************************************************************
-Description : Functions to get various registers.
+Description : Functions to get various registers and states.
  Parameters : 
     Returns : 
    Comments : 
@@ -93,9 +93,22 @@ cpu_get_PC(void)
 
 
 WORD
+cpu_get_DS(void)
+{
+    return r_DS;
+}
+
+
+WORD
 cpu_get_prev_PC(void)
 {
     return Prev_r_PC;
+}
+
+bool
+cpu_get_state(void)
+{
+    return cpu_on;
 }
 
 
@@ -160,7 +173,7 @@ i_LAW_LWC(bool indirect, WORD address)
     if (indirect)
     {
         /* LWC */
-        r_AC = (~address + 1) & WORD_MASK;
+        r_AC = ~address & WORD_MASK;
         trace("LWC\t %5.5o", address);
     }
     else
