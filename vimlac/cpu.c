@@ -38,6 +38,55 @@ static bool            Sync40HzOn = false;
 static bool            cpu_on;           /* true if main processor is running */
 static bool            cpu_sync_on;      /* true if 40HZ flag set */
 
+/******
+ * Helper macros
+ ******/
+
+#define ISAUTOINC(a) ((((a) & 03777) >= 010) && (((a) & 03777) <= 017))
+
+
+/******************************************************************************
+Description : Calculate the effective address.
+ Parameters : address   - the memory address
+            : indirect  - 'true' if the access is indirect
+    Returns : The effective address.
+   Comments : Also handle increments if AUTOINC memory locations.
+ ******************************************************************************/
+static WORD
+cpu_eff_address(WORD address, bool indirect)
+{
+    // the Imlac can get into infinite defer loops, and so can we!
+    while (indirect)
+    {
+        if (ISAUTOINC(address))
+            mem_put(address, false, mem_get(address, false) + 1);
+        address = mem_get(address, false);
+        indirect = (address & 0100000);
+    }
+
+    return address;
+}
+
+#ifdef JUNK
+def cpu_eff_address(self, address, indirect):
+    """Get an effective memory address.
+    
+    The address can be indirect, and may be through an
+    auto-increment address.
+    """
+    
+    # the Imlac can get into infinite defer loops, and so can we!
+    while indirect:
+        if ISAUTOINC(address):
+            # indirect on auto-inc register, add one to it before use
+            self.memory[address] = MASK_MEM(self.memory[address] + 1)
+        address = self.memory[address]
+        indirect = bool(address & 0100000)
+    
+    return address
+#endif
+
+
 
 /******************************************************************************
 Description : Function to start the main CPU.
@@ -197,15 +246,20 @@ Description : Emulate the JMP instruction.
 static int
 i_JMP(bool indirect, WORD address)
 {
-    if (indirect)
-        r_PC = mem_get(address, false);
-    else
-	r_PC = address;
+    address = cpu_eff_address(address, indirect);
+    r_PC = address & MEMMASK;
 
     trace("JMP\t%c%5.5o", (indirect) ? '*' : ' ', address);
 
     return (indirect) ? 3 : 2;
 }
+
+#ifdef JUNK
+    address = self.memory.eff_address(address, indirect)
+    self.PC = address & PCMASK
+    Trace.itrace('JMP', indirect, address)
+    return 3 if indirect else 2
+#endif
 
 
 /******************************************************************************
