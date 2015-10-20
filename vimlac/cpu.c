@@ -67,26 +67,6 @@ cpu_eff_address(WORD address, bool indirect)
     return address;
 }
 
-#ifdef JUNK
-def cpu_eff_address(self, address, indirect):
-    """Get an effective memory address.
-    
-    The address can be indirect, and may be through an
-    auto-increment address.
-    """
-    
-    # the Imlac can get into infinite defer loops, and so can we!
-    while indirect:
-        if ISAUTOINC(address):
-            # indirect on auto-inc register, add one to it before use
-            self.memory[address] = MASK_MEM(self.memory[address] + 1)
-        address = self.memory[address]
-        indirect = bool(address & 0100000)
-    
-    return address
-#endif
-
-
 
 /******************************************************************************
 Description : Function to start the main CPU.
@@ -253,13 +233,6 @@ i_JMP(bool indirect, WORD address)
 
     return (indirect) ? 3 : 2;
 }
-
-#ifdef JUNK
-    address = self.memory.eff_address(address, indirect)
-    self.PC = address & PCMASK
-    Trace.itrace('JMP', indirect, address)
-    return 3 if indirect else 2
-#endif
 
 
 /******************************************************************************

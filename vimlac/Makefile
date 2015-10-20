@@ -1,4 +1,4 @@
-DEVFILES = cpu.o dcpu.o ptr.o ptp.o memory.o kb.o ttyin.o ttyout.o trace.o error.o log.o
+DEVFILES = cpu.o dcpu.o ptr.o ptp.o memory.o kb.o ttyin.o ttyout.o trace.o error.o log.o plist.o
 OFILES = vimlac.o $(DEVFILES)
 
 #CFLAGS=-fPIC -O2 -Wall -ansi -pedantic -std=c99 -g
