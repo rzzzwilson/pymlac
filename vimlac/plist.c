@@ -14,7 +14,7 @@
  *                                                                            *
  *      void PlistDestroy(PLIST plist);                                       *
  *                                                                            *
- *      void PlistDump(PLIST plist);                                          *
+ *      void PlistDump(PLIST plist, FILE *output);                            *
  *                                                                            *
 \******************************************************************************/
 
@@ -70,14 +70,14 @@ Description : Routine to create a plist.
 PLIST
 PlistCreate(void)
 {
-    PList *plist = malloc(sizeof(PList *));
+    PList *hdr = calloc(1, sizeof(PList));
 
-    if (plist == NULL)
+    if (hdr == NULL)
         error("Out of memory.");
 
-    plist = NULL;
+    hdr->next = NULL;
 
-    return (PLIST) plist;
+    return (PLIST) hdr;
 }
 
 
@@ -94,10 +94,11 @@ Description : Function to insert new record into the property list.
 void
 PListInsert(PLIST plist, char *name, char *value)
 {
-    PList *newrec = malloc(sizeof(PList));
+    PList *hdr = (PList *) plist;
+
+    PList *newrec = calloc(1, sizeof(PList));
     char *newname = malloc(strlen(name)+1);
     char *newvalue = malloc(strlen(value)+1);
-    PList *hdr = (PList *) plist;
 
     if (newrec == NULL || newname == NULL || newvalue == NULL)
         error("Out of memory");
@@ -109,9 +110,7 @@ PListInsert(PLIST plist, char *name, char *value)
     newrec->name = newname;
     newrec->value = newvalue;
 
-//    plist = (PList *) plist;
-
-    newrec->next = hdr;
+    newrec->next = hdr->next;
     hdr->next = newrec;
 }
 
@@ -129,8 +128,9 @@ PlistFind(PLIST plist, char *name)
 {
     PList *hdr = (PList *) plist;
 
-    while (hdr)
+    while (hdr->next)
     {
+        hdr = hdr->next;
         if (strcmp(hdr->name, name) == 0)
             return hdr->value;
     }
@@ -146,7 +146,7 @@ Description : Destroy a property list.
     Returns : 
    Comments : 
  ******************************************************************************/
-void
+PLIST
 PlistDestroy(PLIST plist)
 {
     PList *hdr = (PList *) plist;
@@ -159,9 +159,12 @@ PlistDestroy(PLIST plist)
         free(hdr);
         hdr = next;
     }
+
+    return NULL;
 }
 
 
+#ifdef DEBUG
 /******************************************************************************
        Name : PlistDump()
 Description : Dump the plist to a specified open output FILE.
@@ -178,9 +181,15 @@ PlistDump(PLIST plist, FILE *output)
     if (output == NULL)
         output = stdout;
 
-    while (hdr)
+    while (hdr->next)
     {
-        fprintf(output, "%s: %s\n", hdr->name, hdr->value);
         hdr = hdr->next;
+        fprintf(output, "\n address: %p\n", hdr);
+        fprintf(output, "----------------+-----------------\n");
+        fprintf(output, " %p | %s\n", hdr->name, hdr->name);
+        fprintf(output, " %p | %s\n", hdr->value, hdr->value);
+        fprintf(output, "----------------+-----------------\n");
+        fprintf(output, " next: %p\n", hdr->next);
     }
 }
+#endif
