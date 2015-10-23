@@ -10,7 +10,7 @@
  *            checkcycles 1; checkreg pc 0101; checkreg ac 0
  *
  * The instructions are delimited by ';' characters.  A line beginning with a
- * TAB character is a continuation of the previous line.
+ * white space is a continuation of the previous line.
  * Lines with '#' in column 1 are comments.
  *
  * The test instructions are:
@@ -111,7 +111,7 @@ PLIST RegValues = NULL;
 /******************************************************************************
 Description : Convert a string to upper case.
  Parameters : str - address of string to convert
-    Returns : 
+    Returns :
    Comments : The string is converted 'in situ'.
  ******************************************************************************/
 void
@@ -150,31 +150,53 @@ str2word(char *str)
 
 
 /******************************************************************************
-Description : Function to provide help to the befuddled user.
- Parameters : msg - if not NULL, a message to display
-    Returns : 
-   Comments : String is converted to upper case.
+Description : Create a new string which is a copy of the given string.
+ Parameters : str - the string to copy
+    Returns : The address of the new (maoolc) string.
+   Comments : The caller must ensure this new string is free'd.
  ******************************************************************************/
 char *
 new_String(char *str)
 {
     char *result = (char *) malloc(strlen(str)+1);
     strcpy(result, str);
-    for (char *cptr = result; *cptr; ++cptr)
-        *cptr = tolower(*cptr);
+    strupper(result);
     return result;
 }
 
+/******************************************************************************
+Description : Print contents of a Command to stdout.
+ Parameters : cmd - address of the Command to dump
+    Returns :
+   Comments :
+ ******************************************************************************/
+void
+dump_cmd(Command *cmd)
+{
+    printf("\n~ Command ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
+    printf("address: %p   next: %p\n", cmd, cmd->next);
+    printf("opcode:  %s   field1: %s   field2: %s\n",
+            cmd->opcode, cmd->field1, cmd->field2);
+    printf("original: %s\n", cmd->orig2);
+    printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// The following routines wrap the 'plist' functions so we are handling data
+// formats useful to the test code.  We want to handle WORD values and WORD
+// memory addresses but the 'plist' routines only handle strings.  The code here
+// converts to/from strings.
+////////////////////////////////////////////////////////////////////////////////
 
 /******************************************************************************
 Description : Save a register value to the RegValues plist.
  Parameters : name - string holding register name
             : val  - binary value to save
-    Returns : 
+    Returns :
    Comments : The value is converted to a fixed string form.
  ******************************************************************************/
 void
-save_reg(char *name, WORD val)
+save_reg_plist(char *name, WORD val)
 {
     char *new_name = new_String(name);
     char *new_value = malloc(8);
@@ -190,13 +212,11 @@ Description : Get a register value from the RegValues plist.
  Parameters : name   - string holding register name
             : result - address of WORD to hold result
     Returns : true if register in PLIST and value is at *result.
-   Comments : 
+   Comments :
  ******************************************************************************/
 bool
-get_reg(char *name, WORD *result)
+get_reg_plist(char *name, WORD *result)
 {
-    printf("get_reg: entered, name=%s, line %d\n", name, __LINE__);
-
     char *new_name = new_String(name);
     char *value = PlistFind(RegValues, new_name);
 
@@ -214,11 +234,11 @@ get_reg(char *name, WORD *result)
 Description : Save a memory value to the RegValues plist.
  Parameters : addr - the binary memory address
             : val  - binary value to save
-    Returns : 
+    Returns :
    Comments : The address & value are converted to a fixed string form.
  ******************************************************************************/
 void
-save_mem(WORD addr, WORD val)
+save_mem_plist(WORD addr, WORD val)
 {
     char *new_addr = malloc(8);
     char *new_value = malloc(8);
@@ -238,7 +258,7 @@ Description : Save a memory value to the RegValues plist.
    Comments : The address is converted to a fixed string form.
  ******************************************************************************/
 bool
-get_mem(WORD addr, WORD *value)
+get_mem_plist(WORD addr, WORD *value)
 {
     char *new_addr = malloc(8);
     sprintf(new_addr, "%07o", addr);
@@ -248,13 +268,346 @@ get_mem(WORD addr, WORD *value)
     if (result)
     {
         *value = str2word(result);
-        printf("get_mem: got value %s, returning %07o\n", result, *value);
         return true;
     }
 
     return false;
 }
 
+////////////////////////////////////////////////////////////////////////////////
+// The following functions are the DSL functions.
+////////////////////////////////////////////////////////////////////////////////
+
+/******************************************************************************
+Description : Set a register to a value
+ Parameters : name - string containing register name (uppercase)
+            : fld2 - string containing field 2
+    Returns : The number of errors encountered (0 or 1).
+   Comments : Sets globals used to check after execution.
+ ******************************************************************************/
+int
+setreg(char *name, char *fld2)
+{
+    int result = 0;
+    WORD value = str2word(fld2);
+
+    vlog("Setting register %s to %07o", name, value);
+
+    if (STREQ(name, "AC"))
+        cpu_set_AC(value);
+    else if (STREQ(name, "L"))
+        cpu_set_L(value);
+    else if (STREQ(name, "PC"))
+        cpu_set_PC(value);
+    else if (STREQ(name, "DC"))
+        cpu_set_DS(value);
+    else
+    {
+        vlog("setreg: bad register name: %s", name);
+        printf("setreg: bad register name: %s\n", name);
+        return 1;
+    }
+
+    save_reg_plist(name, value);
+
+    return result;
+}
+
+/******************************************************************************
+Description : Set the display ON or OFF.
+ Parameters : state - string containing 'on' or 'off'
+            : var2  - unused
+    Returns : The number of errors encountered (0 or 1).
+   Comments :
+ ******************************************************************************/
+int
+setd(char *state, char *var2)
+{
+    vlog("Setting display '%s'", state);
+
+    if (STREQ(state, "ON"))
+        dcpu_start();
+    else if (STREQ(state, "OFF"))
+        dcpu_stop();
+    else
+    {
+        vlog("setd: bad state: %s", state);
+        printf("setd: bad state: %s", state);
+        return 1;
+    }
+
+    return 0;
+}
+
+
+/******************************************************************************
+Description : Set a memory cell to a value;
+ Parameters : addr - address of memory cell (string)
+            : fld2 - value to put into cell (string)
+    Returns : The number of errors encountered (0 or 1).
+   Comments : Sets globals used to check after execution.
+ ******************************************************************************/
+int
+setmem(char *addr, char *fld2)
+{
+    WORD address = str2word(addr);
+    WORD value = str2word(fld2);
+
+    vlog("Setting memory at %07o to %07o", address, value);
+
+    mem_put(address, false, value);
+
+    save_mem_plist(address, value);
+
+    return 0;
+}
+
+
+/******************************************************************************
+Description : Set all registers to a value.
+ Parameters : value - value to put into registers (string)
+            : var2  - unused
+    Returns : The number of errors encountered (0 or 1).
+   Comments :
+ ******************************************************************************/
+int
+allreg(char *value, char *var2)
+{
+    int val = str2word(value);
+
+    vlog("Setting all registers to %07o", val);
+
+    RegAllValue = val;
+
+    cpu_set_AC(val);
+    save_reg_plist("AC", val);
+    cpu_set_L(val & 1);
+    save_reg_plist("L", val & 1);
+    cpu_set_PC(val);
+    save_reg_plist("PC", val);
+    cpu_set_DS(val);
+    save_reg_plist("DS", val);
+
+    return 0;
+}
+
+
+/******************************************************************************
+Description : Set all memory locations to a value.
+ Parameters : value - value to put into memory (string)
+            : var2  - unused
+    Returns : The number of errors encountered (0 or 1).
+   Comments :
+ ******************************************************************************/
+int
+allmem(char *value, char *var2)
+{
+    int val = str2word(value);
+
+    vlog("Setting all memory to %07o", val);
+
+    MemAllValue = val;
+
+    for (WORD adr = 0; adr < MEM_SIZE; ++adr)
+        mem_put(adr, false, val);
+
+    return 0;
+}
+
+
+/******************************************************************************
+Description : Run one instruction on the CPU.
+ Parameters : addr - address of memory cell (string, may be NULL)
+            : fld2 - unused
+    Returns : The number of errors encountered (0 or 1).
+   Comments :
+ ******************************************************************************/
+int
+run_one(char *addr, char *fld2)
+{
+    WORD address = str2word(addr);
+
+    vlog("Executing single instruction at %s", (addr) ? addr : "PC");
+
+    if (addr)
+    {   // force PC to given address
+        cpu_set_PC(address);
+    }
+
+    cpu_start();
+    UsedCycles = cpu_execute_one();
+    cpu_stop();
+
+    return 0;
+}
+
+
+/******************************************************************************
+Description : Check that the number of cycles used is as expected.
+ Parameters : cycles - address of memory cell (string)
+            : var2   - unused
+    Returns : The number of errors encountered (0 or 1).
+   Comments :
+ ******************************************************************************/
+int
+checkcycles(char *cycles, char *fld2)
+{
+    WORD c = str2word(cycles);
+
+    if (c != UsedCycles)
+    {
+        vlog("Test used %d cycles, expected %d!?", UsedCycles, c);
+        printf("Test used %d cycles, expected %d!?\n", UsedCycles, c);
+        return 1;
+    }
+
+    return 0;
+}
+
+
+/******************************************************************************
+Description : Check that a register contents is as expected.
+ Parameters : reg      - string holding register name
+            : expected - expected register value (string)
+    Returns : The number of errors encountered (0 or 1).
+   Comments :
+ ******************************************************************************/
+int
+checkreg(char *reg, char *expected)
+{
+    WORD exp = str2word(expected);
+    WORD value;
+
+    if (STREQ(reg, "AC")) value = cpu_get_AC();
+    else if (STREQ(reg, "L")) value = cpu_get_L();
+    else if (STREQ(reg, "PC")) value = cpu_get_PC();
+    else if (STREQ(reg, "DS")) value = cpu_get_DS();
+    else
+    {
+        vlog("checkreg: bad register name: %s", reg);
+        printf("checkreg: bad register name: %s\n", reg);
+        return 1;
+    }
+
+    // check register contents
+    save_reg_plist(reg, value);
+    if (value != exp)
+    {
+        vlog("%s is %02o, should be %02o", reg, value, exp);
+        printf("%s is %02o, should be %02o\n", reg, value, exp);
+        return 1;
+    }
+
+    return 0;
+}
+
+
+/******************************************************************************
+Description : Check that the display is in the correct state.
+ Parameters : state  - string holding expected display state ('on' or 'off)
+            : unused - unused
+    Returns : The number of errors encountered (0 or 1).
+   Comments :
+ ******************************************************************************/
+int
+checkd(char *state, char *unused)
+{
+    if ((STREQ(state, "on")) && !DisplayOn)
+    {
+        vlog("Display CPU run state is %s, should be 'ON'",
+                (DisplayOn ? "ON": "OFF"));
+        printf("Display CPU run state is %s, should be 'ON'\n",
+                (DisplayOn ? "ON": "OFF"));
+        return 1;
+    }
+    else if ((STREQ(state, "off")) && DisplayOn)
+    {
+        vlog("DCPU run state is %s, should be 'OFF'",
+                (DisplayOn ? "ON": "OFF"));
+        printf("DCPU run state is %s, should be 'OFF'\n",
+                (DisplayOn ? "ON": "OFF"));
+        return 1;
+    }
+    else
+    {
+        vlog("checkd: state should be 'on' or 'OFF', got %s", state);
+        printf("checkd: state should be 'on' or 'off', got %s\n", state);
+        return 1;
+    }
+
+    return 0;
+}
+
+
+/******************************************************************************
+Description : Check that a memory address contents is as expected.
+ Parameters : address - memory address to check (string)
+            : value   - expected memory value (string)
+    Returns : The number of errors encountered (0 or 1).
+   Comments : We check the MemValues plist first!
+ ******************************************************************************/
+int
+checkmem(char *address, char *value)
+{
+    WORD adr = str2word(address);
+    WORD val = str2word(value);
+    WORD memvalue;
+
+    // check actual memory
+    memvalue = mem_get(adr, false);
+    save_mem_plist(adr, memvalue);
+    if (memvalue != val)
+    {
+        vlog("Memory at address %07o is %07o, should be %07o",
+                adr, memvalue, val);
+        printf("Memory at address %07o is %07o, should be %07o\n",
+                adr, memvalue, val);
+        return 1;
+    }
+
+    return 0;
+}
+
+
+/******************************************************************************
+Description : Check that the CPU run state is as expected.
+ Parameters : state  - the expected CPU state (string, 'ON' or 'OFF')
+            : unused - unused
+    Returns : The number of errors encountered (0 or 1).
+   Comments :
+ ******************************************************************************/
+int
+checkrun(char *state, char *unused)
+{
+
+    if (STREQ(state, "on"))
+    {
+        vlog("CPU run state is '%s', should be '%s'",
+                (cpu_get_state() ? "on": "off"), state);
+        printf("CPU run state is '%s', should be '%s'\n",
+                (cpu_get_state() ? "on": "off"), state);
+        return 1;
+    }
+    else if (STREQ(state, "off"))
+    {
+        vlog("CPU run state is '%s', should be '%s'",
+                (cpu_get_state() ? "on": "off"), state);
+        printf("CPU run state is '%s', should be '%s'\n",
+                (cpu_get_state() ? "on": "off"), state);
+        return 1;
+    }
+    else
+    {
+        vlog("checkrun: state should be 'on' or 'off', got '%s'", state);
+        printf("checkrun: state should be 'on' or 'off', got '%s'\n", state);
+        return 1;
+    }
+
+    return 0;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
 
 /******************************************************************************
 Description : Constructor for a Command struct.
@@ -269,8 +622,7 @@ new_Command(char *opcode)
 
     result->opcode = (char *) malloc(strlen(opcode)+1);
     strcpy(result->opcode, opcode);
-    for (char *cptr = result->opcode; *cptr; ++cptr)
-        *cptr = tolower(*cptr);
+    strupper(result->opcode);
 
     result->next = NULL;
     result->field1 = NULL;
@@ -282,7 +634,7 @@ new_Command(char *opcode)
 
 
 /******************************************************************************
-Description : Constructor for a Command struct.
+Description : Constructor for a Test struct.
  Parameters : line_number - the number of the line that created the Test
             : commands    - address of chain of commands for Test
     Returns : The address of a new Test struct.
@@ -304,8 +656,8 @@ new_Test(int line_number, Command *commands)
 /******************************************************************************
 Description : Function to provide help to the befuddled user.
  Parameters : msg - if not NULL, a message to display
-    Returns : 
-   Comments : 
+    Returns :
+   Comments :
  ******************************************************************************/
 void
 usage(char *msg)
@@ -334,9 +686,9 @@ usage(char *msg)
 Description : Function to return the imlac binary opcode of an instruction.
  Parameters : addr   - address of the instruction
             : opcode - string containing the instruction
-    Returns : 
-   Comments : We generate an ASM file, assemble it and pick out the binary
-            : opcode from the LST file.
+    Returns :
+   Comments : We already have an assembler, so we just reuse it.  Generate an
+            : ASM file, assemble it and pick out the opcode from the LST file.
  ******************************************************************************/
 WORD
 assemble(WORD addr, char *opcode)
@@ -356,7 +708,7 @@ assemble(WORD addr, char *opcode)
     sprintf(buffer, "../iasm/iasm -l %s %s", LstFilename, AsmFilename);
     if (system(buffer) == -1)
         error("Error doing: %s", buffer);
-   
+
     // read LST file for opcode on second line
     fd = fopen(LstFilename, "rb");
     if (fgets(buffer, sizeof(buffer), fd) == NULL)
@@ -367,12 +719,12 @@ assemble(WORD addr, char *opcode)
         error("Badly formatted assembler output: %s", buffer);
     fclose(fd);
 
-    return result;   
+    return result;
 }
-   
+
 
 /******************************************************************************
-Description : Decide if buffer kine should be skipped.
+Description : Decide if buffer line should be skipped.
  Parameters : buffer - address of line buffer
     Returns : 'true' if line should be skipped (no commands)
    Comments : Skip if line empty or column 1 is '#'.
@@ -418,6 +770,7 @@ parse_one_cmd(char *scan)
     while (*scan && isspace(*scan))     // skip leading space
         ++scan;
     opcode = scan;
+    strupper(opcode);
     while (*scan && !isspace(*scan))
         ++scan;
     if (*scan)
@@ -483,8 +836,8 @@ parse_one_cmd(char *scan)
 /******************************************************************************
 Description : Read the command buffer and create a chain of Command structs.
  Parameters : scriptpath - script filename
-    Returns : Pointer to a chain of Test structs.
-   Comments : 
+    Returns : Pointer to a chain of Command structs.
+   Comments :
  ******************************************************************************/
 Command *
 parse_cmds(char *scan)
@@ -534,7 +887,7 @@ parse_cmds(char *scan)
 Description : Read the script file and create a chain of Test structs.
  Parameters : scriptpath - script filename
     Returns : Pointer to a chain of Test structs.
-   Comments : 
+   Comments :
  ******************************************************************************/
 Test *
 parse_script(char *scriptpath)
@@ -605,7 +958,9 @@ parse_script(char *scriptpath)
             }
 
             // move 'last_cmd' to end of command chain
-            for (last_cmd = last_test->commands; last_cmd->next != NULL; last_cmd = last_cmd->next)
+            for (last_cmd = last_test->commands;
+                    last_cmd->next != NULL;
+                    last_cmd = last_cmd->next)
                 ;
         }
     }
@@ -618,389 +973,8 @@ parse_script(char *scriptpath)
 
 
 /******************************************************************************
-Description : Set a register to a value
- Parameters : test - pointer to a Test struct
-    Returns : The number of errors encountered (0 or 1).
-   Comments : Sets globals used to check after execution.
- ******************************************************************************/
-int
-setreg(char *name, char *fld2)
-{
-    int result = 0;
-    WORD value = str2word(fld2);
-
-    vlog("Setting register %s to %07o", name, value);
-
-    if (STREQ(name, "ac"))
-        cpu_set_AC(value);
-    else if (STREQ(name, "l"))
-        cpu_set_L(value);
-    else if (STREQ(name, "pc"))
-        cpu_set_PC(value);
-    else if (STREQ(name, "ds"))
-        cpu_set_DS(value);
-    else
-    {
-        vlog("setreg: bad register name: %s", name);
-        printf("setreg: bad register name: %s\n", name);
-        result = 1;
-    }
-
-    return result;
-}
-
-/******************************************************************************
-Description : Set the display ON or OFF.
- Parameters : state - string containing 'on' or 'off'
-            : var2  - unused
-    Returns : The number of errors encountered (0 or 1).
-   Comments : 
- ******************************************************************************/
-int
-setd(char *state, char *var2)
-{
-    vlog("Setting display '%s'", state);
-
-    if (STREQ(state, "on"))
-        dcpu_start();
-    else if (STREQ(state, "off"))
-        dcpu_stop();
-    else
-    {
-        vlog("setd: bad state: %s", state);
-        printf("setd: bad state: %s", state);
-        return 1;
-    }
-
-    return 0;
-}
-
-
-/******************************************************************************
-Description : Set a memory cell to a value;
- Parameters : addr - address of memory cell (string)
-            : fld2 - value to put into cell (string)
-    Returns : The number of errors encountered (0 or 1).
-   Comments : Sets globals used to check after execution.
- ******************************************************************************/
-int
-setmem(char *addr, char *fld2)
-{
-    WORD address = str2word(addr);
-    WORD value = str2word(fld2);
-
-    vlog("Setting memory at %07o to %07o", address, value);
-
-    mem_put(address, false, value);
-
-    save_mem(address, value);
-//    PlistDump(MemValues, NULL);
-
-    return 0;
-}
-
-
-/******************************************************************************
-Description : Set all registers to a value.
- Parameters : value - value to put into registers (string)
-            : var2  - unused
-    Returns : The number of errors encountered (0 or 1).
-   Comments : 
- ******************************************************************************/
-int
-allreg(char *value, char *var2)
-{
-    int val = str2word(value);
-
-    vlog("Setting all registers to %07o", val);
-
-    RegAllValue = val;
-
-    cpu_set_AC(val);
-    cpu_set_L(val && 1);
-    cpu_set_PC(val);
-    cpu_set_DS(val);
-
-    return 0;
-}
-
-
-/******************************************************************************
-Description : Set all memory locations to a value.
- Parameters : value - value to put into memory (string)
-            : var2  - unused
-    Returns : The number of errors encountered (0 or 1).
-   Comments : 
- ******************************************************************************/
-int
-allmem(char *value, char *var2)
-{
-    int val = str2word(value);
-
-    vlog("Setting all memory to %07o", val);
-
-    MemAllValue = val;
-
-    for (WORD adr = 0; adr < MEM_SIZE; ++adr)
-        mem_put(adr, false, val);
-
-    return 0;
-}
-
-
-/******************************************************************************
-Description : Run one instruction on the CPU.
- Parameters : addr - address of memory cell (string, may be NULL)
-            : fld2 - unused
-    Returns : The number of errors encountered (0 or 1).
-   Comments : 
- ******************************************************************************/
-int
-run_one(char *addr, char *fld2)
-{
-    WORD address = str2word(addr);
-
-    vlog("Executing single instruction at %s", (addr) ? addr : "PC");
-
-    if (addr)
-    {   // force PC to given address
-        cpu_set_PC(address);
-    }
-
-    cpu_start();
-    UsedCycles = cpu_execute_one();
-    cpu_stop();
-
-    return 0;
-}
-
-
-/******************************************************************************
-Description : Check that the number of cycles used is as expected.
- Parameters : cycles - address of memory cell (string)
-            : var2   - unused
-    Returns : The number of errors encountered (0 or 1).
-   Comments : 
- ******************************************************************************/
-int
-checkcycles(char *cycles, char *fld2)
-{
-    WORD c = str2word(cycles);
-
-    if (c != UsedCycles)
-    {
-        vlog("Test used %d cycles, expected %d!?", UsedCycles, c);
-        printf("Test used %d cycles, expected %d!?\n", UsedCycles, c);
-        return 1;
-    }
-
-    return 0;
-}
-
-
-/******************************************************************************
-Description : Check that a register contents is as expected.
- Parameters : reg      - string holding register name
-            : expected - expected register value (string)
-    Returns : The number of errors encountered (0 or 1).
-   Comments : 
- ******************************************************************************/
-int
-checkreg(char *reg, char *expected)
-{
-    WORD exp = str2word(expected);
-    char buffer[32];
-    
-    strupper(reg);
-
-    if (STREQ(reg, "AC"))
-    {
-        WORD value = cpu_get_AC();
-
-        sprintf(buffer, "%d", value);
-        save_reg(reg, value);
-//        PlistInsert(RegValues, reg, buffer);
-        if (value != exp)
-        {
-            vlog("AC is %07o, should be %07o", value, exp);
-            printf("AC is %07o, should be %07o\n", value, exp);
-            return 1;
-        }
-    }
-    else if (STREQ(reg, "L"))
-    {
-        WORD value = cpu_get_L();
-
-        sprintf(buffer, "%d", value);
-        save_reg(reg, value);
-//        PlistInsert(RegValues, reg, buffer);
-        if (value != exp)
-        {
-            vlog("L is %02o, should be %02o", value, exp);
-            printf("L is %02o, should be %02o\n", value, exp);
-            return 1;
-        }
-    }
-    else if (STREQ(reg, "PC"))
-    {
-        WORD value = cpu_get_PC();
-
-        sprintf(buffer, "%d", value);
-        save_reg(reg, value);
-//        PlistInsert(RegValues, reg, buffer);
-        if (value != exp)
-        {
-            vlog("PC is %07o, should be %07o", value, exp);
-            printf("PC is %07o, should be %07o\n", value, exp);
-            return 1;
-        }
-    }
-    else if (STREQ(reg, "DS"))
-    {
-        WORD value = cpu_get_DS();
-
-        sprintf(buffer, "%d", value);
-        save_reg(reg, value);
-//        PlistInsert(RegValues, reg, buffer);
-        if (value != exp)
-        {
-            vlog("DS is %07o, should be %07o", value, exp);
-            printf("DS is %07o, should be %07o\n", value, exp);
-            return 1;
-        }
-    }
-    else
-    {
-        vlog("checkreg: bad register name: %s", reg);
-        printf("checkreg: bad register name: %s\n", reg);
-        return 1;
-    }
-
-    return 0;
-}
-
-
-/******************************************************************************
-Description : Check that the display is in the correct state.
- Parameters : state  - string holding expected display state ('on' or 'off)
-            : unused - unused
-    Returns : The number of errors encountered (0 or 1).
-   Comments : 
- ******************************************************************************/
-int
-checkd(char *state, char *unused)
-{
-    if ((STREQ(state, "on")) && !DisplayOn)
-    {
-        vlog("Display CPU run state is %s, should be 'ON'",
-                (DisplayOn ? "ON": "OFF"));
-        printf("Display CPU run state is %s, should be 'ON'\n",
-                (DisplayOn ? "ON": "OFF"));
-        return 1;
-    }
-    else if ((STREQ(state, "off")) && DisplayOn)
-    {
-        vlog("DCPU run state is %s, should be 'OFF'",
-                (DisplayOn ? "ON": "OFF"));
-        printf("DCPU run state is %s, should be 'OFF'\n",
-                (DisplayOn ? "ON": "OFF"));
-        return 1;
-    }
-    else
-    {
-        vlog("checkd: state should be 'on' or 'OFF', got %s", state);
-        printf("checkd: state should be 'on' or 'off', got %s\n", state);
-        return 1;
-    }
-
-    return 0;
-}
-
-
-/******************************************************************************
-Description : Check that a memory address contents is as expected.
- Parameters : address - memory address to check (string)
-            : value   - expected memory value (string)
-    Returns : The number of errors encountered (0 or 1).
-   Comments : We check the MemValues plist first!
- ******************************************************************************/
-int
-checkmem(char *address, char *value)
-{
-    WORD adr = str2word(address);
-    WORD val = str2word(value);
-    WORD memvalue;
-
-    // check the plist first
-    if (get_mem(adr, &memvalue))
-    {   // in the plist, check value
-        if (memvalue != val)
-        {
-            printf("Memory at address %07o is %07o, should be %07o\n",
-                    adr, memvalue, val);
-            return 1;
-        }
-
-        return 0;
-    }
-    
-    // now check actual memory
-    memvalue = mem_get(adr, false);
-
-    if (memvalue != val)
-    {
-        vlog("Memory at address %07o is %07o, should be %07o",
-                adr, memvalue, val);
-        printf("Memory at address %07o is %07o, should be %07o\n",
-                adr, memvalue, val);
-        return 1;
-    }
-
-    return 0;
-}
-
-
-/******************************************************************************
-Description : Check that the CPU run state is as expected.
- Parameters : state  - the expected CPU state (string, 'ON' or 'OFF')
-            : unused - unused
-    Returns : The number of errors encountered (0 or 1).
-   Comments : 
- ******************************************************************************/
-int
-checkrun(char *state, char *unused)
-{
-
-    if (STREQ(state, "on"))
-    {
-        vlog("CPU run state is '%s', should be '%s'",
-                (cpu_get_state() ? "on": "off"), state);
-        printf("CPU run state is '%s', should be '%s'\n",
-                (cpu_get_state() ? "on": "off"), state);
-        return 1;
-    }
-    else if (STREQ(state, "off"))
-    {
-        vlog("CPU run state is '%s', should be '%s'",
-                (cpu_get_state() ? "on": "off"), state);
-        printf("CPU run state is '%s', should be '%s'\n",
-                (cpu_get_state() ? "on": "off"), state);
-        return 1;
-    }
-    else
-    {
-        vlog("checkrun: state should be 'on' or 'off', got '%s'", state);
-        printf("checkrun: state should be 'on' or 'off', got '%s'\n", state);
-        return 1;
-    }
-
-    return 0;
-}
-
-
-/******************************************************************************
 Description : Check that memory values are as they should be.
- Parameters : 
+ Parameters :
     Returns : The number of errors encountered.
    Comments : Expected values shopuld be the global 'MemAllValue' or one of the
             : values in the 'MemValues' plist.
@@ -1015,7 +989,7 @@ check_all_mem(void)
         WORD value = mem_get(adr, false);
         WORD expected;
 
-        if (get_mem(adr, &expected))
+        if (get_mem_plist(adr, &expected))
         {
             if (expected != value)
             {
@@ -1032,7 +1006,7 @@ check_all_mem(void)
                         adr, value, MemAllValue);
                 result += 1;
             }
-        }        
+        }
     }
 
     return result;
@@ -1047,8 +1021,6 @@ Description : Check that a register value is as it should be.
 int
 check_reg(char *reg)
 {
-    printf("check_reg: entered, reg=%s, line %d\n", reg, __LINE__);
-
     WORD expect;
     WORD value;
 
@@ -1062,8 +1034,7 @@ check_reg(char *reg)
         return 1;
     }
 
-    printf("line %d\n", __LINE__);
-    if (get_reg(reg, &expect))
+    if (get_reg_plist(reg, &expect))
     {
         if (value != expect)
         {
@@ -1073,14 +1044,13 @@ check_reg(char *reg)
         }
     }
 
-    printf("line %d\n", __LINE__);
     return 0;
 }
 
 
 /******************************************************************************
 Description : Check that register values are as they should be.
- Parameters : 
+ Parameters :
     Returns : The number of errors encountered.
    Comments : Expected values should be the value in 'RegValues' plist.
  ******************************************************************************/
@@ -1096,12 +1066,12 @@ check_all_regs(void)
 
     return result;
 }
-    
+
 /******************************************************************************
 Description : Run all commands in one test line.
  Parameters : test - pointer to a Test struct
     Returns : The number of errors encountered.
-   Comments : 
+   Comments :
  ******************************************************************************/
 int
 run_one_test(Test *test)
@@ -1136,27 +1106,27 @@ run_one_test(Test *test)
             sprintf(buffer, "%s %s", opcode, fld1);
         LogPrefix = new_String(buffer);
 
-        if (STREQ(opcode, "setreg"))
+        if (STREQ(opcode, "SETREG"))
             error += setreg(fld1, fld2);
-        else if (STREQ(opcode, "setmem"))
+        else if (STREQ(opcode, "SETMEM"))
             error += setmem(fld1, fld2);
-        else if (STREQ(opcode, "run"))
+        else if (STREQ(opcode, "RUN"))
             error += run_one(fld1, fld2);
-        else if (STREQ(opcode, "checkcycles"))
+        else if (STREQ(opcode, "CHECKCYCLES"))
             error += checkcycles(fld1, fld2);
-        else if (STREQ(opcode, "checkreg"))
+        else if (STREQ(opcode, "CHECKREG"))
             error += checkreg(fld1, fld2);
-        else if (STREQ(opcode, "checkmem"))
+        else if (STREQ(opcode, "CHECKMEM"))
             error += checkmem(fld1, fld2);
-        else if (STREQ(opcode, "allreg"))
+        else if (STREQ(opcode, "ALLREG"))
             error += allreg(fld1, fld2);
-        else if (STREQ(opcode, "allmem"))
+        else if (STREQ(opcode, "ALLMEM"))
             error += allmem(fld1, fld2);
-        else if (STREQ(opcode, "checkrun"))
+        else if (STREQ(opcode, "CHECKRUN"))
             error += checkrun(fld1, fld2);
-        else if (STREQ(opcode, "setd"))
+        else if (STREQ(opcode, "SETD"))
             error += setd(fld1, fld2);
-        else if (STREQ(opcode, "checkd"))
+        else if (STREQ(opcode, "CHECKD"))
             error += checkd(fld1, fld2);
         else
         {
@@ -1168,15 +1138,11 @@ run_one_test(Test *test)
 
     // now check all memory and regs for changes
     error += check_all_mem();
-    printf("After check_all_mem(), line %d\n", __LINE__);
     error += check_all_regs();
-    printf("After check_all_regs(), line %d\n", __LINE__);
 
     // destroy any created data structures
     MemValues = PlistDestroy(MemValues);
     RegValues = PlistDestroy(RegValues);
-
-    printf("End of run_one_test, line %d\n", __LINE__);
 
     return error;
 }
@@ -1186,7 +1152,7 @@ run_one_test(Test *test)
 Description : Run tests and collect number of errors.
  Parameters : test - pointer to a chain if Test structs
     Returns : The number of errors encountered.
-   Comments : 
+   Comments :
  ******************************************************************************/
 int
 run(Test *test)
@@ -1196,27 +1162,34 @@ run(Test *test)
 
     while (test)
     {
+        // echo test to stdout and log
         sprintf(buffer, "%03d", test->line_number);
         LogPrefix = new_String(buffer);
-        strcpy(buffer, "");
-
         printf("%03d:", test->line_number);
+
+        strcpy(buffer, "");
 
         for (Command *cscan = test->commands; cscan != NULL; cscan = cscan->next)
         {
+//            dump_cmd(cscan);
+
             if (cscan->field2)
             {
-                printf(" %s %s %07o%s;",
-                        cscan->opcode, cscan->field1, atoi(cscan->field2), (cscan->orig2) ? cscan->orig2 : "");
+                int fld2 = str2word(cscan->field2);
+
+                printf(" %s %s %07o%s;", cscan->opcode, cscan->field1,
+                       fld2, (cscan->orig2) ? cscan->orig2 : "");
                 sprintf(buffer+strlen(buffer), " %s %s %07o%s;",
-                        cscan->opcode, cscan->field1, atoi(cscan->field2), (cscan->orig2) ? cscan->orig2 : "");
+                        cscan->opcode, cscan->field1, fld2,
+                        (cscan->orig2) ? cscan->orig2 : "");
             }
             else
             {
                 if (cscan->field1)
                 {
                     printf(" %s %s;", cscan->opcode, cscan->field1);
-                    sprintf(buffer+strlen(buffer), " %s %s;", cscan->opcode, cscan->field1);
+                    sprintf(buffer+strlen(buffer),
+                            " %s %s;", cscan->opcode, cscan->field1);
                 }
                 else
                 {
@@ -1240,8 +1213,8 @@ run(Test *test)
 /******************************************************************************
 Description : Function to execute test script.
  Parameters : script - path to script file to execute
-    Returns : 
-   Comments : 
+    Returns :
+   Comments :
  ******************************************************************************/
 int
 execute(char *script)
