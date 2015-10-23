@@ -299,11 +299,11 @@ setreg(char *name, char *fld2)
         cpu_set_L(value);
     else if (STREQ(name, "PC"))
         cpu_set_PC(value);
-    else if (STREQ(name, "DC"))
+    else if (STREQ(name, "DS"))
         cpu_set_DS(value);
     else
     {
-        vlog("setreg: bad register name: %s", name);
+        vlog("****** setreg: bad register name: %s", name);
         printf("setreg: bad register name: %s\n", name);
         return 1;
     }
@@ -331,7 +331,7 @@ setd(char *state, char *var2)
         dcpu_stop();
     else
     {
-        vlog("setd: bad state: %s", state);
+        vlog("****** setd: bad state: %s", state);
         printf("setd: bad state: %s", state);
         return 1;
     }
@@ -425,18 +425,15 @@ Description : Run one instruction on the CPU.
 int
 run_one(char *addr, char *fld2)
 {
-    WORD address = str2word(addr);
 
     vlog("Executing single instruction at %s", (addr) ? addr : "PC");
 
+    // if given address run from that address, else use PC contents
     if (addr)
-    {   // force PC to given address
-        cpu_set_PC(address);
-    }
+        cpu_set_PC(str2word(addr));
 
     cpu_start();
     UsedCycles = cpu_execute_one();
-    cpu_stop();
 
     return 0;
 }
@@ -456,7 +453,7 @@ checkcycles(char *cycles, char *fld2)
 
     if (c != UsedCycles)
     {
-        vlog("Test used %d cycles, expected %d!?", UsedCycles, c);
+        vlog("****** Test used %d cycles, expected %d!?", UsedCycles, c);
         printf("Test used %d cycles, expected %d!?\n", UsedCycles, c);
         return 1;
     }
@@ -484,7 +481,7 @@ checkreg(char *reg, char *expected)
     else if (STREQ(reg, "DS")) value = cpu_get_DS();
     else
     {
-        vlog("checkreg: bad register name: %s", reg);
+        vlog("****** checkreg: bad register name: %s", reg);
         printf("checkreg: bad register name: %s\n", reg);
         return 1;
     }
@@ -493,8 +490,8 @@ checkreg(char *reg, char *expected)
     save_reg_plist(reg, value);
     if (value != exp)
     {
-        vlog("%s is %02o, should be %02o", reg, value, exp);
-        printf("%s is %02o, should be %02o\n", reg, value, exp);
+        vlog("****** %s is %07o, should be %07o", reg, value, exp);
+        printf("%s is %07o, should be %07o\n", reg, value, exp);
         return 1;
     }
 
@@ -514,7 +511,7 @@ checkd(char *state, char *unused)
 {
     if ((STREQ(state, "on")) && !DisplayOn)
     {
-        vlog("Display CPU run state is %s, should be 'ON'",
+        vlog("****** Display CPU run state is %s, should be 'ON'",
                 (DisplayOn ? "ON": "OFF"));
         printf("Display CPU run state is %s, should be 'ON'\n",
                 (DisplayOn ? "ON": "OFF"));
@@ -522,7 +519,7 @@ checkd(char *state, char *unused)
     }
     else if ((STREQ(state, "off")) && DisplayOn)
     {
-        vlog("DCPU run state is %s, should be 'OFF'",
+        vlog("****** DCPU run state is %s, should be 'OFF'",
                 (DisplayOn ? "ON": "OFF"));
         printf("DCPU run state is %s, should be 'OFF'\n",
                 (DisplayOn ? "ON": "OFF"));
@@ -530,7 +527,7 @@ checkd(char *state, char *unused)
     }
     else
     {
-        vlog("checkd: state should be 'on' or 'OFF', got %s", state);
+        vlog("****** checkd: state should be 'on' or 'OFF', got %s", state);
         printf("checkd: state should be 'on' or 'off', got %s\n", state);
         return 1;
     }
@@ -558,7 +555,7 @@ checkmem(char *address, char *value)
     save_mem_plist(adr, memvalue);
     if (memvalue != val)
     {
-        vlog("Memory at address %07o is %07o, should be %07o",
+        vlog("****** Memory at address %07o is %07o, should be %07o",
                 adr, memvalue, val);
         printf("Memory at address %07o is %07o, should be %07o\n",
                 adr, memvalue, val);
@@ -579,27 +576,26 @@ Description : Check that the CPU run state is as expected.
 int
 checkrun(char *state, char *unused)
 {
+    bool cpu_state = cpu_get_state();
 
-    if (STREQ(state, "on"))
+    if (!STREQ(state, "ON") && !STREQ(state, "OFF"))
     {
-        vlog("CPU run state is '%s', should be '%s'",
-                (cpu_get_state() ? "on": "off"), state);
-        printf("CPU run state is '%s', should be '%s'\n",
-                (cpu_get_state() ? "on": "off"), state);
+        vlog("****** checkrun: state should be 'ON' or 'OFF', got '%s'", state);
+        printf("checkrun: state should be 'ON' or 'OFF', got '%s'\n", state);
         return 1;
     }
-    else if (STREQ(state, "off"))
+
+    if (STREQ(state, "ON") && !cpu_state)
     {
-        vlog("CPU run state is '%s', should be '%s'",
-                (cpu_get_state() ? "on": "off"), state);
-        printf("CPU run state is '%s', should be '%s'\n",
-                (cpu_get_state() ? "on": "off"), state);
+        vlog("****** CPU run state is 'OFF', should be 'ON'");
+        printf("CPU run state is 'OFF', should be 'ON'\n");
         return 1;
     }
-    else
+
+    if (STREQ(state, "OFF") && cpu_state)
     {
-        vlog("checkrun: state should be 'on' or 'off', got '%s'", state);
-        printf("checkrun: state should be 'on' or 'off', got '%s'\n", state);
+        vlog("****** CPU run state is 'ON', should be 'OFF'");
+        printf("CPU run state is 'ON', should be 'OFF'\n");
         return 1;
     }
 
@@ -1101,7 +1097,7 @@ run_one_test(Test *test)
 
         if (fld2)
             sprintf(buffer, "%s %s %07o%s",
-                    opcode, fld1, atoi(fld2), (cmd->orig2) ? cmd->orig2 : "");
+                    opcode, fld1, str2word(fld2), (cmd->orig2) ? cmd->orig2 : "");
         else
             sprintf(buffer, "%s %s", opcode, fld1);
         LogPrefix = new_String(buffer);
