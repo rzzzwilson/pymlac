@@ -17,6 +17,10 @@ test_ptr:	test_ptr.c ptr.c ptr.h Makefile
 test_cpu:	test_cpu.c $(DEVFILES) Makefile
 	gcc -o test_cpu ${CFLAGS} $(DEVFILES) test_cpu.c
 
+test_plist:	test_plist.c $(DEVFILES) Makefile
+	gcc -o test_plist ${CFLAGS} -lcunit $(DEVFILES) test_plist.c
+	./test_plist
+
 test_memory:	test_memory.c memory.c memory.h Makefile
 	gcc -o test_memory ${CFLAGS} memory.c test_memory.c
 
