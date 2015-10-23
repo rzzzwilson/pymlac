@@ -74,18 +74,18 @@ mem_put(WORD address, bool indirect, WORD value)
 }
 
 void
-mem_clear(void)
+mem_clear(WORD value)
 {
     if (rom_readonly)
     {	/* save the ROM contents */
         WORD rom[ROM_SIZE];
 
         memcpy(rom, &memory[ROM_START], sizeof(WORD)*ROM_SIZE);
-        memset(memory, 0, sizeof(WORD)*MEM_SIZE);
+        memset(memory, value, sizeof(WORD)*MEM_SIZE);
         memcpy(&memory[ROM_START], rom, sizeof(WORD)*ROM_SIZE);
     }
     else
-        memset(memory, 0, sizeof(WORD)*MEM_SIZE);
+        memset(memory, value, sizeof(WORD)*MEM_SIZE);
 }
 
 void

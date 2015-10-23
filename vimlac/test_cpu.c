@@ -62,6 +62,7 @@
 #include "memory.h"
 #include "error.h"
 #include "log.h"
+#include "plist.h"
 
 
 // string comparison macro
@@ -70,6 +71,9 @@
 // constants
 const char *LstFilename = "_#TEST#_.lst";   // LST filename
 const char *AsmFilename = "_#TEST#_.asm";   // ASM filename
+
+const int InitMemValue = 0;
+const int InitRegValue = 0;
 
 const int MaxLineSize = 4096;               // max length of one script line
 
@@ -100,13 +104,26 @@ bool DisplayOn = false;
 int UsedCycles = 0;
 WORD RegAllValue = 0;
 WORD MemAllValue = 0;
-Assoc *RememberReg;
+PLIST MemValues = NULL;
+PLIST RegValues = NULL;
 
 
+/******************************************************************************
+Description : Convert a string to upper case.
+ Parameters : str - address of string to convert
+    Returns : 
+   Comments : The string is converted 'in situ'.
+ ******************************************************************************/
 void
-remember(Assoc *head, char *name, WORD value)
+strupper(char *str)
 {
+    while (*str)
+    {
+        *str = toupper(*str);
+        ++str;
+    }
 }
+
 
 /******************************************************************************
 Description : Convert a string value into a WORD integer.
@@ -586,6 +603,9 @@ setmem(char *addr, char *fld2)
 
     mem_put(address, false, value);
 
+    PlistInsert(MemValues, addr, fld2);
+    PlistDump(MemValues, NULL);
+
     return 0;
 }
 
@@ -690,53 +710,68 @@ checkcycles(char *cycles, char *fld2)
 
 /******************************************************************************
 Description : Check that a register contents is as expected.
- Parameters : reg   - string holding register name
-            : value - expected register value (string)
+ Parameters : reg      - string holding register name
+            : expected - expected register value (string)
     Returns : The number of errors encountered (0 or 1).
    Comments : 
  ******************************************************************************/
 int
-checkreg(char *reg, char *value)
+checkreg(char *reg, char *expected)
 {
-    WORD val = str2word(value);
+    WORD exp = str2word(expected);
+    char buffer[32];
+    
+    strupper(reg);
 
-    if (STREQ(reg, "ac"))
+    if (STREQ(reg, "AC"))
     {
-        remember(RememberReg, reg, cpu_get_AC());
-        if (cpu_get_AC() != val)
+        WORD value = cpu_get_AC();
+
+        sprintf(buffer, "%d", value);
+        PlistInsert(RegValues, reg, buffer);
+        if (value != exp)
         {
-            vlog("AC is %07o, should be %07o", cpu_get_AC(), val);
-            printf("AC is %07o, should be %07o\n", cpu_get_AC(), val);
+            vlog("AC is %07o, should be %07o", value, exp);
+            printf("AC is %07o, should be %07o\n", value, exp);
             return 1;
         }
     }
-    else if (STREQ(reg, "l"))
+    else if (STREQ(reg, "L"))
     {
-        remember(RememberReg, reg, cpu_get_L());
-        if (cpu_get_L() != val)
+        WORD value = cpu_get_L();
+
+        sprintf(buffer, "%d", value);
+        PlistInsert(RegValues, reg, buffer);
+        if (value != exp)
         {
-            vlog("L is %02o, should be %02o", cpu_get_L(), val);
-            printf("L is %02o, should be %02o\n", cpu_get_L(), val);
+            vlog("L is %02o, should be %02o", value, exp);
+            printf("L is %02o, should be %02o\n", value, exp);
             return 1;
         }
     }
-    else if (STREQ(reg, "pc"))
+    else if (STREQ(reg, "PC"))
     {
-        remember(RememberReg, reg, cpu_get_PC());
-        if (cpu_get_PC() != val)
+        WORD value = cpu_get_PC();
+
+        sprintf(buffer, "%d", value);
+        PlistInsert(RegValues, reg, buffer);
+        if (value != exp)
         {
-            vlog("PC is %07o, should be %07o", cpu_get_PC(), val);
-            printf("PC is %07o, should be %07o\n", cpu_get_PC(), val);
+            vlog("PC is %07o, should be %07o", value, exp);
+            printf("PC is %07o, should be %07o\n", value, exp);
             return 1;
         }
     }
-    else if (STREQ(reg, "ds"))
+    else if (STREQ(reg, "DS"))
     {
-        remember(RememberReg, reg, cpu_get_DS());
-        if (cpu_get_DS() != val)
+        WORD value = cpu_get_DS();
+
+        sprintf(buffer, "%d", value);
+        PlistInsert(RegValues, reg, buffer);
+        if (value != exp)
         {
-            vlog("DS is %07o, should be %07o", cpu_get_DS(), val);
-            printf("DS is %07o, should be %07o\n", cpu_get_DS(), val);
+            vlog("DS is %07o, should be %07o", value, exp);
+            printf("DS is %07o, should be %07o\n", value, exp);
             return 1;
         }
     }
@@ -793,14 +828,35 @@ Description : Check that a memory address contents is as expected.
  Parameters : address - memory address to check (string)
             : value   - expected memory value (string)
     Returns : The number of errors encountered (0 or 1).
-   Comments : 
+   Comments : We check the MemValues plist first!
  ******************************************************************************/
 int
 checkmem(char *address, char *value)
 {
     WORD adr = str2word(address);
     WORD val = str2word(value);
-    WORD memvalue = mem_get(adr, false);
+    WORD memvalue;
+    char *charvalue;
+
+    printf("checkmem: address=%s, value=%s", address, value);
+
+    // check the plist first
+    charvalue = PlistFind(MemValues, address);
+    if (charvalue)
+    {   // in the plist, check value
+        memvalue = str2word(charvalue);
+        if (memvalue != val)
+        {
+            printf("Memory at address %07o is %07o, should be %07o\n",
+                    adr, memvalue, val);
+            return 1;
+        }
+
+        return 0;
+    }
+    
+    // now check actual memory
+    memvalue = mem_get(adr, false);
 
     if (memvalue != val)
     {
@@ -854,9 +910,113 @@ checkrun(char *state, char *unused)
 
 
 /******************************************************************************
+Description : Check that memory values are as they should be.
+ Parameters : 
+    Returns : The number of errors encountered.
+   Comments : Expected values shopuld be the global 'MemAllValue' or one of the
+            : values in the 'MemValues' plist.
+ ******************************************************************************/
+int
+check_all_mem(void)
+{
+    int result = 0;
+    char buffer[32];
+
+    printf("check_all_mem: entered\n");
+
+    for (WORD adr = 0; adr < MEM_SIZE; ++adr)
+    {
+        WORD value = mem_get(adr, false);
+        sprintf(buffer, "%04o", adr);
+        char *expected = PlistFind(MemValues, buffer);
+
+        if (adr == 0100)
+        {
+            printf("Checking %07o, PlistFind() returned %s for '%s'\n",
+                    adr, expected, buffer);
+            PlistDump(MemValues, NULL);
+        }
+
+        if (expected)
+        {
+            if (expected != buffer)
+            {
+                printf("Memory at %07o changed, is %07o, should be %07o\n",
+                        adr, value, str2word(expected));
+                result += 1;
+            }
+        }
+        else
+        {
+            if (value != MemAllValue)
+            {
+                printf("Memory at %07o changed, is %07o, should be %07o\n",
+                        adr, value, MemAllValue);
+                result += 1;
+            }
+        }        
+    }
+
+    return result;
+}
+
+/******************************************************************************
+Description : Check that a register value is as it should be.
+ Parameters : reg - register name
+    Returns : The number of errors encountered.
+   Comments : Expected values should be the value in 'RegValues' plist.
+ ******************************************************************************/
+int
+check_reg(char *reg)
+{
+    char *expect_str = PlistFind(RegValues, reg);
+    WORD expect = str2word(expect_str);
+    WORD value;
+
+    if (STREQ(reg, "AC")) value = cpu_get_AC();
+    else if (STREQ(reg, "L")) value = cpu_get_L();
+    else if (STREQ(reg, "PC")) value = cpu_get_PC();
+    else if (STREQ(reg, "DS")) value = cpu_get_DS();
+    else
+    {
+        printf("check_reg: bad register name '%s'\n", reg);
+        return 1;
+    }
+
+    if (value != expect)
+    {
+        printf("Register %s has bad value, expected %07o got %07o\n",
+                reg, expect, value);
+        return 1;
+    }
+
+    return 0;
+}
+
+
+/******************************************************************************
+Description : Check that register values are as they should be.
+ Parameters : 
+    Returns : The number of errors encountered.
+   Comments : Expected values should be the value in 'RegValues' plist.
+ ******************************************************************************/
+int
+check_all_regs(void)
+{
+    int result = 0;
+
+    result += check_reg("AC");
+    result += check_reg("L");
+    result += check_reg("PC");
+    result += check_reg("DS");
+
+    return result;
+}
+    
+/******************************************************************************
 Description : Run all commands in one test line.
  Parameters : test - pointer to a Test struct
-    Returns : The number of errors encountered (0 or 1).
+    Returns : The number of errors encountered.
    Comments : 
  ******************************************************************************/
 int
@@ -864,6 +1024,20 @@ run_one_test(Test *test)
 {
     int error = 0;
     char buffer[256];
+
+    // set up memory/register value data structures
+    MemValues = PlistCreate();
+    RegValues = PlistCreate();
+
+    // set memory and registers to known initial values
+    MemAllValue = InitMemValue;
+    mem_clear(InitMemValue);
+
+    RegAllValue = InitRegValue;
+    cpu_set_AC(InitRegValue);
+    cpu_set_L(InitRegValue & 1);
+    cpu_set_PC(InitRegValue);
+    cpu_set_DS(InitRegValue);
 
     for (Command *cmd = test->commands; cmd; cmd = cmd->next)
     {
@@ -907,6 +1081,13 @@ run_one_test(Test *test)
             error += 1;
         }
     }
+
+    // now check all memory and regs for changes
+    error += check_all_mem();
+    error += check_all_regs();
+
+    // destroy any created data structures
+    MemValues = PlistDestroy(MemValues);
 
     return error;
 }
@@ -981,7 +1162,6 @@ execute(char *script)
     // get test commands into massaged form in memory
     test = parse_script(script);
 
-#ifdef DEBUG
     // DEBUG - print contents of 'test'
     for (Test *tscan = test; tscan != NULL; tscan = tscan->next)
     {
@@ -993,7 +1173,6 @@ execute(char *script)
         printf("\n");
         fflush(stdout);
     }
-#endif
 
     // execute tests
     return run(test);

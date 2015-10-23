@@ -17,7 +17,7 @@ main(int argc, char *argv[])
     FILE *fd;
 
     // test the "memory clear" function
-    mem_clear();
+    mem_clear(0);
     for (addr = 0; addr < MEM_SIZE; ++addr)
         assert(mem_get(addr, false) == 0);
 
@@ -112,7 +112,7 @@ main(int argc, char *argv[])
 
     // now save memory to a file
     mem_set_rom_readonly(false);
-    mem_clear();
+    mem_clear(0);
     for (addr = 0; addr < MEM_SIZE; ++addr)
         mem_put(addr, false, addr);
     fd = fopen("imlac.core", "wb");
@@ -120,7 +120,7 @@ main(int argc, char *argv[])
     fclose(fd);
 
     // clear memory and read core file back in
-    mem_clear();
+    mem_clear(0);
     fd = fopen("imlac.core", "rb");
     mem_load_core(fd);
     fclose(fd);

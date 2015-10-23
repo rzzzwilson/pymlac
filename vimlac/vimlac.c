@@ -65,7 +65,7 @@ run(WORD pc)
 int
 main(void)
 {
-    mem_clear();
+    mem_clear(0);
     mem_set_rom(PtrROMImage);
     ptr_mount("test_add.ptp");
     run(040);

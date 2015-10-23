@@ -8,7 +8,7 @@
  *                                                                            *
  *      PLIST PlistCreate(void);                                              *
  *                                                                            *
- *      void PListInsert(PLIST plist, char *name, char *value);               *
+ *      void PlistInsert(PLIST plist, char *name, char *value);               *
  *                                                                            *
  *      void *PlistFind(PLIST plist, char *name);                             *
  *                                                                            *
@@ -92,7 +92,7 @@ Description : Function to insert new record into the property list.
             : New record placed in front of any existing equal record.
  ******************************************************************************/
 void
-PListInsert(PLIST plist, char *name, char *value)
+PlistInsert(PLIST plist, char *name, char *value)
 {
     PList *hdr = (PList *) plist;
 
@@ -164,7 +164,6 @@ PlistDestroy(PLIST plist)
 }
 
 
-#ifdef DEBUG
 /******************************************************************************
        Name : PlistDump()
 Description : Dump the plist to a specified open output FILE.
@@ -192,4 +191,3 @@ PlistDump(PLIST plist, FILE *output)
         fprintf(output, " next: %p\n", hdr->next);
     }
 }
-#endif

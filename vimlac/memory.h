@@ -12,7 +12,7 @@
 WORD mem_get(WORD address, bool indirect);
 void mem_put(WORD address, bool indirect, WORD value);
 
-void mem_clear(void);
+void mem_clear(WORD value);
 void mem_set_rom(WORD *rom);
 void mem_set_rom_readonly(bool readonly);
 void mem_load_core(char *filename);
