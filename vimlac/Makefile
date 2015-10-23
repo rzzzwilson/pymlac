@@ -4,6 +4,9 @@ OFILES = vimlac.o $(DEVFILES)
 #CFLAGS=-fPIC -O2 -Wall -ansi -pedantic -std=c99 -g
 CFLAGS=-O2 -Wall -ansi -pedantic -std=c99 -g
 
+test_cpu:	test_cpu.c $(DEVFILES) Makefile
+	gcc -o test_cpu ${CFLAGS} $(DEVFILES) test_cpu.c
+
 test:	test_cpu
 	rm -f vimlac.log
 	./test_cpu CPU.test
@@ -13,9 +16,6 @@ vimlac:	${OFILES} Makefile
 
 test_ptr:	test_ptr.c ptr.c ptr.h Makefile
 	gcc -o test_ptr ${CFLAGS} ptr.c test_ptr.c
-
-test_cpu:	test_cpu.c $(DEVFILES) Makefile
-	gcc -o test_cpu ${CFLAGS} $(DEVFILES) test_cpu.c
 
 test_plist:	test_plist.c $(DEVFILES) Makefile
 	gcc -o test_plist ${CFLAGS} -lcunit $(DEVFILES) test_plist.c

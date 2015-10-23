@@ -150,6 +150,113 @@ str2word(char *str)
 
 
 /******************************************************************************
+Description : Function to provide help to the befuddled user.
+ Parameters : msg - if not NULL, a message to display
+    Returns : 
+   Comments : String is converted to upper case.
+ ******************************************************************************/
+char *
+new_String(char *str)
+{
+    char *result = (char *) malloc(strlen(str)+1);
+    strcpy(result, str);
+    for (char *cptr = result; *cptr; ++cptr)
+        *cptr = tolower(*cptr);
+    return result;
+}
+
+
+/******************************************************************************
+Description : Save a register value to the RegValues plist.
+ Parameters : name - string holding register name
+            : val  - binary value to save
+    Returns : 
+   Comments : The value is converted to a fixed string form.
+ ******************************************************************************/
+void
+save_reg(char *name, WORD val)
+{
+    char *new_name = new_String(name);
+    char *new_value = malloc(8);
+
+    sprintf(new_value, "%07o", val);
+
+    PlistInsert(RegValues, new_name, new_value);
+}
+
+
+/******************************************************************************
+Description : Get a register value from the RegValues plist.
+ Parameters : name   - string holding register name
+            : result - address of WORD to hold result
+    Returns : true if register in PLIST and value is at *result.
+   Comments : 
+ ******************************************************************************/
+bool
+get_reg(char *name, WORD *result)
+{
+    printf("get_reg: entered, name=%s, line %d\n", name, __LINE__);
+
+    char *new_name = new_String(name);
+    char *value = PlistFind(RegValues, new_name);
+
+    if (value)
+    {
+        *result = str2word(value);
+        return true;
+    }
+
+    return false;
+}
+
+
+/******************************************************************************
+Description : Save a memory value to the RegValues plist.
+ Parameters : addr - the binary memory address
+            : val  - binary value to save
+    Returns : 
+   Comments : The address & value are converted to a fixed string form.
+ ******************************************************************************/
+void
+save_mem(WORD addr, WORD val)
+{
+    char *new_addr = malloc(8);
+    char *new_value = malloc(8);
+
+    sprintf(new_addr, "%07o", addr);
+    sprintf(new_value, "%07o", val);
+
+    PlistInsert(MemValues, new_addr, new_value);
+}
+
+
+/******************************************************************************
+Description : Save a memory value to the RegValues plist.
+ Parameters : addr  - the binary memory address
+            : value - address of WORD to save value in
+    Returns : 'true' if found, and *level contains result.
+   Comments : The address is converted to a fixed string form.
+ ******************************************************************************/
+bool
+get_mem(WORD addr, WORD *value)
+{
+    char *new_addr = malloc(8);
+    sprintf(new_addr, "%07o", addr);
+
+    char *result = PlistFind(MemValues, new_addr);
+
+    if (result)
+    {
+        *value = str2word(result);
+        printf("get_mem: got value %s, returning %07o\n", result, *value);
+        return true;
+    }
+
+    return false;
+}
+
+
+/******************************************************************************
 Description : Constructor for a Command struct.
  Parameters : opcode - the opcode value for the struct
     Returns : The address of a new Command struct.
@@ -190,23 +297,6 @@ new_Test(int line_number, Command *commands)
     result->line_number = line_number;
     result->commands = commands;
 
-    return result;
-}
-
-
-/******************************************************************************
-Description : Function to provide help to the befuddled user.
- Parameters : msg - if not NULL, a message to display
-    Returns : 
-   Comments : String is converted to upper case.
- ******************************************************************************/
-char *
-new_String(char *str)
-{
-    char *result = (char *) malloc(strlen(str)+1);
-    strcpy(result, str);
-    for (char *cptr = result; *cptr; ++cptr)
-        *cptr = tolower(*cptr);
     return result;
 }
 
@@ -603,8 +693,8 @@ setmem(char *addr, char *fld2)
 
     mem_put(address, false, value);
 
-    PlistInsert(MemValues, addr, fld2);
-    PlistDump(MemValues, NULL);
+    save_mem(address, value);
+//    PlistDump(MemValues, NULL);
 
     return 0;
 }
@@ -728,7 +818,8 @@ checkreg(char *reg, char *expected)
         WORD value = cpu_get_AC();
 
         sprintf(buffer, "%d", value);
-        PlistInsert(RegValues, reg, buffer);
+        save_reg(reg, value);
+//        PlistInsert(RegValues, reg, buffer);
         if (value != exp)
         {
             vlog("AC is %07o, should be %07o", value, exp);
@@ -741,7 +832,8 @@ checkreg(char *reg, char *expected)
         WORD value = cpu_get_L();
 
         sprintf(buffer, "%d", value);
-        PlistInsert(RegValues, reg, buffer);
+        save_reg(reg, value);
+//        PlistInsert(RegValues, reg, buffer);
         if (value != exp)
         {
             vlog("L is %02o, should be %02o", value, exp);
@@ -754,7 +846,8 @@ checkreg(char *reg, char *expected)
         WORD value = cpu_get_PC();
 
         sprintf(buffer, "%d", value);
-        PlistInsert(RegValues, reg, buffer);
+        save_reg(reg, value);
+//        PlistInsert(RegValues, reg, buffer);
         if (value != exp)
         {
             vlog("PC is %07o, should be %07o", value, exp);
@@ -767,7 +860,8 @@ checkreg(char *reg, char *expected)
         WORD value = cpu_get_DS();
 
         sprintf(buffer, "%d", value);
-        PlistInsert(RegValues, reg, buffer);
+        save_reg(reg, value);
+//        PlistInsert(RegValues, reg, buffer);
         if (value != exp)
         {
             vlog("DS is %07o, should be %07o", value, exp);
@@ -836,15 +930,10 @@ checkmem(char *address, char *value)
     WORD adr = str2word(address);
     WORD val = str2word(value);
     WORD memvalue;
-    char *charvalue;
-
-    printf("checkmem: address=%s, value=%s", address, value);
 
     // check the plist first
-    charvalue = PlistFind(MemValues, address);
-    if (charvalue)
+    if (get_mem(adr, &memvalue))
     {   // in the plist, check value
-        memvalue = str2word(charvalue);
         if (memvalue != val)
         {
             printf("Memory at address %07o is %07o, should be %07o\n",
@@ -920,29 +1009,18 @@ int
 check_all_mem(void)
 {
     int result = 0;
-    char buffer[32];
-
-    printf("check_all_mem: entered\n");
 
     for (WORD adr = 0; adr < MEM_SIZE; ++adr)
     {
         WORD value = mem_get(adr, false);
-        sprintf(buffer, "%04o", adr);
-        char *expected = PlistFind(MemValues, buffer);
+        WORD expected;
 
-        if (adr == 0100)
+        if (get_mem(adr, &expected))
         {
-            printf("Checking %07o, PlistFind() returned %s for '%s'\n",
-                    adr, expected, buffer);
-            PlistDump(MemValues, NULL);
-        }
-
-        if (expected)
-        {
-            if (expected != buffer)
+            if (expected != value)
             {
                 printf("Memory at %07o changed, is %07o, should be %07o\n",
-                        adr, value, str2word(expected));
+                        adr, value, expected);
                 result += 1;
             }
         }
@@ -969,8 +1047,9 @@ Description : Check that a register value is as it should be.
 int
 check_reg(char *reg)
 {
-    char *expect_str = PlistFind(RegValues, reg);
-    WORD expect = str2word(expect_str);
+    printf("check_reg: entered, reg=%s, line %d\n", reg, __LINE__);
+
+    WORD expect;
     WORD value;
 
     if (STREQ(reg, "AC")) value = cpu_get_AC();
@@ -983,13 +1062,18 @@ check_reg(char *reg)
         return 1;
     }
 
-    if (value != expect)
+    printf("line %d\n", __LINE__);
+    if (get_reg(reg, &expect))
     {
-        printf("Register %s has bad value, expected %07o got %07o\n",
-                reg, expect, value);
-        return 1;
+        if (value != expect)
+        {
+            printf("Register %s has bad value, expected %07o got %07o\n",
+                    reg, expect, value);
+            return 1;
+        }
     }
 
+    printf("line %d\n", __LINE__);
     return 0;
 }
 
@@ -1084,10 +1168,15 @@ run_one_test(Test *test)
 
     // now check all memory and regs for changes
     error += check_all_mem();
+    printf("After check_all_mem(), line %d\n", __LINE__);
     error += check_all_regs();
+    printf("After check_all_regs(), line %d\n", __LINE__);
 
     // destroy any created data structures
     MemValues = PlistDestroy(MemValues);
+    RegValues = PlistDestroy(RegValues);
+
+    printf("End of run_one_test, line %d\n", __LINE__);
 
     return error;
 }
@@ -1162,6 +1251,7 @@ execute(char *script)
     // get test commands into massaged form in memory
     test = parse_script(script);
 
+#ifdef JUNK
     // DEBUG - print contents of 'test'
     for (Test *tscan = test; tscan != NULL; tscan = tscan->next)
     {
@@ -1173,6 +1263,7 @@ execute(char *script)
         printf("\n");
         fflush(stdout);
     }
+#endif
 
     // execute tests
     return run(test);
