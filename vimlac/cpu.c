@@ -226,8 +226,9 @@ Description : Emulate the JMP instruction.
 static int
 i_JMP(bool indirect, WORD address)
 {
-    address = cpu_eff_address(address, indirect);
-    r_PC = address & MEMMASK;
+    WORD new_address = cpu_eff_address(address, indirect);
+
+    r_PC = new_address & MEMMASK;
 
     trace("JMP\t%c%5.5o", (indirect) ? '*' : ' ', address);
 
@@ -245,7 +246,9 @@ Description : Emulate the DAC instruction.
 static int
 i_DAC(bool indirect, WORD address)
 {
-    mem_put(address, indirect, r_AC);
+    WORD new_address = cpu_eff_address(address, indirect);
+
+    mem_put(new_address, indirect, r_AC);
 
     trace("DAC\t%c%5.5o", (indirect) ? '*' : ' ', address);
 
@@ -264,9 +267,10 @@ static int
 i_XAM(bool indirect, WORD address)
 {
     WORD tmp;
+    WORD new_address = cpu_eff_address(address, indirect);
 
-    tmp = mem_get(address, indirect);
-    mem_put(address, indirect, r_AC);
+    tmp = mem_get(new_address, false);
+    mem_put(address, false, r_AC);
     r_AC = tmp;
 
     trace("XAM\t%c%5.5o", (indirect) ? '*' : ' ', address);
@@ -285,9 +289,12 @@ Description : Emulate the ISZ instruction.
 static int
 i_ISZ(bool indirect, WORD address)
 {
-    WORD new_value = (mem_get(address, indirect) + 1) & WORD_MASK;
+    WORD new_value;
+    WORD new_address = cpu_eff_address(address, indirect);
 
-    mem_put(address, indirect, new_value);
+
+    new_value = (mem_get(new_address, false) + 1) & WORD_MASK;
+    mem_put(new_address, false, new_value);
     if (new_value == 0)
         r_PC = (r_PC + 1) & WORD_MASK;
 
@@ -307,13 +314,10 @@ Description : Emulate the IMLAC JMS instruction.
 static int
 i_JMS(bool indirect, WORD address)
 {
-    WORD new_address = address;
-
-    if (indirect)
-	new_address = mem_get(address, indirect);
+    WORD new_address = cpu_eff_address(address, indirect);
 
     mem_put(new_address, false, r_PC);
-    r_PC = ++new_address & MEMMASK;
+    r_PC = ++address & MEMMASK;
 
     trace("JMS\t%c%5.5o", (indirect) ? '*' : ' ', address);
 
@@ -331,7 +335,9 @@ Description : Emulate the IMLAC AND instruction.
 static int
 i_AND(bool indirect, WORD address)
 {
-    r_AC &= mem_get(address, indirect);
+    WORD new_address = cpu_eff_address(address, indirect);
+
+    r_AC &= mem_get(new_address, false);
 
     trace("AND\t%c%5.5o", (indirect) ? '*' : ' ', address);
 
@@ -349,7 +355,9 @@ Description : Emulate the IMLAC IOR instruction.
 static int
 i_IOR(bool indirect, WORD address)
 {
-    r_AC |= mem_get(address, indirect);
+    WORD new_address = cpu_eff_address(address, indirect);
+
+    r_AC |= mem_get(new_address, false);
 
     trace("IOR\t%c%5.5o", (indirect) ? '*' : ' ', address);
 
@@ -367,7 +375,9 @@ Description : Emulate the IMLAC XOR instruction.
 static int
 i_XOR(bool indirect, WORD address)
 {
-    r_AC ^= mem_get(address, indirect);
+    WORD new_address = cpu_eff_address(address, indirect);
+
+    r_AC ^= mem_get(new_address, false);
 
     trace("XOR\t%c%5.5o", (indirect) ? '*' : ' ', address);
 
@@ -385,7 +395,9 @@ Description : Emulate the IMLAC LAC instruction.
 static int
 i_LAC(bool indirect, WORD address)
 {
-    r_AC = mem_get(address, indirect);
+    WORD new_address = cpu_eff_address(address, indirect);
+
+    r_AC = mem_get(new_address, false);
 
     trace("LAC\t%c%5.5o", (indirect) ? '*' : ' ', address);
 
@@ -403,7 +415,9 @@ Description : Emulate the ADD instruction.
 static int
 i_ADD(bool indirect, WORD address)
 {
-    r_AC += mem_get(address, indirect);
+    WORD new_address = cpu_eff_address(address, indirect);
+
+    r_AC += mem_get(new_address, false);
     if (r_AC & OVERFLOWMASK)
     {
         r_L ^= 1;
@@ -426,7 +440,9 @@ Description : Emulate the IMLAC SUB instruction.
 static int
 i_SUB(bool indirect, WORD address)
 {
-    r_AC -= mem_get(address, indirect);
+    WORD new_address = cpu_eff_address(address, indirect);
+
+    r_AC -= mem_get(new_address, false);
     if (r_AC & OVERFLOWMASK)
     {
         r_L ^= 1;
@@ -449,7 +465,9 @@ Description : Emulate the IMLAC SAM instruction.
 static int
 i_SAM(bool indirect, WORD address)
 {
-    if (r_AC == mem_get(address, indirect))
+    WORD new_address = cpu_eff_address(address, indirect);
+
+    if (r_AC == mem_get(new_address, false))
         r_PC = (r_PC + 1) & WORD_MASK;
 
     trace("SAM\t%c%5.5o", (indirect) ? '*' : ' ', address);

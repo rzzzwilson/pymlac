@@ -8,7 +8,7 @@
 
 
 char *LogFile = "vimlac.log";
-char *LogPrefix = "";
+char *LogPrefix = NULL;
 
 
 /******************************************************************************
@@ -27,7 +27,10 @@ vlog(char *fmt, ...)
     va_start(ap, fmt);
     vsprintf(buff, fmt, ap);
     fd = fopen(LogFile, "a");
-    fprintf(fd, "%s: %s\n", LogPrefix, buff);
+    if (LogPrefix)
+        fprintf(fd, "%s: %s\n", LogPrefix, buff);
+    else
+        fprintf(fd, "%s\n", buff);
     fclose(fd);
     va_end(ap);
 }
