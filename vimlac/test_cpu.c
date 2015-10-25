@@ -107,6 +107,25 @@ WORD MemAllValue = 0;
 PLIST MemValues = NULL;
 PLIST RegValues = NULL;
 
+// progress indicator strings
+char *Progress[] = { "\r/",
+                     "\r|",
+                     "\r\\",
+                     "\r-" };
+#define NUMELTS(a)  (sizeof((a))/sizeof((a)[0]))
+
+
+void
+show_progress(void)
+{
+    static int count = 0;
+    int index = count++ % NUMELTS(Progress);
+    char *p = Progress[index];
+
+    printf(p);
+    fflush(stdout);
+}
+
 
 /******************************************************************************
 Description : Convert a string to upper case.
@@ -301,7 +320,7 @@ setreg(char *name, char *fld2)
         cpu_set_DS(value);
     else
     {
-        vlog("****** setreg: bad register name: %s", name);
+        vlog("setreg: bad register name: %s", name);
         return 1;
     }
 
@@ -326,7 +345,7 @@ setd(char *state, char *var2)
         dcpu_stop();
     else
     {
-        vlog("****** setd: bad state: %s", state);
+        vlog("setd: bad state: %s", state);
         return 1;
     }
 
@@ -439,7 +458,7 @@ checkcycles(char *cycles, char *fld2)
 
     if (c != UsedCycles)
     {
-        vlog("****** Test used %d cycles, expected %d!?", UsedCycles, c);
+        vlog("Test used %d cycles, expected %d!?", UsedCycles, c);
         return 1;
     }
 
@@ -466,7 +485,7 @@ checkreg(char *reg, char *expected)
     else if (STREQ(reg, "DS")) value = cpu_get_DS();
     else
     {
-        vlog("****** checkreg: bad register name: %s", reg);
+        vlog("checkreg: bad register name: %s", reg);
         return 1;
     }
 
@@ -474,7 +493,7 @@ checkreg(char *reg, char *expected)
     save_reg_plist(reg, value);
     if (value != exp)
     {
-        vlog("****** register %s is %07o, should be %07o", reg, value, exp);
+        vlog("register %s is %07o, should be %07o", reg, value, exp);
         return 1;
     }
 
@@ -494,19 +513,19 @@ checkd(char *state, char *unused)
 {
     if ((STREQ(state, "on")) && !DisplayOn)
     {
-        vlog("****** Display CPU run state is %s, should be 'ON'",
+        vlog("Display CPU run state is %s, should be 'ON'",
                 (DisplayOn ? "ON": "OFF"));
         return 1;
     }
     else if ((STREQ(state, "off")) && DisplayOn)
     {
-        vlog("****** DCPU run state is %s, should be 'OFF'",
+        vlog("DCPU run state is %s, should be 'OFF'",
                 (DisplayOn ? "ON": "OFF"));
         return 1;
     }
     else
     {
-        vlog("****** checkd: state should be 'on' or 'OFF', got %s", state);
+        vlog("checkd: state should be 'on' or 'OFF', got %s", state);
         return 1;
     }
 
@@ -533,7 +552,7 @@ checkmem(char *address, char *value)
     save_mem_plist(adr, memvalue);
     if (memvalue != val)
     {
-        vlog("****** Memory at address %07o is %07o, should be %07o",
+        vlog("Memory at address %07o is %07o, should be %07o",
                 adr, memvalue, val);
         return 1;
     }
@@ -556,19 +575,19 @@ checkrun(char *state, char *unused)
 
     if (!STREQ(state, "ON") && !STREQ(state, "OFF"))
     {
-        vlog("****** checkrun: state should be 'ON' or 'OFF', got '%s'", state);
+        vlog("checkrun: state should be 'ON' or 'OFF', got '%s'", state);
         return 1;
     }
 
     if (STREQ(state, "ON") && !cpu_state)
     {
-        vlog("****** CPU run state is 'OFF', should be 'ON'");
+        vlog("CPU run state is 'OFF', should be 'ON'");
         return 1;
     }
 
     if (STREQ(state, "OFF") && cpu_state)
     {
-        vlog("****** CPU run state is 'ON', should be 'OFF'");
+        vlog("CPU run state is 'ON', should be 'OFF'");
         return 1;
     }
 
@@ -875,6 +894,9 @@ parse_script(char *scriptpath)
     // read script file, handle each line
     while (true)
     {
+        // some indication of progress
+        show_progress();
+
         // NULL fill buffer so we can tell if line too long
         memset(buffer, (char) NULL, sizeof(buffer));
 
@@ -933,6 +955,8 @@ parse_script(char *scriptpath)
                 ;
         }
     }
+
+    printf("\r");
 
     // close script file
     fclose(fd);
@@ -1046,7 +1070,7 @@ int
 run_one_test(Test *test)
 {
     int error = 0;
-    char buffer[256];
+//    char buffer[256];
 
     // set up memory/register value data structures
     MemValues = PlistCreate();
@@ -1068,12 +1092,14 @@ run_one_test(Test *test)
         char *fld1 = cmd->field1;
         char *fld2 = cmd->field2;
 
+#ifdef JUNK
         if (fld2)
             sprintf(buffer, "%s %s %07o%s",
                     opcode, fld1, str2word(fld2), (cmd->orig2) ? cmd->orig2 : "");
         else
             sprintf(buffer, "%s %s", opcode, fld1);
         LogPrefix = new_String(buffer);
+#endif
 
         if (STREQ(opcode, "SETREG"))
             error += setreg(fld1, fld2);
@@ -1129,9 +1155,13 @@ run(Test *test)
     int errors = 0;
     int one_test_errors = 0;
     char buffer[1024];
+    int loop_count = 0;
 
     while (test)
     {
+        // some indication of progress
+        show_progress();
+
         // echo test to log
         sprintf(buffer, "%03d", test->line_number);
         LogPrefix = new_String(buffer);
@@ -1159,13 +1189,16 @@ run(Test *test)
         {
             LogPrefix = NULL;
             vlog(buffer+1);
-            vlog("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
-                 "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+            vlog("");
         }
         errors += one_test_errors;
 
+        loop_count += 1;
         test = test->next;
     }
+
+    printf("\r");
+    fflush(stdout);
 
     return errors;
 }

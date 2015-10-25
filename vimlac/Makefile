@@ -2,7 +2,7 @@ DEVFILES = cpu.o dcpu.o ptr.o ptp.o memory.o kb.o ttyin.o ttyout.o trace.o error
 OFILES = vimlac.o $(DEVFILES)
 
 #CFLAGS=-fPIC -O2 -Wall -ansi -pedantic -std=c99 -g
-CFLAGS=-O2 -Wall -ansi -pedantic -std=c99 -g
+CFLAGS=-O2 -Wall -ansi -pedantic -std=c99 -g -Wformat-security
 
 test_cpu:	test_cpu.c $(DEVFILES) Makefile
 	gcc -o test_cpu ${CFLAGS} $(DEVFILES) test_cpu.c
