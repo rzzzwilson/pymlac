@@ -16,6 +16,7 @@
 #include "ttyin.h"
 #include "ttyout.h"
 #include "trace.h"
+#include "log.h"
 
 
 /******
@@ -248,7 +249,7 @@ i_DAC(bool indirect, WORD address)
 {
     WORD new_address = cpu_eff_address(address, indirect);
 
-    mem_put(new_address, indirect, r_AC);
+    mem_put(new_address, false, r_AC);
 
     trace("DAC\t%c%5.5o", (indirect) ? '*' : ' ', address);
 
@@ -266,11 +267,10 @@ Description : Emulate the IMLAC XAM instruction.
 static int
 i_XAM(bool indirect, WORD address)
 {
-    WORD tmp;
     WORD new_address = cpu_eff_address(address, indirect);
+    WORD tmp = mem_get(new_address, false);
 
-    tmp = mem_get(new_address, false);
-    mem_put(address, false, r_AC);
+    mem_put(new_address, false, r_AC);
     r_AC = tmp;
 
     trace("XAM\t%c%5.5o", (indirect) ? '*' : ' ', address);
@@ -317,7 +317,7 @@ i_JMS(bool indirect, WORD address)
     WORD new_address = cpu_eff_address(address, indirect);
 
     mem_put(new_address, false, r_PC);
-    r_PC = ++address & MEMMASK;
+    r_PC = ++new_address & MEMMASK;
 
     trace("JMS\t%c%5.5o", (indirect) ? '*' : ' ', address);
 
@@ -441,11 +441,12 @@ static int
 i_SUB(bool indirect, WORD address)
 {
     WORD new_address = cpu_eff_address(address, indirect);
+    WORD value = (~mem_get(new_address, false) + 1) & WORD_MASK;
 
-    r_AC -= mem_get(new_address, false);
+    r_AC += value;
     if (r_AC & OVERFLOWMASK)
     {
-        r_L ^= 1;
+        r_L = !r_L;
         r_AC &= WORD_MASK;
     }
 
