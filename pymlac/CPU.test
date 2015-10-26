@@ -1,5 +1,6 @@
 # LAW
-setreg ac 0177777; setreg l 1; setmem 0100 [LAW 0]; RUN 0100; checkcycles 1; checkreg pc 0101; checkreg ac 0
+setreg ac 0177777; setreg l 1; setmem 0100 [LAW 0]; RUN 0100;
+    checkcycles 1; checkreg pc 0101; checkreg ac 0
 setreg ac 0177777; setreg l 0; setmem 0100 [LAW 0]; RUN 0100; checkcycles 1; checkreg pc 0101; checkreg ac 0
 setreg ac 0; setreg l 1; setmem 0100 [LAW 0377]; RUN 0100; checkcycles 1; checkreg pc 0101; checkreg ac 0377
 setreg ac 0; setreg l 0; setmem 0100 [LAW 0377]; RUN 0100; checkcycles 1; checkreg pc 0101; checkreg ac 0377
@@ -73,11 +74,11 @@ setreg ac 0177777; setreg l 1; setmem 0100 [IOR *0110]; setmem 0110 0120; setmem
 setreg ac 0125252; setreg l 0; setmem 0100 [IOR *0110]; setmem 0110 0120; setmem 0120 0052525; RUN 0100; checkcycles 3; checkreg pc 0101; checkreg ac 0177777
 setreg ac 0000777; setreg l 0; setmem 0100 [IOR *0110]; setmem 0110 0120; setmem 0120 0177000; RUN 0100; checkcycles 3; checkreg pc 0101; checkreg ac 0177777
 
-setreg ac 0; setreg l 0; setmem 0100 [IOR *010]; setmem 010 0120; setmem 0121 0; RUN 0100; checkcycles 3; checkreg pc 0101; checkreg ac 0
-setreg ac 0; setreg l 0; setmem 0100 [IOR *010]; setmem 010 0120; setmem 0121 1; RUN 0100; checkcycles 3; checkreg pc 0101; checkreg ac 1
-setreg ac 0177777; setreg l 1; setmem 0100 [IOR *010]; setmem 010 0120; setmem 0121 1; RUN 0100; checkcycles 3; checkreg pc 0101; checkreg ac 0177777
-setreg ac 0125252; setreg l 0; setmem 0100 [IOR *010]; setmem 010 0120; setmem 0121 0052525; RUN 0100; checkcycles 3; checkreg pc 0101; checkreg ac 0177777
-setreg ac 0000777; setreg l 0; setmem 0100 [IOR *010]; setmem 010 0120; setmem 0121 0177000; RUN 0100; checkcycles 3; checkreg pc 0101; checkreg ac 0177777
+setreg ac 0; setreg l 0; setmem 0100 [IOR *010]; setmem 010 0120; setmem 0121 0; RUN 0100; checkcycles 3; checkreg pc 0101; checkreg ac 0; checkmem 010 0121
+setreg ac 0; setreg l 0; setmem 0100 [IOR *010]; setmem 010 0120; setmem 0121 1; RUN 0100; checkcycles 3; checkreg pc 0101; checkreg ac 1; checkmem 010 0121
+setreg ac 0177777; setreg l 1; setmem 0100 [IOR *010]; setmem 010 0120; setmem 0121 1; RUN 0100; checkcycles 3; checkreg pc 0101; checkreg ac 0177777; checkmem 010 0121
+setreg ac 0125252; setreg l 0; setmem 0100 [IOR *010]; setmem 010 0120; setmem 0121 0052525; RUN 0100; checkcycles 3; checkreg pc 0101; checkreg ac 0177777; checkmem 010 0121
+setreg ac 0000777; setreg l 0; setmem 0100 [IOR *010]; setmem 010 0120; setmem 0121 0177000; RUN 0100; checkcycles 3; checkreg pc 0101; checkreg ac 0177777; checkmem 010 0121
 
 # XOR
 setreg ac 0; setreg l 0; setmem 0100 [XOR 0110]; setmem 0110 0; RUN 0100; checkcycles 2; checkreg pc 0101; checkreg ac 0
@@ -96,13 +97,13 @@ setreg ac 0177777; setreg l 1; setmem 0100 [XOR *0110]; setmem 0110 0120; setmem
 setreg ac 0125252; setreg l 0; setmem 0100 [XOR *0110]; setmem 0110 0120; setmem 0120 0052525; RUN 0100; checkcycles 3; checkreg pc 0101; checkreg ac 0177777
 setreg ac 0000777; setreg l 0; setmem 0100 [XOR *0110]; setmem 0110 0120; setmem 0120 0177000; RUN 0100; checkcycles 3; checkreg pc 0101; checkreg ac 0177777
 
-setreg ac 0; setreg l 0; setmem 0100 [XOR *010]; setmem 010 0120; setmem 0121 0; RUN 0100; checkcycles 3; checkreg pc 0101; checkreg ac 0
-setreg ac 0; setreg l 0; setmem 0100 [XOR *010]; setmem 010 0120; setmem 0121 1; RUN 0100; checkcycles 3; checkreg pc 0101; checkreg ac 1
-setreg ac 1; setreg l 0; setmem 0100 [XOR *010]; setmem 010 0120; setmem 0121 0; RUN 0100; checkcycles 3; checkreg pc 0101; checkreg ac 1
-setreg ac 1; setreg l 0; setmem 0100 [XOR *010]; setmem 010 0120; setmem 0121 1; RUN 0100; checkcycles 3; checkreg pc 0101; checkreg ac 0
-setreg ac 0177777; setreg l 1; setmem 0100 [XOR *010]; setmem 010 0120; setmem 0121 1; RUN 0100; checkcycles 3; checkreg pc 0101; checkreg ac 0177776
-setreg ac 0125252; setreg l 0; setmem 0100 [XOR *010]; setmem 010 0120; setmem 0121 0052525; RUN 0100; checkcycles 3; checkreg pc 0101; checkreg ac 0177777
-setreg ac 0000777; setreg l 0; setmem 0100 [XOR *010]; setmem 010 0120; setmem 0121 0177000; RUN 0100; checkcycles 3; checkreg pc 0101; checkreg ac 0177777
+setreg ac 0; setreg l 0; setmem 0100 [XOR *010]; setmem 010 0120; setmem 0121 0; RUN 0100; checkcycles 3; checkreg pc 0101; checkreg ac 0; checkmem 010 0121
+setreg ac 0; setreg l 0; setmem 0100 [XOR *010]; setmem 010 0120; setmem 0121 1; RUN 0100; checkcycles 3; checkreg pc 0101; checkreg ac 1; checkmem 010 0121
+setreg ac 1; setreg l 0; setmem 0100 [XOR *010]; setmem 010 0120; setmem 0121 0; RUN 0100; checkcycles 3; checkreg pc 0101; checkreg ac 1; checkmem 010 0121
+setreg ac 1; setreg l 0; setmem 0100 [XOR *010]; setmem 010 0120; setmem 0121 1; RUN 0100; checkcycles 3; checkreg pc 0101; checkreg ac 0; checkmem 010 0121
+setreg ac 0177777; setreg l 1; setmem 0100 [XOR *010]; setmem 010 0120; setmem 0121 1; RUN 0100; checkcycles 3; checkreg pc 0101; checkreg ac 0177776; checkmem 010 0121
+setreg ac 0125252; setreg l 0; setmem 0100 [XOR *010]; setmem 010 0120; setmem 0121 0052525; RUN 0100; checkcycles 3; checkreg pc 0101; checkreg ac 0177777; checkmem 010 0121
+setreg ac 0000777; setreg l 0; setmem 0100 [XOR *010]; setmem 010 0120; setmem 0121 0177000; RUN 0100; checkcycles 3; checkreg pc 0101; checkreg ac 0177777; checkmem 010 0121
 
 # LAC
 setreg ac 1; setmem 0100 [LAC 0110]; setmem 0110 0; RUN 0100; checkcycles 2; checkreg pc 0101; checkreg ac 0
@@ -196,10 +197,10 @@ setreg ac 0177777; setmem 0100 [SAM *010]; setmem 010 0120; setmem 0121 0177776;
 setreg ac 0177776; setmem 0100 [SAM *010]; setmem 010 0120; setmem 0121 0177776; RUN 0100; checkcycles 3; checkreg pc 0102; checkmem 010 0121
 
 # HLT
-setmem 0100 [HLT]; RUN 0100; checkcycles 1; checkrun false; checkreg pc 0101
+setmem 0100 [HLT]; RUN 0100; checkcycles 1; checkrun off; checkreg pc 0101
 
 # NOP
-setmem 0100 [NOP]; RUN 0100; checkcycles 1; checkrun true; checkreg pc 0101
+setmem 0100 [NOP]; RUN 0100; checkcycles 1; checkrun on; checkreg pc 0101
 
 # CLA
 setreg ac 0; setmem 0100 [CLA]; RUN 0100; checkcycles 1; checkreg pc 0101; checkreg ac 0

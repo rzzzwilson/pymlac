@@ -281,7 +281,10 @@ class TestCPU(object):
     def checkrun(self, state, var2):
         """Check CPU run state is as desired."""
 
-        if str(self.cpu.running).lower() != state:
+        cpu_state = str(self.cpu.running).lower()
+
+        if ((state == "on" and cpu_state != "true") or
+            (state == "off" and cpu_state != "false")):
             return 'CPU run state is %s, should be %s' % (str(self.cpu.running), str(state))
 
     def setd(self, state, var2):
@@ -341,6 +344,9 @@ class TestCPU(object):
         instructions = test.split(';')
         for op in instructions:
             fields = op.split(None, 2)
+            if not fields:
+                continue;
+
             op = fields[0].lower()
             try:
                 var1 = fields[1].lower()
@@ -437,18 +443,18 @@ class TestCPU(object):
         tests = []
         test = ''
         for line in lines:
-            line = line[:-1]        # strip newline
+            line = line[:-1]                # strip newline
             if not line:
-                continue            # skip blank lines
+                continue                    # skip blank lines
 
-            if line[0] == '#':      # a comment
+            if line[0] == '#':              # a comment
                 continue
 
-            if line[0] == '\t':     # continuation
+            if line[0] in ('\t', ' '):      # continuation
                 if test:
                     test += '; '
                 test += line[1:]
-            else:                   # beginning of new test
+            else:                           # beginning of new test
                 if test:
                     tests.append(test)
                 test = line
