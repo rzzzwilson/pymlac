@@ -14,7 +14,6 @@ main(int argc, char *argv[])
 {
     WORD addr;
     WORD result;
-    FILE *fd;
 
     // test the "memory clear" function
     mem_clear(0);
@@ -115,15 +114,11 @@ main(int argc, char *argv[])
     mem_clear(0);
     for (addr = 0; addr < MEM_SIZE; ++addr)
         mem_put(addr, false, addr);
-    fd = fopen("imlac.core", "wb");
-    mem_save_core(fd);
-    fclose(fd);
+    mem_save_core("imlac.core");
 
     // clear memory and read core file back in
     mem_clear(0);
-    fd = fopen("imlac.core", "rb");
-    mem_load_core(fd);
-    fclose(fd);
+    mem_load_core("imlac.core");
     for (addr = 0; addr < MEM_SIZE; ++addr)
     {
         if (mem_get(addr, false) != addr)

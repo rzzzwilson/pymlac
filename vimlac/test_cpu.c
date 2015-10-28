@@ -115,12 +115,21 @@ char *Progress[] = { "\r/",
 #define NUMELTS(a)  (sizeof((a))/sizeof((a)[0]))
 
 
+/******************************************************************************
+Description : Show progress while we process tests.
+ Parameters : lnum - line number
+    Returns :
+   Comments : 
+ ******************************************************************************/
 void
-show_progress(void)
+show_progress(int lnum)
 {
-    static int count = 0;
-    int index = count++ % NUMELTS(Progress);
-    char *p = Progress[index];
+//    static int count = 0;
+//    int index = count++ % NUMELTS(Progress);
+//    char *p = Progress[index];
+    char p[32];
+
+    sprintf(p, "\b\b\b\b\b\b\b\bTest %03d\r", lnum);
 
     printf(p);
     fflush(stdout);
@@ -894,8 +903,11 @@ parse_script(char *scriptpath)
     // read script file, handle each line
     while (true)
     {
+        // bump line numebr to that next read in
+        ++line_number;
+
         // some indication of progress
-        show_progress();
+        show_progress(line_number);
 
         // NULL fill buffer so we can tell if line too long
         memset(buffer, (char) NULL, sizeof(buffer));
@@ -905,7 +917,6 @@ parse_script(char *scriptpath)
             break;
 
         // bump line number and make sure buffer '\0' terminated
-        ++line_number;
         buffer[MaxLineSize-1] = '\0';
 
         // decide if line is too long, look for '\n'
@@ -1160,7 +1171,7 @@ run(Test *test)
     while (test)
     {
         // some indication of progress
-        show_progress();
+        show_progress(test->line_number);
 
         // echo test to log
         sprintf(buffer, "%03d", test->line_number);
