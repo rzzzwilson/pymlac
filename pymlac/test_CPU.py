@@ -13,54 +13,8 @@ where <filename> is a file of test instructions and
 
 import time
 
-# We implement a small interpreter to test the CPU.  The test code is read in
-# from a file:
-#
-#    # LAW
-#    setreg ac 012345; setreg l 1; setreg pc 0100; setmem 0100 [LAW 0]; RUN; checkcycles 1; checkreg pc 0101; checkreg ac 0
-#    setreg ac 012345; setreg l 0; setmem 0100 [LAW 0]; RUN 0100
-#            checkcycles 1; checkreg pc 0101; checkreg ac 0
-#
-# The instructions are delimited by ';' characters.  A line beginning with a
-# TAB character is a continuation of the previous line.
-# Lines with '#' in column 1 are comments.
-#
-# The test instructions are:
-#     setreg <name> <value>
-#         where <name> is one of AC, L, PC or DS, value is any value
-#         (all registers are set to 0 initially)
-#
-#     setmem <addr> <value>
-#         where <addr> is an address and value is any value OR
-#         [<instruction>] where the value is the assembled opcode
-#
-#     run [<addr>]
-#         execute one instruction, if optional <addr> is used PC := addr before
-#
-#     checkcycles <number>
-#         check number of executed cycles is <number>
-#
-#     checkreg <name> <value>
-#         check register (AC, L, PC or DS) has value <value>
-#
-#     checkmem <addr> <value>
-#         check that memory at <addr> has <value>
-#
-#     allreg <value>
-#         sets all registers to <value>
-#         a "allreg 0" is assumed before each test
-#
-#     allmem <value>
-#         sets all of memory to <value>
-#         a "allmem 0" is assumed before each test
-#
-# In addition, all of memory is checked for changed values after execution
-# except where an explicit "checkmem <addr> <value>" has been performed.
-# Additionally, registers that aren't explicitly checked are tested to make
-# sure they didn't change.
-#
-# If a test line finds no error, just print the fully assembled test line.
-# If any errors are found, print line followed by all errors.
+# We implement a small interpreter to test the CPU.
+# The DSL is documented here: [github.com/rzzzwilson/pymlac].
 
 
 import os
@@ -85,34 +39,84 @@ class TestCPU(object):
 
         pass
 
-    def assemble(self, addr, opcode):
-        """Assemble a single instruction, return opcode."""
+    def str2int(self, string):
+        """Convert string to numeric value.
+
+        string  numeric string (decimal or octal)
+
+        Returns the numeric value.
+        """
+
+        if string[0] == '0':
+            value = int(string, base=8)
+        else:
+            value = int(string)
+
+        return value
+
+    def assemble(self, addr, opcodes):
+        """Assemble a set of instructions, return opcode values.
+
+        addr     address to assemble at
+        opcodes  list of ASM lines to assemble
+
+        Returns a list of integer opcodes.
+        """
+
+        # split possible multiple instructions
+        opcodes = opcodes.split(';')
 
         # create ASM file with instruction
         with open(self.AsmFilename+'.asm', 'wb') as fd:
             fd.write('\torg\t%07o\n' % addr)
-            fd.write('\t%s\n' % opcode[1:-1])
+            for line in opcodes:
+                fd.write('\t%s\n' % line)
             fd.write('\tend\n')
 
         # now assemble file
-        #cmd = '../iasm/iasm -l %s.lst %s.asm >xyzzy 2>&1' % (self.AsmFilename, self.AsmFilename)
-        cmd = '../iasm/iasm -l %s.lst %s.asm' % (self.AsmFilename, self.AsmFilename)
+        cmd = ('../iasm/iasm -l %s.lst %s.asm'
+               % (self.AsmFilename, self.AsmFilename))
         res = os.system(cmd)
 
         # read the listing file to get assembled opcode (second line)
         with open(self.AsmFilename+'.lst', 'rb') as fd:
             lines = fd.readlines()
-        line = lines[1]
-        (opcode, _) = line.split(None, 1)
 
-        return int(opcode, base=8)
+        result = []
+        for line in lines[1:-1]:
+            (opcode, _) = line.split(None, 1)
+            result.append(int(opcode, base=8))
 
+        return result
+
+# Here we implement the DSL primitives.  They all take two parameters which are
+# the DSL field1 and field2 values (lowercase strings).  If one or both are
+# missing the parameter is None.
+#
+#   setreg <name> <value>
+#   setmem <address> <value>
+#   allreg <value>
+#   allmem <value>
+#   bootrom <type>
+#   romwrite <bool>
+#   mount <device> <filename>
+#   dismount <device>
+#   run [<number>]
+#   rununtil <address>
+#   checklast <device> <value>
+#   checkcycles <number>
+#   checkreg <name> <value>
+#   checkmem <addr> <value>
+#   checkcpu <state>
+#   checkdcpu <state>
 
     def setreg(self, name, value):
         """Set register to a value.
 
         Remember value to check later.
         """
+
+        value = self.str2int(value)
 
         self.reg_values[name] = value
 
@@ -127,27 +131,41 @@ class TestCPU(object):
         else:
             raise Exception('setreg: bad register name: %s' % name)
 
-    def setmem(self, addr, value):
-        """Set memory location to a value."""
+    def setmem(self, addr, fld2):
+        """Set memory location to a value.
 
-        if isinstance(value, basestring):
-            log.debug('setmem: addr=%s, value=%s' % (oct(addr), value))
-        else:
-            log.debug('setmem: addr=%s, value=%s' % (oct(addr), oct(value)))
+        addr  address of memory location to set
+        fld2  value to store at 'addr'
+        """
+
+        log.debug('setmem: addr=%s, fld2=%s' % (addr, fld2))
+
+        addr = self.str2int(addr)
 
         # check if we must assemble var2
-        if isinstance(value, basestring) and value[0] == '[':
-            # assemble an instruction
-            value = self.assemble(addr, value)
-            log.debug('setmem: assembled opcode=%07o' % value)
+        if fld2[0] == '[':
+            # assemble one or more instructions
+            values = self.assemble(addr, fld2[1:-1])
+            log.debug('setmem: assembled opcodes=%s' % str(fld2))
+        else:
+            values = [self.str2int(fld2)]
 
-        self.mem_values[addr] = value
-        log.debug('setmem: After, MemValues=%s' % str(self.mem_values))
+        for v in values:
+            self.mem_values[addr] = v
+            self.memory.put(v, addr, False)
+            addr += 1
 
-        self.memory.put(value, addr, False)
-        log.debug('setmem: After, Memory at %07o is %07o' % (addr, self.memory.fetch(addr, False)))
+    def allreg(self, value, ignore):
+        """Set all registers to a value."""
 
-    def allmem(self, value, ignore=None):
+        self.reg_all_value = value
+
+        self.cpu.AC = value
+        self.cpu.L = value & 1
+        self.cpu.PC = value
+        self.cpu.DS = value
+
+    def allmem(self, value, ignore):
         """Set all of memory to a value.
 
         Remember value to check later.
@@ -160,15 +178,120 @@ class TestCPU(object):
         for mem in range(MEMORY_SIZE):
             self.memory.put(value, mem, False)
 
-    def allreg(self, value):
-        """Set all registers to a value."""
+    def bootrom(loader_type, ignore):
+        pass
 
-        self.reg_all_value = value
+    def romwrite(writable, ignore):
+        pass
 
-        self.cpu.AC = value
-        self.cpu.L = value & 1
-        self.cpu.PC = value
-        self.cpu.DS = value
+    def mount(device, filename):
+        pass
+
+    def dismount(device, ignore):
+        pass
+
+    def run(self, num_instructions, ignore):
+        """Execute one or more instructions.
+
+        num_instructions  number of instructions to execute
+        """
+
+        if num_instructions is None:
+            # assume number of instructions is 1
+            number = 1
+        else:
+            number = self.str2int(num_instructions)
+            if number is None:
+                return 'Invalid number of instructions: %s' % num_instructions
+
+        cycles= 0
+        for _ in range(number):
+            cycles += self.cpu.execute_one_instruction()
+
+        self.used_cycles = cycles
+
+    def rununtil(address, ignore):
+        pass
+
+    def checklast(device, value):
+        pass
+
+    def checkcycles(self, cycles, ignore):
+        """Check that opcode cycles used is correct.
+
+        cycles  expected number of cycles used
+        """
+
+        cycles = self.str2int(cycles)
+
+        if cycles != self.used_cycles:
+            return ('Run used %d cycles, expected %d'
+                    % (self.used_cycles, cycles))
+
+    def checkreg(self, reg, value):
+        """Check register is as it should be."""
+
+        if not reg:
+            return 'checkreg: requires a register name'
+
+        if value:
+            value = self.str2int(value)
+        else:
+            return 'checkreg: requires a value'
+
+        if reg == 'ac':
+            self.reg_values[reg] = self.cpu.AC
+            if self.cpu.AC != value:
+                return ('AC wrong, is %07o, should be %07o'
+                        % (self.cpu.AC, value))
+        elif reg == 'l':
+            self.reg_values[reg] = self.cpu.L
+            if self.cpu.L != value:
+                return 'L wrong, is %02o, should be %02o' % (self.cpu.L, value)
+        elif reg == 'pc':
+            self.reg_values[reg] = self.cpu.PC
+            if self.cpu.PC != value:
+                return ('PC wrong, is %07o, should be %07o'
+                        % (self.cpu.PC, value))
+        elif reg == 'ds':
+            self.reg_values[reg] = self.cpu.DS
+            if self.cpu.DS != value:
+                return ('DS wrong, is %07o, should be %07o'
+                        % (self.cpu.DS, value))
+        else:
+            raise Exception('checkreg: bad register name: %s' % name)
+
+    def checkmem(self, addr, value):
+        """Check a memory location is as it should be."""
+
+        self.mem_values[addr] = value
+
+        memvalue = self.memory.fetch(addr, False)
+        if memvalue != value:
+            return ('Memory wrong at address %07o, is %07o, should be %07o'
+                    % (addr, memvalue, value))
+
+    def checkcpu(self, state, ignore):
+        """Check main CPU run state is as desired."""
+
+        cpu_state = str(self.cpu.running).lower()
+
+        if ((state == "on" and cpu_state != "true") or
+            (state == "off" and cpu_state != "false")):
+            return ('Main CPU run state is %s, should be %s'
+                    % (str(self.cpu.running), str(state)))
+
+    def checkdcpu(self, state, ignore):
+        """Check display CPU run state is as desired."""
+
+        dcpu_state = str(self.display.running).lower()
+
+        if ((state == "on" and dcpu_state != "true") or
+            (state == "off" and dcpu_state != "false")):
+            return ('Display CPU run state is %s, should be %s'
+                    % (str(self.cpu.running), str(state)))
+
+# end of DSL primitives
 
     def check_all_mem(self):
         """Check memory for unwanted changes."""
@@ -231,62 +354,6 @@ class TestCPU(object):
 
         return result
 
-    def checkreg(self, reg, value):
-        """Check register is as it should be."""
-
-        if reg == 'ac':
-            self.reg_values[reg] = self.cpu.AC
-            if self.cpu.AC != value:
-                return 'AC wrong, is %07o, should be %07o' % (self.cpu.AC, value)
-        elif reg == 'l':
-            self.reg_values[reg] = self.cpu.L
-            if self.cpu.L != value:
-                return 'L wrong, is %02o, should be %02o' % (self.cpu.L, value)
-        elif reg == 'pc':
-            self.reg_values[reg] = self.cpu.PC
-            if self.cpu.PC != value:
-                return 'PC wrong, is %07o, should be %07o' % (self.cpu.PC, value)
-        elif reg == 'ds':
-            self.reg_values[reg] = self.cpu.DS
-            if self.cpu.DS != value:
-                return 'DS wrong, is %07o, should be %07o' % (self.cpu.DS, value)
-        else:
-            raise Exception('checkreg: bad register name: %s' % name)
-
-    def checkmem(self, addr, value):
-        """Check a memory location is as it should be."""
-
-        self.mem_values[addr] = value
-        log.debug('checkmem: After, MemValues=%s' % str(self.mem_values))
-
-        memvalue = self.memory.fetch(addr, False)
-        if memvalue != value:
-            return 'Memory wrong at address %07o, is %07o, should be %07o' % (addr, memvalue, value)
-
-    def checkcycles(self, cycles, var2=None):
-        """Check that opcode cycles used is correct."""
-
-        if cycles != self.used_cycles:
-            return 'Opcode used %d cycles, expected %d' % (self.used_cycles, cycles)
-
-    def run(self, addr, var2):
-        """Execute instruction."""
-
-        if addr is not None:
-            # force PC to given address
-            self.setreg('pc', addr)
-
-        self.used_cycles = self.cpu.execute_one_instruction()
-
-    def checkrun(self, state, var2):
-        """Check CPU run state is as desired."""
-
-        cpu_state = str(self.cpu.running).lower()
-
-        if ((state == "on" and cpu_state != "true") or
-            (state == "off" and cpu_state != "false")):
-            return 'CPU run state is %s, should be %s' % (str(self.cpu.running), str(state))
-
     def setd(self, state, var2):
         """Set display state."""
 
@@ -322,82 +389,68 @@ class TestCPU(object):
         # set globals
         self.reg_values = {}
         self.mem_values = {}
-        #self.reg_all_value = {}
-        #self.mem_all_value = {}
         self.reg_all_value = 0
         self.mem_all_value = 0
 
         result = []
 
         self.memory = Memory.Memory()
-        self.cpu = MainCPU.MainCPU(self.memory, None, None, None, None, None, None, None)
+        self.cpu = MainCPU.MainCPU(self.memory, None, None,
+                                   None, None, None, None, None)
         self.cpu.running = True
         self.display_state = False
 
         trace_filename = filename + '.trace'
         Trace.init(trace_filename, self.cpu, None)
 
-        # clear registers to 0 first
-        self.allreg(0)
+        # clear registers and memory to 0 first
+        self.allreg(0, None)
+        self.allmem(0, None)
 
         # interpret the test instructions
-        instructions = test.split(';')
-        for op in instructions:
-            fields = op.split(None, 2)
+        suite = test.split(';')
+        for instruction in suite:
+            fields = instruction.split(None, 2)
             if not fields:
                 continue;
 
-            op = fields[0].lower()
-            try:
-                var1 = fields[1].lower()
-            except IndexError:
-                var1 = None
-            try:
-                var2 = fields[2].lower()
-            except IndexError:
-                var2 = None
+            opcode = fields[0].strip().lower()
+            if len(fields) == 1:
+                fld1 = fld2 = None
+            elif len(fields) == 2:
+                fld1 = fields[1].strip().lower()
+                fld2 = None
+            elif len(fields) == 3:
+                fld1 = fields[1].strip().lower()
+                fld2 = fields[2].strip().lower()
 
-            self.debug_operation(op, var1, var2)
+            self.debug_operation(opcode, fld1, fld2)
 
-            # change var strings into numeric values
-            if var1 and var1[0] in '0123456789':
-                if var1[0] == '0':
-                    var1 = int(var1, base=8)
-                else:
-                    var1 = int(var1)
-                var1 &= 0177777
-
-            if var2 and var2[0] in '0123456789':
-                if var2[0] == '0':
-                    var2 = int(var2, base=8)
-                else:
-                    var2 = int(var2)
-                var2 &= 0177777
-
-            if op == 'setreg':
-                r = self.setreg(var1, var2)
-            elif op == 'setmem':
-                r = self.setmem(var1, var2)
-            elif op == 'run':
-                r = self.run(var1, var2)
-            elif op == 'checkcycles':
-                r = self.checkcycles(var1, var2)
-            elif op == 'checkreg':
-                r = self.checkreg(var1, var2)
-            elif op == 'checkmem':
-                r = self.checkmem(var1, var2)
-            elif op == 'allreg':
-                r = self.allreg(var1, var2)
-            elif op == 'allmem':
-                r = self.allmem(var1, var2)
-            elif op == 'checkrun':
-                r = self.checkrun(var1, var2)
-            elif op == 'setd':
-                r = self.setd(var1, var2)
-            elif op == 'checkd':
-                r = self.checkd(var1, var2)
+            # cll the correct DSL primitive
+            if opcode == 'setreg':
+                r = self.setreg(fld1, fld2)
+            elif opcode == 'setmem':
+                r = self.setmem(fld1, fld2)
+            elif opcode == 'run':
+                r = self.run(fld1, fld2)
+            elif opcode == 'checkcycles':
+                r = self.checkcycles(fld1, fld2)
+            elif opcode == 'checkreg':
+                r = self.checkreg(fld1, fld2)
+            elif opcode == 'checkmem':
+                r = self.checkmem(fld1, fld2)
+            elif opcode == 'allreg':
+                r = self.allreg(fld1, fld2)
+            elif opcode == 'allmem':
+                r = self.allmem(fld1, fld2)
+            elif opcode == 'checkcpu':
+                r = self.checkcpu(fld1, fld2)
+            elif opcode == 'setd':
+                r = self.setd(fld1, fld2)
+            elif opcode == 'checkd':
+                r = self.checkd(fld1, fld2)
             else:
-                raise Exception("Unrecognized operation '%s' in: %s" % (op, test))
+                raise Exception("Unrecognized opcode '%s' in: %s" % (opcode, test))
 
             if r is not None:
                 result.append(r)
@@ -444,6 +497,7 @@ class TestCPU(object):
         test = ''
         for line in lines:
             line = line[:-1]                # strip newline
+
             if not line:
                 continue                    # skip blank lines
 
