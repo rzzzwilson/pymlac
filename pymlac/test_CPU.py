@@ -17,6 +17,7 @@ import time
 # The DSL is documented here: [github.com/rzzzwilson/pymlac].
 
 
+import sys
 import os
 
 from Globals import *
@@ -32,12 +33,23 @@ class TestCPU(object):
 
     # temporary assembler file and listfile prefix
     AsmFilename = '_#ASM#_'
+    ProgressChar = '|\\-/'
+    ProgressCount = 0
 
 
     def __init__(self):
         """Initialize the test."""
 
         pass
+
+    def show_progress(self):
+        """Show progress to stdout.  A spinning line."""
+
+        print '\b\b%s' % self.ProgressChar[self.ProgressCount],
+        self.ProgressCount += 1
+        if self.ProgressCount >= len(self.ProgressChar):
+            self.ProgressCount = 0
+        sys.stdout.flush()
 
     def list2int(self, values):
         """Convert a string of multiple values to a list of ints.
@@ -437,8 +449,8 @@ class TestCPU(object):
         Trace.init(trace_filename, self.cpu, None)
 
         # clear registers and memory to 0 first
-        self.allreg(0, None)
-        self.allmem(0, None)
+        self.allreg(self.reg_all_value, None)
+        self.allmem(self.mem_all_value, None)
 
         # interpret the test instructions
         suite = test.split(';')
@@ -508,6 +520,7 @@ class TestCPU(object):
             result.extend(r)
 
         if result:
+            print '\b\b',
             print(test)
             print('\t' + '\n\t'.join(result))
 
@@ -539,6 +552,8 @@ class TestCPU(object):
         tests = []
         test = ''
         for line in lines:
+            self.show_progress()
+
             line = line[:-1]                # strip newline
 
             if not line:
@@ -562,8 +577,10 @@ class TestCPU(object):
 
         # now do each test
         for test in tests:
+            self.show_progress()
             log.debug('Executing test: %s' % test)
             self.execute(test, filename)
+        print '\b\b\r',
 
 ################################################################################
 
