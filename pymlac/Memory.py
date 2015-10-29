@@ -159,13 +159,10 @@ class Memory(object):
     def set_PTR_ROM(self):
         """Set addresses 040 to 077 as PTR ROM."""
 
-        save_flag = self.rom_protected
-        self.rom_protected = False
         i = self.ROM_START
         for ptr_value in self.PTR_ROM_IMAGE:
             self.memory[i] = ptr_value
             i += 1
-        self.rom_protected = save_flag
 
     def set_TTY_ROM(self):
         """Set addresses 040 to 077 as TTY ROM."""

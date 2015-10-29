@@ -197,10 +197,10 @@ setreg ac 0177777; setmem 0100 [SAM *010]; setmem 010 0120; setmem 0121 0177776;
 setreg ac 0177776; setmem 0100 [SAM *010]; setmem 010 0120; setmem 0121 0177776; setreg pc 0100; RUN; checkcycles 3; checkreg pc 0102; checkmem 010 0121
 
 # HLT
-setmem 0100 [HLT]; setreg pc 0100; RUN; checkcycles 1; checkrun off; checkreg pc 0101
+setmem 0100 [HLT]; setreg pc 0100; RUN; checkcycles 1; checkcpu off; checkreg pc 0101
 
 # NOP
-setmem 0100 [NOP]; setreg pc 0100; RUN; checkcycles 1; checkrun on; checkreg pc 0101
+setmem 0100 [NOP]; setreg pc 0100; RUN; checkcycles 1; checkcpu on; checkreg pc 0101
 
 # CLA
 setreg ac 0; setmem 0100 [CLA]; setreg pc 0100; RUN; checkcycles 1; checkreg pc 0101; checkreg ac 0
@@ -400,3 +400,6 @@ setreg l 1; setmem 0100 [LSN]; setreg pc 0100; RUN; checkcycles 1; checkreg pc 0
 # PSF
 # PPC
 # and lots of IOT instructions
+
+# check multiple instructions
+setmem 0100 [LAW 1|HLT]; setreg pc 0100; RUNUNTIL 0102; checkcycles 2; checkreg pc 0102; checkreg ac 1
