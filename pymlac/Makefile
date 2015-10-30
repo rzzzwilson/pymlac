@@ -3,8 +3,11 @@
 # And run the test files.
 #
 
-test:	
+test:	test.ptr
 	python test_CPU.py CPU.test
+
+test.ptr:
+	make_ptr > test.ptr
 
 %:	%.ptp
 	./pymlac -b ptr -ptr $< -r 040 -t 0100 -r 0100
@@ -18,4 +21,4 @@ lst:	$(TESTS)
 	../iasm/iasm -l $*.lst $<
 
 clean:
-	rm -Rf *.pyc *~ *.out test_*.ptp *.lst test_*.trace _#*#_.* CPU.test.trace.*
+	rm -Rf *.pyc *~ *.out test_*.ptp *.lst test_*.trace _#*#_.* CPU.test.trace.* test.ptr
