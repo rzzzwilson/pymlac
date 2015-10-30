@@ -68,12 +68,16 @@ class Ptp(object):
     def write(self, ch):
         """Punch an 8 bit value to the tape file."""
 
+        print('PTP.write: ch=%s (%d)' % (type(ch), ch))
+
         self.device_state = self.DEVICE_NOT_READY
         self.cycle_count = self.DEVICE_NOT_READY_CYCLES
-        self.open_file.write(ch)
+        self.open_file.write(str(ch))
 
     def tick(self, cycles):
         """Move the state of the punch along."""
+
+        print('PTP: tick() called, cycles=%s, self.cycle_count=%s' % (str(cycles), str(self.cycle_count)))
 
         if self.motor_state == self.MOTOR_OFF or not self.open_file:
             self.device_state = self.DEVICE_NOT_READY

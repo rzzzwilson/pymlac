@@ -409,6 +409,7 @@ class MainCPU(object):
 
     def i_HON(self, indirect, address, instruction):
         self.ptr.start()
+        self.ptp.start()
         Trace.itrace('HON')
         return 1
 
@@ -463,9 +464,12 @@ class MainCPU(object):
         return 1
 
     def i_PSF(self, indirect, address, instruction):
+        print('i_PSF: before')
         if self.ptp.ready():
+            print('i_PSF: top of loop')
             self.PC = (self.PC + 1) & WORDMASK
         Trace.itrace('PSF')
+        print('i_PSF: after')
         return 1
 
     def i_RAL1(self, indirect, address, instruction):

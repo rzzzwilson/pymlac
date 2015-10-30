@@ -255,6 +255,9 @@ class TestCPU(object):
         """Execute instructions until PC == address.
 
         address  address at which to stop
+
+        We allow PC to be stop address first instruction.
+        We stop after that if PC == address.
         """
 
         new_address = self.str2int(address)
@@ -262,11 +265,13 @@ class TestCPU(object):
             return 'rununtil: invalid stop address: %s' % address
 
         self.used_cycles= 0
-        while self.cpu.PC != new_address:
+        while True:
             cycles = self.cpu.execute_one_instruction()
             self.ptr.tick(cycles)
             self.ptp.tick(cycles)
             self.used_cycles += cycles
+            if self.cpu.PC == new_address:
+                break
 
     def checkcycles(self, cycles, ignore):
         """Check that opcode cycles used is correct.
