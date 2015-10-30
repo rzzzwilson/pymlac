@@ -23,6 +23,8 @@ import os
 from Globals import *
 import MainCPU
 import Memory
+import Ptr
+import Ptp
 import Trace
 
 import log
@@ -45,7 +47,7 @@ class TestCPU(object):
     def show_progress(self):
         """Show progress to stdout.  A spinning line."""
 
-        print '\b\b%s' % self.ProgressChar[self.ProgressCount],
+        print '%s\r' % self.ProgressChar[self.ProgressCount],
         self.ProgressCount += 1
         if self.ProgressCount >= len(self.ProgressChar):
             self.ProgressCount = 0
@@ -138,6 +140,8 @@ class TestCPU(object):
 #   checkmem <addr> <value>
 #   checkcpu <state>
 #   checkdcpu <state>
+#   mount <device> <filename>
+#   dismount <device>
 
     def setreg(self, name, value):
         """Set register to a value.
@@ -241,7 +245,11 @@ class TestCPU(object):
 
         self.used_cycles= 0
         for _ in range(number):
-            self.used_cycles += self.cpu.execute_one_instruction()
+            cycles = self.cpu.execute_one_instruction()
+            self.ptr.tick(cycles)
+            self.ptp.tick(cycles)
+            self.used_cycles += cycles
+
 
     def rununtil(self, address, ignore):
         """Execute instructions until PC == address.
@@ -255,7 +263,10 @@ class TestCPU(object):
 
         self.used_cycles= 0
         while self.cpu.PC != new_address:
-            self.used_cycles += self.cpu.execute_one_instruction()
+            cycles = self.cpu.execute_one_instruction()
+            self.ptr.tick(cycles)
+            self.ptp.tick(cycles)
+            self.used_cycles += cycles
 
     def checkcycles(self, cycles, ignore):
         """Check that opcode cycles used is correct.
@@ -344,6 +355,43 @@ class TestCPU(object):
             return ('Display CPU run state is %s, should be %s'
                     % (str(self.cpu.running), str(state)))
 
+    def mount(self, device, filename):
+        """Mount a file on a device.
+
+        device    name of device
+        filename  path to file to mount
+
+        If the device is an input device, the file must exist.
+        """
+
+        if device == 'ptr':
+            actual_device = self.ptr
+        elif device == 'ptp':
+            actual_device = self.ptp
+        else:
+            return 'mount: bad device: %s' % device
+
+        if device in ('ptr'):
+            if not os.path.exists(filename) or not os.path.isfile(filename):
+                return "mount: '%s' doesn't exist or isn't a file" % filename
+
+        actual_device.mount(filename)
+
+    def dismount(self, device):
+        """Dismount a file from a device.
+
+        device    name of device
+        """
+
+        if device == 'ptr':
+            actual_device = self.ptr
+        elif device == 'ptp':
+            actual_device = self.ptp
+        else:
+            return 'dismount: bad device: %s' % device
+
+        actual_device.dismount()
+
 # end of DSL primitives
 
     def check_all_mem(self):
@@ -359,8 +407,6 @@ class TestCPU(object):
                                   % (mem, value, self.mem_values[mem]))
             else:
                 if value != self.mem_all_value:
-                    print('mem: %s, value: %s, self.mem_all_value: %s'
-                          % (str(type(mem)), str(type(value)), str(type(self.mem_all_value))))
                     result.append('Memory at %07o changed, is %07o, should be %07o'
                                   % (mem, value, self.mem_all_value))
 
@@ -440,8 +486,10 @@ class TestCPU(object):
         result = []
 
         self.memory = Memory.Memory()
+        self.ptr = Ptr.Ptr()
+        self.ptp = Ptp.Ptp()
         self.cpu = MainCPU.MainCPU(self.memory, None, None,
-                                   None, None, None, None, None)
+                                   None, None, None, self.ptp, self.ptr)
         self.cpu.running = True
         self.display_state = False
 
@@ -520,7 +568,6 @@ class TestCPU(object):
             result.extend(r)
 
         if result:
-            print '\b\b',
             print(test)
             print('\t' + '\n\t'.join(result))
 
@@ -580,7 +627,6 @@ class TestCPU(object):
             self.show_progress()
             log.debug('Executing test: %s' % test)
             self.execute(test, filename)
-        print '\b\b\r',
 
 ################################################################################
 

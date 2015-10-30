@@ -49,10 +49,11 @@ class Ptr(object):
 
         self.motor_on = False
         self.device_ready = False
+        self.cycle_count = self.NotReadyCycles
         self.filename = fname
-        self.open_file = open(self.filename, 'r')
+        self.open_file = open(self.filename, 'rb')
         self.at_eof = False
-        self.value = self.PtrEOF
+        self.value = None
 
     def dismount(self):
         """Dismount a papertape file."""
