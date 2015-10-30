@@ -1,0 +1,6 @@
+#!/bin/bash
+#
+# Make a PTR test file
+# 3 bytes: 0 1 2
+
+echo -n -e "\00\01\02"
