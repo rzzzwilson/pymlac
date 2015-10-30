@@ -146,7 +146,7 @@ OPCODE opcodes[] =
     { "IOF",  0001161, ANO,  0,     FALSE },
     { "ION",  0001162, ANO,  0,     FALSE },
     { "PUN",  0001171, ANO,  0,     FALSE },
-    { "PSF",  0001174, ANO,  0,     FALSE },
+    { "PSF",  0001274, ANO,  0,     FALSE },
     { "PPC",  0001271, ANO,  0,     FALSE },
 
     { "DLXA", 0010000, AYES, 07777, FALSE },
