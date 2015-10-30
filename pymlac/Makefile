@@ -7,7 +7,7 @@ test:	test.ptr
 	python test_CPU.py CPU.test
 
 test.ptr:
-	make_ptr > test.ptr
+	./make_ptr > test.ptr
 
 %:	%.ptp
 	./pymlac -b ptr -ptr $< -r 040 -t 0100 -r 0100
