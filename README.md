@@ -1,7 +1,11 @@
 ##STATUS
 
-This repository is just a copy of the old Google code repository.  It is in
-an UNKNOWN state.
+Development is occurring mainly in the *pymlac* subdirectory.  Occasionally
+the python code is mirrored into the *vimlac* subdirectory (translated to C).
+
+The current state is the CPU testing is nearing completion.  That is, all
+of the pure-CPU instructions are tested and working.  I/O instructions and
+conditionals on device state are being tested at the moment.
 
 ##The Imlac
 
