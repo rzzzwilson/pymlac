@@ -379,15 +379,15 @@ setreg l 1; setmem 0100 [LSN]; setreg pc 0100; RUN; checkcycles 1; checkreg pc 0
 # HSF
 setreg ac 0; setreg pc 0100; mount ptr test.ptr;
         setmem 0100 [HON|HSF|JMP 0101|LAW 0|HRB|NOP|HSN|JMP 0106|JMP 0101];
-        run; rununtil 0105; checkreg ac 0; checkreg pc 0105
-        run; rununtil 0105; checkreg ac 1; checkreg pc 0105
-        run; rununtil 0105; checkreg ac 2; checkreg pc 0105;
+        rununtil 0105; checkreg ac 0; checkreg pc 0105
+        rununtil 0105; checkreg ac 1; checkreg pc 0105
+        rununtil 0105; checkreg ac 2; checkreg pc 0105;
 # HSN
 setreg ac 0; setreg pc 0100; mount ptr test.ptr;
         setmem 0100 [HON|HSF|JMP 0101|LAW 0|HRB|NOP|HSN|JMP 0106|JMP 0101];
-        run; rununtil 0105; checkreg ac 0; checkreg pc 0105
-        run; rununtil 0105; checkreg ac 1; checkreg pc 0105
-        run; rununtil 0105; checkreg ac 2; checkreg pc 0105;
+        rununtil 0105; checkreg ac 0; checkreg pc 0105
+        rununtil 0105; checkreg ac 1; checkreg pc 0105
+        rununtil 0105; checkreg ac 2; checkreg pc 0105;
 #
 # DLA
 # CTB
@@ -416,11 +416,11 @@ setreg ac 0; setreg pc 0100; mount ptr test.ptr;
 # PSF
 # PPC
 setreg ac 0; setreg pc 0100; mount ptp test.ptp;
-        setmem 0100 [LAW 0|HON|PSF|JMP 0102|PPC|IAC|JMP 0102];
-        rununtil 0105; checkreg ac 0;
-        rununtil 0105; checkreg ac 1;
-        rununtil 0105; checkreg ac 2;
-#	checkfile test.ptp test.ptr
+        setmem 0100 [LAW 0|PSF|JMP 0101|PPC|IAC|JMP 0101];
+        rununtil 0104; checkreg ac 0;
+        rununtil 0104; checkreg ac 1;
+        rununtil 0104; checkreg ac 2; checkreg pc 0104
+	checkfile test.ptp test.ptr
 # and lots of IOT instructions
 
 # check multiple assemblerinstructions in DSL

@@ -4,6 +4,7 @@
 #
 
 test:	test.ptr
+	rm -f test.ptp
 	python test_CPU.py CPU.test
 
 test.ptr:

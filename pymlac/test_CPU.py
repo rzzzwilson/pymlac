@@ -23,8 +23,7 @@ import os
 from Globals import *
 import MainCPU
 import Memory
-import Ptr
-import Ptp
+import PtrPtp
 import Trace
 
 import log
@@ -142,6 +141,7 @@ class TestCPU(object):
 #   checkdcpu <state>
 #   mount <device> <filename>
 #   dismount <device>
+#   checkfile <file1> <file2>
 
     def setreg(self, name, value):
         """Set register to a value.
@@ -246,8 +246,8 @@ class TestCPU(object):
         self.used_cycles= 0
         for _ in range(number):
             cycles = self.cpu.execute_one_instruction()
-            self.ptr.tick(cycles)
-            self.ptp.tick(cycles)
+            self.ptrptp.ptr_tick(cycles)
+            self.ptrptp.ptp_tick(cycles)
             self.used_cycles += cycles
 
 
@@ -267,8 +267,8 @@ class TestCPU(object):
         self.used_cycles= 0
         while True:
             cycles = self.cpu.execute_one_instruction()
-            self.ptr.tick(cycles)
-            self.ptp.tick(cycles)
+            self.ptrptp.ptr_tick(cycles)
+            self.ptrptp.ptp_tick(cycles)
             self.used_cycles += cycles
             if self.cpu.PC == new_address:
                 break
@@ -370,17 +370,13 @@ class TestCPU(object):
         """
 
         if device == 'ptr':
-            actual_device = self.ptr
-        elif device == 'ptp':
-            actual_device = self.ptp
-        else:
-            return 'mount: bad device: %s' % device
-
-        if device in ('ptr'):
             if not os.path.exists(filename) or not os.path.isfile(filename):
                 return "mount: '%s' doesn't exist or isn't a file" % filename
-
-        actual_device.mount(filename)
+            self.ptrptp.ptr_mount(filename)
+        elif device == 'ptp':
+            self.ptrptp.ptp_mount(filename)
+        else:
+            return 'mount: bad device: %s' % device
 
     def dismount(self, device):
         """Dismount a file from a device.
@@ -389,13 +385,19 @@ class TestCPU(object):
         """
 
         if device == 'ptr':
-            actual_device = self.ptr
+            self.ptrptp.ptr_dismount()
         elif device == 'ptp':
-            actual_device = self.ptp
+            self.ptrptp.ptp_dismount()
         else:
             return 'dismount: bad device: %s' % device
 
-        actual_device.dismount()
+    def checkfile(self, file1, file2):
+        """Compare two files, error if different."""
+
+        cmd = 'cmp -s %s %s' % (file1, file2)
+        res = os.system(cmd) & 0xff
+        if res:
+            return 'Files %s and %s are different' % (file1, file2)
 
 # end of DSL primitives
 
@@ -491,10 +493,9 @@ class TestCPU(object):
         result = []
 
         self.memory = Memory.Memory()
-        self.ptr = Ptr.Ptr()
-        self.ptp = Ptp.Ptp()
+        self.ptrptp = PtrPtp.PtrPtp()
         self.cpu = MainCPU.MainCPU(self.memory, None, None,
-                                   None, None, None, self.ptp, self.ptr)
+                                   None, None, None, self.ptrptp)
         self.cpu.running = True
         self.display_state = False
 
@@ -557,6 +558,8 @@ class TestCPU(object):
                 r = self.mount(fld1, fld2)
             elif opcode == 'dismount':
                 r = self.dismount(fld1, fld2)
+            elif opcode == 'checkfile':
+                r = self.checkfile(fld1, fld2)
             else:
                 raise Exception("Unrecognized opcode '%s' in: %s" % (opcode, test))
 

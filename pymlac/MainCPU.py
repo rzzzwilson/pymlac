@@ -37,7 +37,7 @@ class MainCPU(object):
     running = False     # True if CPU running
 
 
-    def __init__(self, memory, display, displaycpu, kbd, ttyin, ttyout, ptp, ptr):
+    def __init__(self, memory, display, displaycpu, kbd, ttyin, ttyout, ptrptp):
         """Initialize the main CPU."""
 
         self.memory = memory
@@ -46,8 +46,7 @@ class MainCPU(object):
         self.kbd = kbd
         self.ttyin = ttyin
         self.ttyout = ttyout
-        self.ptp = ptp
-        self.ptr = ptr
+        self.ptrptp = ptrptp
 
         # main dispatch dictionary for decoding opcodes in bits 1-4
         self.main_decode = {000: self.page_00,	# secondary decode
@@ -95,7 +94,7 @@ class MainCPU(object):
                                001141: self.i_IOT141,
                                001161: self.i_IOF,
                                001162: self.i_ION,
-                               001271: self.i_PUN,
+                               001271: self.i_PPC,
                                001274: self.i_PSF,
              #                 003000: self.illegal RAL0
                                003001: self.i_RAL1,
@@ -398,18 +397,17 @@ class MainCPU(object):
         return 1
 
     def i_HRB(self, indirect, address, instruction):
-        self.AC |= self.ptr.read()
+        self.AC |= self.ptrptp.read()
         Trace.itrace('HRB')
         return 1
 
     def i_HOF(self, indirect, address, instruction):
-        self.ptr.stop()
+        self.ptrptp.stop()
         Trace.itrace('HOF')
         return 1
 
     def i_HON(self, indirect, address, instruction):
-        self.ptr.start()
-        self.ptp.start()
+        self.ptrptp.start()
         Trace.itrace('HON')
         return 1
 
@@ -458,18 +456,15 @@ class MainCPU(object):
         Trace.itrace('ION')
         return 1
 
-    def i_PUN(self, indirect, address, instruction):
-        self.ptp.write(self.PC & 0xff)
-        Trace.itrace('PUN')
+    def i_PPC(self, indirect, address, instruction):
+        self.ptrptp.punch(self.AC & 0xff)
+        Trace.itrace('PPC')
         return 1
 
     def i_PSF(self, indirect, address, instruction):
-        print('i_PSF: before')
-        if self.ptp.ready():
-            print('i_PSF: top of loop')
+        if self.ptrptp.ready():
             self.PC = (self.PC + 1) & WORDMASK
         Trace.itrace('PSF')
-        print('i_PSF: after')
         return 1
 
     def i_RAL1(self, indirect, address, instruction):
@@ -689,13 +684,13 @@ class MainCPU(object):
         return 1
 
     def i_HSF(self):
-        if self.ptr.ready():
+        if self.ptrptp.ready():
             self.PC = (self.PC + 1) & WORDMASK
         Trace.itrace('HSF')
         return 1
 
     def i_HSN(self):
-        if not self.ptr.ready():
+        if not self.ptrptp.ready():
             self.PC = (self.PC + 1) & WORDMASK
         Trace.itrace('HSN')
         return 1
