@@ -60,6 +60,7 @@
 #include "cpu.h"
 #include "dcpu.h"
 #include "memory.h"
+#include "ptrptp.h"
 #include "error.h"
 #include "log.h"
 #include "plist.h"
@@ -469,22 +470,60 @@ allmem(char *value, char *var2)
 
 
 /******************************************************************************
-Description : Run one instruction on the CPU.
- Parameters : addr - address of memory cell (string, may be NULL)
+Description : Run one or more instructions on the CPU.
+ Parameters : num  - address of memory cell (string, may be NULL)
             : fld2 - unused
     Returns : The number of errors encountered (0 or 1).
    Comments :
  ******************************************************************************/
 int
-run_one(char *addr, char *fld2)
+run_one(char *num, char *fld2)
 {
+    int run_num = 0;
 
     // if given address run from that address, else use PC contents
-    if (addr)
-        cpu_set_PC(str2word(addr));
+    if (!num)
+        run_num = 1;
+    else
+        run_num = str2word(num);
 
     cpu_start();
-    UsedCycles = cpu_execute_one();
+    while (run_num--)
+    {
+        int cycles = cpu_execute_one();
+
+        ptr_tick(cycles);
+        ptp_tick(cycles);
+
+        UsedCycles += cycles;
+    }
+
+    return 0;
+}
+
+
+/******************************************************************************
+Description : Run the CPU until PC is the same as 'addr'.
+ Parameters : addr - PC contents to stop at
+            : fld2 - unused
+    Returns : The number of errors encountered (0 or 1).
+   Comments :
+ ******************************************************************************/
+int
+rununtil(char *addr, char *fld2)
+{
+    WORD stop_pc = str2word(addr);
+
+    cpu_start();
+    do
+    {
+        int cycles = cpu_execute_one();
+
+        ptr_tick(cycles);
+        ptp_tick(cycles);
+
+        UsedCycles += cycles;
+    } while (cpu_get_PC() != stop_pc);
 
     return 0;
 }
@@ -548,6 +587,38 @@ checkreg(char *reg, char *expected)
 
 
 /******************************************************************************
+Description : Check that the main CPU is in the correct state.
+ Parameters : state  - string holding expected display state ('on' or 'off)
+            : unused - unused
+    Returns : The number of errors encountered (0 or 1).
+   Comments :
+ ******************************************************************************/
+int
+checkcpu(char *state, char *unused)
+{
+    if ((STREQ(state, "on")) && !cpu_get_state())
+    {
+        vlog("Main CPU run state is %s, should be 'ON'",
+                (DisplayOn ? "ON": "OFF"));
+        return 1;
+    }
+    else if ((STREQ(state, "off")) && cpu_get_state())
+    {
+        vlog("Main CPU run state is %s, should be 'OFF'",
+                (DisplayOn ? "ON": "OFF"));
+        return 1;
+    }
+    else
+    {
+        vlog("checkcpu: state should be 'on' or 'OFF', got %s", state);
+        return 1;
+    }
+
+    return 0;
+}
+
+
+/******************************************************************************
 Description : Check that the display is in the correct state.
  Parameters : state  - string holding expected display state ('on' or 'off)
             : unused - unused
@@ -555,7 +626,7 @@ Description : Check that the display is in the correct state.
    Comments :
  ******************************************************************************/
 int
-checkd(char *state, char *unused)
+checkdcpu(char *state, char *unused)
 {
     if ((STREQ(state, "on")) && !DisplayOn)
     {
@@ -565,7 +636,7 @@ checkd(char *state, char *unused)
     }
     else if ((STREQ(state, "off")) && DisplayOn)
     {
-        vlog("DCPU run state is %s, should be 'OFF'",
+        vlog("Display CPU run state is %s, should be 'OFF'",
                 (DisplayOn ? "ON": "OFF"));
         return 1;
     }
@@ -1210,6 +1281,8 @@ run_one_test(Test *test)
             error += setmem(fld1, fld2);
         else if (STREQ(opcode, "RUN"))
             error += run_one(fld1, fld2);
+        else if (STREQ(opcode, "RUNUNTIL"))
+            error += rununtil(fld1, fld2);
         else if (STREQ(opcode, "CHECKCYCLES"))
             error += checkcycles(fld1, fld2);
         else if (STREQ(opcode, "CHECKREG"))
@@ -1224,8 +1297,10 @@ run_one_test(Test *test)
             error += checkrun(fld1, fld2);
         else if (STREQ(opcode, "SETD"))
             error += setd(fld1, fld2);
-        else if (STREQ(opcode, "CHECKD"))
-            error += checkd(fld1, fld2);
+        else if (STREQ(opcode, "CHECKDCPU"))
+            error += checkdcpu(fld1, fld2);
+        else if (STREQ(opcode, "CHECKCPU"))
+            error += checkcpu(fld1, fld2);
         else
         {
             printf("Unrecognized operation '%s' at line %d\n",
