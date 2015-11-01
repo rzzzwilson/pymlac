@@ -55,7 +55,6 @@ class PtrPtp(object):
         self.device_use = None
         self.device_motor_on = False
         self.device_open_file = None
-        self.device_filename = None
         self.device_open_file = None
         self.device_filename = None
         self.device_ready = False
