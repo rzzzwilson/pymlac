@@ -100,6 +100,13 @@ typedef struct _Assoc
 } Assoc;
 
 
+typedef struct _Opcode
+{
+    WORD opcode;
+    struct _Opcode *next;
+} Opcode;
+
+
 bool DisplayOn = false;
 int UsedCycles = 0;
 WORD RegAllValue = 0;
@@ -124,14 +131,7 @@ Description : Show progress while we process tests.
 void
 show_progress(int lnum)
 {
-//    static int count = 0;
-//    int index = count++ % NUMELTS(Progress);
-//    char *p = Progress[index];
-    char p[32];
-
-    sprintf(p, "\b\b\b\b\b\b\b\bTest %03d\r", lnum);
-
-    printf(p);
+    printf("\b\b\b\b\b\b\b\bTest %03d\r", lnum);
     fflush(stdout);
 }
 
@@ -208,6 +208,36 @@ dump_cmd(Command *cmd)
     printf("original: %s\n", cmd->orig2);
     printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
 }
+
+/******************************************************************************
+Description : Split a string into head/tail using delimiter char.
+ Parameters : str    string to split
+            : delim  character to split string on
+    Returns : Pointer to tail string, NULL if no tail.
+   Comments : The input string is destroyed in-situ.
+            : Usage something like:
+            :     char *str = "abc|rst|xyz";
+            :     char *new_str;
+            :     while (new_str = split(str, '|')
+            :     {
+            :         process(str);     // do something with head
+            :         str = new_str;    // move to tail, repeat
+            :     }
+ ******************************************************************************/
+char *
+split(char *str, char delim)
+{
+    char *result = strchr(str, delim);
+
+    if (result != NULL)
+    {
+        *result = '\0';
+        ++result;
+    }
+
+    return result;
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // The following routines wrap the 'plist' functions so we are handling data
@@ -365,7 +395,8 @@ setd(char *state, char *var2)
 /******************************************************************************
 Description : Set a memory cell to a value;
  Parameters : addr - address of memory cell (string)
-            : fld2 - value to put into cell (string)
+            : fld2 - string conatining one or more values to put into memory
+            :        (eg, "123|234|345" or "12345")
     Returns : The number of errors encountered (0 or 1).
    Comments : Sets globals used to check after execution.
  ******************************************************************************/
@@ -373,11 +404,17 @@ int
 setmem(char *addr, char *fld2)
 {
     WORD address = str2word(addr);
-    WORD value = str2word(fld2);
+    char *new_fld2;
 
-    mem_put(address, false, value);
+    while ((new_fld2 = split(fld2, '|')))
+    {
+        WORD value = str2word(fld2);
 
-    save_mem_plist(address, value);
+        mem_put(address, false, value);
+        save_mem_plist(address, value);
+        ++address;
+        fld2 = new_fld2;
+    }
 
     return 0;
 }
@@ -683,37 +720,74 @@ usage(char *msg)
 Description : Function to return the imlac binary opcode of an instruction.
  Parameters : addr   - address of the instruction
             : opcode - string containing the instruction
-    Returns :
+    Returns : A linked list of binary opcodes.
    Comments : We already have an assembler, so we just reuse it.  Generate an
-            : ASM file, assemble it and pick out the opcode from the LST file.
+            : ASM file, assemble it and pick out the opcodes from the LST file.
  ******************************************************************************/
-WORD
-assemble(WORD addr, char *opcode)
+Opcode *
+assemble(WORD addr, char *opcodes)
 {
     FILE *fd;
     char buffer[128];
-    WORD result;
+    Opcode *result = NULL;
+    Opcode *last_result = NULL;
+    char *strcopy = new_String(opcodes);
+    char *old_strcopy = strcopy;
+    char *new_strcopy;
+    int  num_opcodes = 0;
 
     // create the ASM file
     fd = fopen(AsmFilename, "wb");
     fprintf(fd, "\torg\t%07o\n", addr);
-    fprintf(fd, "\t%s\n", opcode);
+    while ((new_strcopy = split(strcopy, '|')))
+    {
+        fprintf(fd, "\t%s\n", strcopy);
+        ++num_opcodes;
+        strcopy = new_strcopy;
+    }
     fprintf(fd, "\tend\n");
     fclose(fd);
+    free(old_strcopy);
 
     // assemble the file
     sprintf(buffer, "../iasm/iasm -l %s %s", LstFilename, AsmFilename);
     if (system(buffer) == -1)
         error("Error doing: %s", buffer);
 
-    // read LST file for opcode on second line
+    // read LST file for opcodes on second and subsequent
     fd = fopen(LstFilename, "rb");
+
+    // skip first line - ORG
     if (fgets(buffer, sizeof(buffer), fd) == NULL)
         error("Error reading %s", LstFilename);
-    if (fgets(buffer, sizeof(buffer), fd) == NULL)
-        error("Error reading %s", LstFilename);
-    if (sscanf(buffer, "%o", &result) != 1)
-        error("Badly formatted assembler output: %s", buffer);
+
+    while (num_opcodes)
+    {
+        Opcode *new_opcode = malloc(sizeof(Opcode));
+
+        // get next line of assembler listing
+        if (fgets(buffer, sizeof(buffer), fd) == NULL)
+            error("Error reading %s", LstFilename);
+
+        // read first word value
+        if (sscanf(buffer, "%o", &new_opcode->opcode) != 1)
+            error("Badly formatted assembler output: %s", buffer);
+
+        // add binary opcode to end of result list
+        if (result == NULL)
+        {
+            result = last_result = new_opcode;
+        }
+        else
+        {
+            last_result->next = new_opcode;
+            last_result = new_opcode;
+        }
+
+        new_opcode->next = NULL;
+        --num_opcodes;
+    }
+
     fclose(fd);
 
     return result;
@@ -760,8 +834,9 @@ parse_one_cmd(char *scan)
     char *field1 = NULL;
     char *field2 = NULL;
     char *orig2 = NULL;
-    char tmpbuff[16];
+    char tmpbuff[256];
 
+    printf("parse_one_cmd: scan->%s\n", scan);
 
     // find start and end of opcode
     while (*scan && isspace(*scan))     // skip leading space
@@ -773,9 +848,12 @@ parse_one_cmd(char *scan)
     if (*scan)
         *(scan++) = '\0';
 
+    printf("parse_one_cmd: opcode->%s\n", opcode);
+
     // start/end of field1 (if there)
     while (*scan && isspace(*scan))     // skip leading space
         ++scan;
+
     if (*scan)
     {   // we have field1, at least
         field1 = scan;
@@ -784,11 +862,15 @@ parse_one_cmd(char *scan)
         if (*scan)
             *(scan++) = '\0';
 
-        // field2
+    printf("parse_one_cmd: field1->%s\n", field1);
+
+        // field2?
         while (*scan && isspace(*scan)) // skip leading space
             ++scan;
+
         if (*scan)
         {
+            // we do have field2
             field2 = scan;
             if (*field2 == '[')
             {   // assembler field
@@ -797,10 +879,14 @@ parse_one_cmd(char *scan)
                 while (*scan && !(*scan == ']'))
                     ++scan;
                 *scan = '\0';
-                WORD v = str2word(field1);
-                v = assemble(str2word(field1), field2);
-                sprintf(tmpbuff, "%d", v);
-                field2 = tmpbuff;
+            printf("parse_one_cmd: calling assemble(%s, %s)\n", field1, field2);
+                Opcode *v = assemble(str2word(field1), field2); // destroys field2
+                while (v)
+                {
+                    sprintf(tmpbuff+strlen(tmpbuff), "|%d", v->opcode);
+                    v = v->next;
+                }
+                field2 = tmpbuff+1;
             }
             else
             {
@@ -844,6 +930,8 @@ parse_cmds(char *scan)
     char *end_cmd = NULL;
     Command *new_cmd = NULL;
 
+    printf("parse_cmds: entered: %s\n", scan);
+
     // scan the buffer for commands
     do
     {
@@ -859,7 +947,9 @@ parse_cmds(char *scan)
             *end_cmd = '\0';
         }
 
+        printf("Calling parse_one_cmd(%s)\n", scan);
         new_cmd = parse_one_cmd(scan);
+        printf("After parse_one_cmd()\n");
 
         if (result == NULL)
         {
@@ -875,6 +965,7 @@ parse_cmds(char *scan)
         scan = new_scan;
     } while (scan && *scan);
 
+    printf("parse_cmds: end, returning:\n");
 
     return result;
 }
@@ -1081,7 +1172,6 @@ int
 run_one_test(Test *test)
 {
     int error = 0;
-//    char buffer[256];
 
     // set up memory/register value data structures
     MemValues = PlistCreate();
@@ -1104,6 +1194,8 @@ run_one_test(Test *test)
         char *fld2 = cmd->field2;
 
 #ifdef JUNK
+        char buffer[256];
+
         if (fld2)
             sprintf(buffer, "%s %s %07o%s",
                     opcode, fld1, str2word(fld2), (cmd->orig2) ? cmd->orig2 : "");
@@ -1229,7 +1321,7 @@ execute(char *script)
     // get test commands into massaged form in memory
     test = parse_script(script);
 
-#ifdef JUNK
+//#ifdef JUNK
     // DEBUG - print contents of 'test'
     for (Test *tscan = test; tscan != NULL; tscan = tscan->next)
     {
@@ -1241,7 +1333,7 @@ execute(char *script)
         printf("\n");
         fflush(stdout);
     }
-#endif
+//#endif
 
     // execute tests
     return run(test);
