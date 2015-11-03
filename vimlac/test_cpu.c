@@ -382,6 +382,8 @@ setmem(char *addr, char *fld2)
     {
         WORD value = str2word(fld2);
 
+        vlog("setmem: setting address %07o to value %07o", address, value);
+
         mem_put(address, false, value);
         save_mem_plist(address, value);
         ++address;
@@ -534,6 +536,8 @@ rununtil(char *addr, char *ignore)
 {
     WORD stop_pc = str2word(addr);
 
+    vlog("rununtil: running until address %07o", stop_pc);
+
     cpu_start();
     do
     {
@@ -543,6 +547,7 @@ rununtil(char *addr, char *ignore)
         ptp_tick(cycles);
 
         UsedCycles += cycles;
+        vlog("rununtil: after instruction, PC=%07o", cpu_get_PC());
     } while (cpu_get_PC() != stop_pc);
 
     return 0;
@@ -681,6 +686,8 @@ int
 mount(char *device, char *filename)
 {
     strlower(filename);
+
+    vlog("mount: mounting %s on %s", filename, device);
 
     if (STREQ(device, "PTR"))
         ptr_mount(filename);
