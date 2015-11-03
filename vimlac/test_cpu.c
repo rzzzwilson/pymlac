@@ -1,53 +1,10 @@
 /*
  * Test the CPU implementation.
  *
- * We implement a small interpreter to test the CPU.  The test code is read in
- * from a file:
+ * We implement a small interpreter to test the CPU.  The DSL implemented is
+ * documented at: https://github.com/rzzzwilson/pymlac/wiki/pymlac%20DSL
  *
- *    # LAW
- *    setreg ac 012345; setreg l 1; setreg pc 0100; setmem 0100 [LAW 0]; RUN; checkcycles 1; checkreg pc 0101; checkreg ac 0
- *    setreg ac 012345; setreg l 0; setmem 0100 [LAW 0]; RUN 0100
- *            checkcycles 1; checkreg pc 0101; checkreg ac 0
- *
- * The instructions are delimited by ';' characters.  A line beginning with a
- * white space is a continuation of the previous line.
- * Lines with '#' in column 1 are comments.
- *
- * The test instructions are:
- *     setreg <name> <value>
- *         where <name> is one of AC, L, PC or DS, value is any value
- *         (all registers are set to 0 initially)
- *
- *     setmem <addr> <value>
- *         where <addr> is an address and value is any value OR
- *         [<instruction>] where the value is the assembled opcode
- *
- *     run [<addr>]
- *         execute one instruction, if optional <addr> is used PC := addr before
- *
- *     checkcycles <number>
- *         check number of executed cycles is <number>
- *
- *     checkreg <name> <value>
- *         check register (AC, L, PC or DS) has value <value>
- *
- *     checkmem <addr> <value>
- *         check that memory at <addr> has <value>
- *
- *     allreg <value>
- *         sets all registers to <value>
- *         a "allreg 0" is assumed before each test
- *
- *     allmem <value>
- *         sets all of memory to <value>
- *         a "allmem 0" is assumed before each test
- *
- * In addition, all of memory is checked for changed values after execution
- * except where an explicit "checkmem <addr> <value>" has been performed.
- * Additionally, registers that aren't explicitly checked are tested to make
- * sure they didn't change.
- *
- * If a test line finds no error, just print the fully assembled test line.
+ * If a test line finds no error, print nothing.
  * If any errors are found, print line followed by all errors.
  */
 
@@ -64,6 +21,7 @@
 #include "error.h"
 #include "log.h"
 #include "plist.h"
+#include "bootstrap.h"
 
 
 // string comparison macro
@@ -149,6 +107,23 @@ strupper(char *str)
     while (*str)
     {
         *str = toupper(*str);
+        ++str;
+    }
+}
+
+
+/******************************************************************************
+Description : Convert a string to lower case.
+ Parameters : str - address of string to convert
+    Returns :
+   Comments : The string is converted 'in situ'.
+ ******************************************************************************/
+void
+strlower(char *str)
+{
+    while (*str)
+    {
+        *str = tolower(*str);
         ++str;
     }
 }
@@ -334,7 +309,26 @@ get_mem_plist(WORD addr, WORD *value)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// The following functions are the DSL functions.
+// Here we implement the DSL primitives.  They all take two parameters which are
+// the DSL field1 and field2 values (lowercase strings).  If one or both are
+// missing the parameter is None.
+//
+//   setreg <name> <value>
+//   setmem <address> <value>
+//   allreg <value>
+//   allmem <value>
+//   bootrom <type>
+//   romwrite <bool>
+//   run [<number>]
+//   rununtil <address>
+//   checkcycles <number>
+//   checkreg <name> <value>
+//   checkmem <addr> <value>
+//   checkcpu <state>
+//   checkdcpu <state>
+//   mount <device> <filename>
+//   dismount <device>
+//   checkfile <file1> <file2>
 ////////////////////////////////////////////////////////////////////////////////
 
 /******************************************************************************
@@ -367,29 +361,6 @@ setreg(char *name, char *fld2)
     save_reg_plist(name, value);
 
     return result;
-}
-
-/******************************************************************************
-Description : Set the display ON or OFF.
- Parameters : state - string containing 'on' or 'off'
-            : var2  - unused
-    Returns : The number of errors encountered (0 or 1).
-   Comments :
- ******************************************************************************/
-int
-setd(char *state, char *var2)
-{
-    if (STREQ(state, "ON"))
-        dcpu_start();
-    else if (STREQ(state, "OFF"))
-        dcpu_stop();
-    else
-    {
-        vlog("setd: bad state: %s", state);
-        return 1;
-    }
-
-    return 0;
 }
 
 
@@ -470,28 +441,77 @@ allmem(char *value, char *var2)
 
 
 /******************************************************************************
-Description : Run one or more instructions on the CPU.
- Parameters : num  - address of memory cell (string, may be NULL)
-            : fld2 - unused
+Description : Set the boot ROM to a papertape or TTY bootstrap.
+ Parameters : type   - type of ROM, eother 'PTR', 'TTY' or NULL
+            : ignore - unused
     Returns : The number of errors encountered (0 or 1).
    Comments :
  ******************************************************************************/
 int
-run_one(char *num, char *fld2)
+bootrom(char *type, char *ignore)
+{
+    if (STREQ(type, "PTR"))
+        mem_set_rom(PtrROMImage);
+    else if (STREQ(type, "TTY"))
+        mem_set_rom(TtyROMImage);
+    else
+    {
+        vlog("boot_rom: bad bootstrap type: %s", type);
+        return 1;
+    }
+    return 0;
+}
+
+
+/******************************************************************************
+Description : Set the ROM write capability.
+ Parameters : write  - sets if ROM writable, "ON" or "OFF"
+            : ignore - unused
+    Returns : The number of errors encountered (0 or 1).
+   Comments :
+ ******************************************************************************/
+int
+romwrite(char *write, char *fld2)
+{
+    if (STREQ(write, "ON"))
+        mem_set_rom_readonly(false);
+    else if (STREQ(write, "OFF"))
+        mem_set_rom_readonly(true);
+    else
+    {
+        vlog("romwrite: bad ROM writable code: %s", write);
+        return 1;
+    }
+    return 0;
+}
+
+
+/******************************************************************************
+Description : Run one or more instructions on the CPU.
+ Parameters : num    - the number of instructions to run (assume 1 if NULL)
+            : ignore - unused
+    Returns : The number of errors encountered (0 or 1).
+   Comments :
+ ******************************************************************************/
+int
+run(char *num, char *ignore)
 {
     int run_num = 0;
 
-    // if given address run from that address, else use PC contents
+    // if not given a number of instructions, assume 1
     if (!num)
-        run_num = 1;
-    else
-        run_num = str2word(num);
+        num = "1";
+
+    run_num = str2word(num);
+
+    vlog("run: executing %d instructions", run_num);
 
     cpu_start();
     while (run_num--)
     {
         int cycles = cpu_execute_one();
 
+        vlog("run: in loop, cycles=%d", cycles);
         ptr_tick(cycles);
         ptp_tick(cycles);
 
@@ -504,13 +524,13 @@ run_one(char *num, char *fld2)
 
 /******************************************************************************
 Description : Run the CPU until PC is the same as 'addr'.
- Parameters : addr - PC contents to stop at
-            : fld2 - unused
+ Parameters : addr   - PC contents to stop at
+            : ignore - unused
     Returns : The number of errors encountered (0 or 1).
-   Comments :
+   Comments : We execute one instruction before checking PC.
  ******************************************************************************/
 int
-rununtil(char *addr, char *fld2)
+rununtil(char *addr, char *ignore)
 {
     WORD stop_pc = str2word(addr);
 
@@ -531,13 +551,13 @@ rununtil(char *addr, char *fld2)
 
 /******************************************************************************
 Description : Check that the number of cycles used is as expected.
- Parameters : cycles - address of memory cell (string)
-            : var2   - unused
+ Parameters : cycles  - number of cycles expected
+            : ignore  - unused
     Returns : The number of errors encountered (0 or 1).
    Comments :
  ******************************************************************************/
 int
-checkcycles(char *cycles, char *fld2)
+checkcycles(char *cycles, char *ignore)
 {
     WORD c = str2word(cycles);
 
@@ -643,6 +663,32 @@ checkdcpu(char *state, char *unused)
     else
     {
         vlog("checkd: state should be 'on' or 'OFF', got %s", state);
+        return 1;
+    }
+
+    return 0;
+}
+
+
+/******************************************************************************
+Description : Mount a file on a device.
+ Parameters : device   - a device name ("PTR", "PTP", "TTYIN" or "TTYOUT")
+            : filename - path to the file to mount
+    Returns : The number of errors encountered (0 or 1).
+   Comments : If the device is an input device the file *must* exist.
+ ******************************************************************************/
+int
+mount(char *device, char *filename)
+{
+    strlower(filename);
+
+    if (STREQ(device, "PTR"))
+        ptr_mount(filename);
+    else if (STREQ(device, "PTP"))
+        ptp_mount(filename);
+    else
+    {
+        vlog("mount: mount device name not recognized: %s", device);
         return 1;
     }
 
@@ -1258,6 +1304,8 @@ run_one_test(Test *test)
     cpu_set_PC(InitRegValue);
     cpu_set_DS(InitRegValue);
 
+    UsedCycles = 0;
+
     for (Command *cmd = test->commands; cmd; cmd = cmd->next)
     {
         char *opcode = cmd->opcode;
@@ -1280,7 +1328,7 @@ run_one_test(Test *test)
         else if (STREQ(opcode, "SETMEM"))
             error += setmem(fld1, fld2);
         else if (STREQ(opcode, "RUN"))
-            error += run_one(fld1, fld2);
+            error += run(fld1, fld2);
         else if (STREQ(opcode, "RUNUNTIL"))
             error += rununtil(fld1, fld2);
         else if (STREQ(opcode, "CHECKCYCLES"))
@@ -1293,14 +1341,16 @@ run_one_test(Test *test)
             error += allreg(fld1, fld2);
         else if (STREQ(opcode, "ALLMEM"))
             error += allmem(fld1, fld2);
+        else if (STREQ(opcode, "bootrom"))
+            error += allmem(fld1, fld2);
         else if (STREQ(opcode, "CHECKRUN"))
             error += checkrun(fld1, fld2);
-        else if (STREQ(opcode, "SETD"))
-            error += setd(fld1, fld2);
         else if (STREQ(opcode, "CHECKDCPU"))
             error += checkdcpu(fld1, fld2);
         else if (STREQ(opcode, "CHECKCPU"))
             error += checkcpu(fld1, fld2);
+        else if (STREQ(opcode, "MOUNT"))
+            error += mount(fld1, fld2);
         else
         {
             printf("Unrecognized operation '%s' at line %d\n",
@@ -1328,7 +1378,7 @@ Description : Run tests and collect number of errors.
    Comments :
  ******************************************************************************/
 int
-run(Test *test)
+run_tests(Test *test)
 {
     int errors = 0;
     int one_test_errors = 0;
@@ -1411,7 +1461,7 @@ execute(char *script)
 //#endif
 
     // execute tests
-    return run(test);
+    return run_tests(test);
 }
 
 

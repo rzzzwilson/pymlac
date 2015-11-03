@@ -143,3 +143,8 @@ mem_save_core(char *filename)
 
     fclose(fd);
 }
+
+void
+mem_set_PTR_rom(void)
+{
+}

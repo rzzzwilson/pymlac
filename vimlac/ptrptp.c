@@ -56,17 +56,18 @@ static bool ptr_at_eof = true;
 static BYTE ptr_value = PTR_EOF;
 
 
-int ptr_mount(char *fname)
+int
+ptr_mount(char *fname)
 {
     if (device_use && STREQ(device_use, InUsePTP))
-       verror("ptr_mount: Can't mount PTR file, being used as PTP");
-;
+       error("ptr_mount: Can't mount PTR file, being used as PTP");
+
     device_filename = fname;
     device_open_file = fopen(fname, "rb");
     if (device_open_file == NULL)
     {
         ptr_dismount();
-        return errno;
+        error("ptr_mount: can't mount file %s", fname);
     }
     device_motor_on = false;
     device_ready = false;
@@ -78,10 +79,11 @@ int ptr_mount(char *fname)
 }
 
 
-void ptr_dismount(void)
+void
+ptr_dismount(void)
 {
     if (device_use && STREQ(device_use, InUsePTP))
-       verror("ptr_mount: Can't dismount PTR file, being used as PTP");
+       error("ptr_mount: Can't dismount PTR file, being used as PTP");
 
     if (device_open_file)
         fclose(device_open_file);
@@ -94,10 +96,11 @@ void ptr_dismount(void)
 }
 
 
-void ptr_start(void)
+void
+ptr_start(void)
 {
     if (device_use && STREQ(device_use, InUsePTP))
-       verror("ptrptp_start: Can't start PTR motor, being used as PTP");
+       error("ptrptp_start: Can't start PTR motor, being used as PTP");
 
     device_motor_on = true;
     device_ready = false;
@@ -105,32 +108,36 @@ void ptr_start(void)
 }
 
 
-void ptr_stop(void)
+void
+ptr_stop(void)
 {
     if (device_use && STREQ(device_use, InUsePTP))
-       verror("ptr_stop: Can't stop PTR motor, being used as PTP");
+       error("ptr_stop: Can't stop PTR motor, being used as PTP");
 
     device_motor_on = false;
     device_cycle_count = PTR_NOT_PTR_READY_CYCLES;
 }
 
 
-int ptr_read(void)
+int
+ptr_read(void)
 {
     if (device_use && STREQ(device_use, InUsePTP))
-       verror("ptr_read: Can't read PTR, device being used as PTP");
+       error("ptr_read: Can't read PTR, device being used as PTP");
 
     return ptr_value;
 }
 
 
-bool ptr_ready(void)
+bool
+ptr_ready(void)
 {
     return device_ready;
 }
 
 
-void ptr_tick(long cycles)
+void
+ptr_tick(long cycles)
 {
     // if not being used as PTR, do nothing
     if (device_use && !STREQ(device_use, InUsePTR))
@@ -167,10 +174,11 @@ void ptr_tick(long cycles)
 
 // MID
 
-int ptp_mount(char *fname)
+int
+ptp_mount(char *fname)
 {
     if (device_use && STREQ(device_use, InUsePTR))
-       verror("ptp_mount: Can't mount PTP, device being used as PTR");
+        error("ptp_mount: Can't mount PTP, device being used as PTR");
 
     device_use = InUsePTP;
     device_filename = fname;
@@ -178,7 +186,7 @@ int ptp_mount(char *fname)
     if (device_open_file == NULL)
     {
         ptp_dismount();
-        return errno;
+        error("ptp_mount: Can't mount file %s", fname);
     }
     device_motor_on = false;
     device_ready = false;
@@ -188,10 +196,11 @@ int ptp_mount(char *fname)
 }
 
 
-void ptp_dismount(void)
+void
+ptp_dismount(void)
 {
     if (device_use && STREQ(device_use, InUsePTR))
-       verror("ptp_dismount: Can't dismount PTP, device being used as PTR");
+       error("ptp_dismount: Can't dismount PTP, device being used as PTR");
 
     if (device_open_file)
         if (fclose(device_open_file) != 0)
@@ -202,7 +211,8 @@ void ptp_dismount(void)
 }
 
 
-void ptp_start(void)
+void
+ptp_start(void)
 {
     device_motor_on = true;
     device_ready = false;
@@ -210,14 +220,16 @@ void ptp_start(void)
 }
 
 
-void ptp_stop(void)
+void
+ptp_stop(void)
 {
     device_motor_on = false;
     device_cycle_count = PTP_NOT_READY_CYCLES;
 }
 
 
-void ptp_punch(BYTE value)
+void
+ptp_punch(BYTE value)
 {
     if (device_motor_on && device_open_file != NULL)
     {
@@ -227,13 +239,15 @@ void ptp_punch(BYTE value)
 }
 
 
-bool ptp_ready(void)
+bool
+ptp_ready(void)
 {
     return device_ready;
 }
 
 
-void ptp_tick(long cycles)
+void
+ptp_tick(long cycles)
 {
     /* if no state change */
     if (!device_motor_on || device_open_file == NULL)
