@@ -4,6 +4,7 @@
 
 #include "vimlac.h"
 #include "ptrptp.h"
+#include "log.h"
 
 
 /*****
@@ -41,12 +42,12 @@
  * State variables for the general device
  ******/
 
+static bool device_ready = false;
 static char *device_use = NULL;         // NULL, InUsePTR or InUsePTP
 static bool device_motor_on = false;
 static FILE *device_open_file = NULL;
 static char *device_filename = NULL;
 static long device_cycle_count = 0;
-static bool device_ready = false;
 
 /*****
  * Specific state variables for the PTR device
@@ -90,7 +91,7 @@ ptr_dismount(void)
     device_filename = NULL;
     device_open_file = NULL;
     device_motor_on = false;
-    device_ready = true;
+    device_ready = false;
     ptr_at_eof = true;
     ptr_value = PTR_EOF;
 }
@@ -116,6 +117,7 @@ ptr_stop(void)
 
     device_motor_on = false;
     device_cycle_count = PTR_NOT_PTR_READY_CYCLES;
+    device_ready = false;
 }
 
 
@@ -123,7 +125,7 @@ int
 ptr_read(void)
 {
     if (device_use && STREQ(device_use, InUsePTP))
-       error("ptr_read: Can't read PTR, device being used as PTP");
+        error("ptr_read: Can't read PTR, device being used as PTP");
 
     return ptr_value;
 }
@@ -132,6 +134,7 @@ ptr_read(void)
 bool
 ptr_ready(void)
 {
+    vlog("ptr_ready: returning %s (%d)", (device_ready) ? "true" : "false", device_ready);
     return device_ready;
 }
 
@@ -139,6 +142,7 @@ ptr_ready(void)
 void
 ptr_tick(long cycles)
 {
+    vlog("ptr_tick: (1) device_ready=%s (%d)", (device_ready) ? "true" : "false", device_ready);
     // if not being used as PTR, do nothing
     if (device_use && !STREQ(device_use, InUsePTR))
         return;
@@ -151,7 +155,8 @@ ptr_tick(long cycles)
     device_cycle_count -= cycles;
     if (device_cycle_count <= 0L)
     {
-        if (device_ready)
+        vlog("ptr_tick: **** device_ready=%s (%d)", (device_ready) ? "true" : "false", device_ready);
+        if (device_ready == true)
         {
             device_ready = false;
             device_cycle_count += PTR_NOT_PTR_READY_CYCLES;
@@ -163,12 +168,14 @@ ptr_tick(long cycles)
             device_cycle_count += PTR_READY_CYCLES;
             if (fread(&ptr_value, sizeof(BYTE), 1, device_open_file) != 1)
             {   /* assume EOF on file, dismount tape */
-		fclose(device_open_file);
-		device_open_file = NULL;
+//		fclose(device_open_file);
+//		device_open_file = NULL;
                 ptr_at_eof = true;
                 ptr_value = PTR_EOF;
             }
         }
+        vlog("ptr_tick: device_cycle_count=%d, device_ready->%s (%d)",
+                device_cycle_count, (device_ready) ? "true" : "false", device_ready);
     }
 }
 

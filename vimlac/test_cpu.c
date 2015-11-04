@@ -22,6 +22,7 @@
 #include "log.h"
 #include "plist.h"
 #include "bootstrap.h"
+#include "trace.h"
 
 
 // string comparison macro
@@ -377,18 +378,25 @@ setmem(char *addr, char *fld2)
 {
     WORD address = str2word(addr);
     char *new_fld2;
+    WORD value = 0;
 
     while ((new_fld2 = split(fld2, '|')))
     {
-        WORD value = str2word(fld2);
+        value = str2word(fld2);
 
-        vlog("setmem: setting address %07o to value %07o", address, value);
+        trace_delim("setmem: setting address %07o to value %07o", address, value);
 
         mem_put(address, false, value);
         save_mem_plist(address, value);
         ++address;
         fld2 = new_fld2;
     }
+
+    // handle last part of field
+    value = str2word(fld2);
+    trace_delim("setmem: setting address %07o to value %07o", address, value);
+    mem_put(address, false, value);
+    save_mem_plist(address, value);
 
     return 0;
 }
@@ -506,14 +514,11 @@ run(char *num, char *ignore)
 
     run_num = str2word(num);
 
-    vlog("run: executing %d instructions", run_num);
-
     cpu_start();
     while (run_num--)
     {
         int cycles = cpu_execute_one();
 
-        vlog("run: in loop, cycles=%d", cycles);
         ptr_tick(cycles);
         ptp_tick(cycles);
 
@@ -536,10 +541,8 @@ rununtil(char *addr, char *ignore)
 {
     WORD stop_pc = str2word(addr);
 
-    vlog("rununtil: running until address %07o", stop_pc);
-
     cpu_start();
-    do
+    while (cpu_running())
     {
         int cycles = cpu_execute_one();
 
@@ -547,8 +550,9 @@ rununtil(char *addr, char *ignore)
         ptp_tick(cycles);
 
         UsedCycles += cycles;
-        vlog("rununtil: after instruction, PC=%07o", cpu_get_PC());
-    } while (cpu_get_PC() != stop_pc);
+        if (cpu_get_PC() == stop_pc)
+            break;
+    }
 
     return 0;
 }
@@ -621,13 +625,13 @@ Description : Check that the main CPU is in the correct state.
 int
 checkcpu(char *state, char *unused)
 {
-    if ((STREQ(state, "on")) && !cpu_get_state())
+    if ((STREQ(state, "on")) && !cpu_running())
     {
         vlog("Main CPU run state is %s, should be 'ON'",
                 (DisplayOn ? "ON": "OFF"));
         return 1;
     }
-    else if ((STREQ(state, "off")) && cpu_get_state())
+    else if ((STREQ(state, "off")) && cpu_running())
     {
         vlog("Main CPU run state is %s, should be 'OFF'",
                 (DisplayOn ? "ON": "OFF"));
@@ -687,8 +691,6 @@ mount(char *device, char *filename)
 {
     strlower(filename);
 
-    vlog("mount: mounting %s on %s", filename, device);
-
     if (STREQ(device, "PTR"))
         ptr_mount(filename);
     else if (STREQ(device, "PTP"))
@@ -741,7 +743,7 @@ Description : Check that the CPU run state is as expected.
 int
 checkrun(char *state, char *unused)
 {
-    bool cpu_state = cpu_get_state();
+    bool cpu_state = cpu_running();
 
     if (!STREQ(state, "ON") && !STREQ(state, "OFF"))
     {
@@ -860,18 +862,28 @@ assemble(WORD addr, char *opcodes)
     char *new_strcopy;
     int  num_opcodes = 0;
 
+    vlog("assemble: addr=%07o, opcodes=%s", addr, opcodes);
+
     // create the ASM file
     fd = fopen(AsmFilename, "wb");
     fprintf(fd, "\torg\t%07o\n", addr);
     while ((new_strcopy = split(strcopy, '|')))
     {
+        vlog("assemble: code=%s", strcopy);
         fprintf(fd, "\t%s\n", strcopy);
         ++num_opcodes;
         strcopy = new_strcopy;
     }
+    // handle last opcode
+    vlog("assemble: code=%s", strcopy);
+    fprintf(fd, "\t%s\n", strcopy);
+    ++num_opcodes;
+
     fprintf(fd, "\tend\n");
     fclose(fd);
     free(old_strcopy);
+
+    vlog("assemble: num_opcodes=%d", num_opcodes);
 
     // assemble the file
     sprintf(buffer, "../iasm/iasm -l %s %s", LstFilename, AsmFilename);
@@ -885,9 +897,11 @@ assemble(WORD addr, char *opcodes)
     if (fgets(buffer, sizeof(buffer), fd) == NULL)
         error("Error reading %s", LstFilename);
 
-    while (num_opcodes)
+    while (num_opcodes-- > 0)
     {
         Opcode *new_opcode = malloc(sizeof(Opcode));
+
+        new_opcode->next = NULL;
 
         // get next line of assembler listing
         if (fgets(buffer, sizeof(buffer), fd) == NULL)
@@ -896,6 +910,7 @@ assemble(WORD addr, char *opcodes)
         // read first word value
         if (sscanf(buffer, "%o", &new_opcode->opcode) != 1)
             error("Badly formatted assembler output: %s", buffer);
+        vlog("assemble: assembly output: %07o", new_opcode->opcode);
 
         // add binary opcode to end of result list
         if (result == NULL)
@@ -907,9 +922,6 @@ assemble(WORD addr, char *opcodes)
             last_result->next = new_opcode;
             last_result = new_opcode;
         }
-
-        new_opcode->next = NULL;
-        --num_opcodes;
     }
 
     fclose(fd);
@@ -960,8 +972,6 @@ parse_one_cmd(char *scan)
     char *orig2 = NULL;
     char tmpbuff[256];
 
-    printf("parse_one_cmd: scan->%s\n", scan);
-
     // find start and end of opcode
     while (*scan && isspace(*scan))     // skip leading space
         ++scan;
@@ -971,8 +981,6 @@ parse_one_cmd(char *scan)
         ++scan;
     if (*scan)
         *(scan++) = '\0';
-
-    printf("parse_one_cmd: opcode->%s\n", opcode);
 
     // start/end of field1 (if there)
     while (*scan && isspace(*scan))     // skip leading space
@@ -985,8 +993,6 @@ parse_one_cmd(char *scan)
             ++scan;
         if (*scan)
             *(scan++) = '\0';
-
-    printf("parse_one_cmd: field1->%s\n", field1);
 
         // field2?
         while (*scan && isspace(*scan)) // skip leading space
@@ -1003,7 +1009,6 @@ parse_one_cmd(char *scan)
                 while (*scan && !(*scan == ']'))
                     ++scan;
                 *scan = '\0';
-            printf("parse_one_cmd: calling assemble(%s, %s)\n", field1, field2);
                 Opcode *v = assemble(str2word(field1), field2); // destroys field2
                 while (v)
                 {
@@ -1011,6 +1016,7 @@ parse_one_cmd(char *scan)
                     v = v->next;
                 }
                 field2 = tmpbuff+1;
+                vlog("parse_one_cmd: field2=%s", field2);
             }
             else
             {
@@ -1054,8 +1060,6 @@ parse_cmds(char *scan)
     char *end_cmd = NULL;
     Command *new_cmd = NULL;
 
-    printf("parse_cmds: entered: %s\n", scan);
-
     // scan the buffer for commands
     do
     {
@@ -1071,9 +1075,7 @@ parse_cmds(char *scan)
             *end_cmd = '\0';
         }
 
-        printf("Calling parse_one_cmd(%s)\n", scan);
         new_cmd = parse_one_cmd(scan);
-        printf("After parse_one_cmd()\n");
 
         if (result == NULL)
         {
@@ -1088,8 +1090,6 @@ parse_cmds(char *scan)
 
         scan = new_scan;
     } while (scan && *scan);
-
-    printf("parse_cmds: end, returning:\n");
 
     return result;
 }
@@ -1296,6 +1296,7 @@ int
 run_one_test(Test *test)
 {
     int error = 0;
+    char buffer[256];
 
     // set up memory/register value data structures
     MemValues = PlistCreate();
@@ -1313,22 +1314,20 @@ run_one_test(Test *test)
 
     UsedCycles = 0;
 
+    trace_open();
+
     for (Command *cmd = test->commands; cmd; cmd = cmd->next)
     {
         char *opcode = cmd->opcode;
         char *fld1 = cmd->field1;
         char *fld2 = cmd->field2;
 
-#ifdef JUNK
-        char buffer[256];
-
         if (fld2)
             sprintf(buffer, "%s %s %07o%s",
                     opcode, fld1, str2word(fld2), (cmd->orig2) ? cmd->orig2 : "");
         else
             sprintf(buffer, "%s %s", opcode, fld1);
-        LogPrefix = new_String(buffer);
-#endif
+        trace_delim(buffer);
 
         if (STREQ(opcode, "SETREG"))
             error += setreg(fld1, fld2);
@@ -1365,6 +1364,8 @@ run_one_test(Test *test)
             error += 1;
         }
     }
+
+    trace_close();
 
     // now check all memory and regs for changes
     error += check_all_mem();
@@ -1453,7 +1454,7 @@ execute(char *script)
     // get test commands into massaged form in memory
     test = parse_script(script);
 
-//#ifdef JUNK
+#ifdef JUNK
     // DEBUG - print contents of 'test'
     for (Test *tscan = test; tscan != NULL; tscan = tscan->next)
     {
@@ -1465,7 +1466,7 @@ execute(char *script)
         printf("\n");
         fflush(stdout);
     }
-//#endif
+#endif
 
     // execute tests
     return run_tests(test);

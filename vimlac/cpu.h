@@ -20,7 +20,7 @@ WORD cpu_get_L(void);
 WORD cpu_get_PC(void);
 WORD cpu_get_prev_PC(void);
 WORD cpu_get_DS(void);
-bool cpu_get_state(void);
+bool cpu_running(void);
 void cpu_set_AC(WORD ac);
 void cpu_set_L(WORD l);
 void cpu_set_PC(WORD pc);

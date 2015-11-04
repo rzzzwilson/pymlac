@@ -11,8 +11,7 @@
 #include "dcpu.h"
 #include "memory.h"
 #include "kb.h"
-#include "ptr.h"
-#include "ptp.h"
+#include "ptrptp.h"
 #include "ttyin.h"
 #include "ttyout.h"
 #include "trace.h"
@@ -136,7 +135,7 @@ cpu_get_prev_PC(void)
 }
 
 bool
-cpu_get_state(void)
+cpu_running(void)
 {
     return cpu_on;
 }
@@ -1595,7 +1594,8 @@ cpu_execute_one(void)
  ******/
 
     Prev_r_PC = r_PC;
-    instruction = mem_get(r_PC++, false);
+    instruction = mem_get(r_PC, false);
+    ++r_PC;
     r_PC = r_PC & MEMMASK;
 
     indirect = (bool) (instruction & 0100000);	/* high bit set? */

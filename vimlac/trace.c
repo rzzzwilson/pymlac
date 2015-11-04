@@ -9,6 +9,38 @@
 
 
 bool TraceFlag = false;
+static char *TraceFile = "trace.out";
+static FILE *trace_fp = NULL;
+
+
+/******************************************************************************
+ * Description : printf()-style output routine to RAW screen.
+ *  Parameters : like printf()
+ *     Returns : 
+ *    Comments : 
+ ******************************************************************************/
+void
+trace_open(void)
+{
+    trace_fp = fopen(TraceFile, "wb");
+    TraceFlag = true;
+}
+
+
+/******************************************************************************
+ * Description : printf()-style output routine to RAW screen.
+ *  Parameters : like printf()
+ *     Returns : 
+ *    Comments : 
+ ******************************************************************************/
+void
+trace_close(void)
+{
+    if (trace_fp != NULL)
+        fclose(trace_fp);
+    trace_fp = NULL;
+    TraceFlag = false;
+}
 
 
 /******************************************************************************
@@ -29,9 +61,9 @@ Emit(char *fmt, ...)
     va_end(ap);
                 
     for (chptr = buff; *chptr != '\0'; ++chptr)
-        fprintf(stdout, "%c", *chptr);
+        fprintf(trace_fp, "%c", *chptr);
                     
-    fflush(stdout);
+    fflush(trace_fp);
 }
 
 
@@ -39,6 +71,19 @@ void
 DumpRegs(char *buff)
 {
     sprintf(buff, "AC=0%6.6o\tL=%1.1o", cpu_get_AC(), cpu_get_L());
+}
+
+void
+trace_delim(char *fmt, ...)
+{
+    va_list ap;
+    char    buff[1024];
+
+    va_start(ap, fmt);
+    vsprintf(buff, fmt, ap);
+    va_end(ap);
+
+    Emit("-------- %s\n", buff);
 }
 
 
