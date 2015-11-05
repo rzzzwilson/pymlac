@@ -25,9 +25,6 @@
 #include "trace.h"
 
 
-// string comparison macro
-#define STREQ(a, b) (strcmp((a), (b)) == 0)
-
 // constants
 const char *LstFilename = "_#TEST#_.lst";   // LST filename
 const char *AsmFilename = "_#TEST#_.asm";   // ASM filename
@@ -706,6 +703,59 @@ mount(char *device, char *filename)
 
 
 /******************************************************************************
+Description : Dismount a file on a device.
+ Parameters : device  - a device name ("PTR", "PTP", "TTYIN" or "TTYOUT")
+            : ignore  - unused
+    Returns : The number of errors encountered (0 or 1).
+   Comments : 
+ ******************************************************************************/
+int
+dismount(char *device, char *ignore)
+{
+//    strupper(device);
+
+    if (STREQ(device, "PTR"))
+        ptr_dismount();
+    else if (STREQ(device, "PTP"))
+        ptp_dismount();
+    else
+    {
+        vlog("dismount: device name not recognized: %s", device);
+        return 1;
+    }
+
+    return 0;
+}
+
+
+/******************************************************************************
+Description : Checkk that two files are identical.
+ Parameters : file1, file2 - files to check
+    Returns : The number of errors encountered (0 or 1).
+   Comments : 
+ ******************************************************************************/
+int
+checkfile(char *file1, char *file2)
+{
+    char buffer[1024];
+
+    strlower(file1);
+    strlower(file2);
+
+    // assemble the file
+    sprintf(buffer, "cmp %s %s >/dev/null 2>&1", file1, file2);
+    printf("%s\n", buffer);
+    if (system(buffer) == -1)
+    {
+        vlog("checkfile: files '%s' and '%s' differ", file1, file2);
+        return 1;
+    }
+
+    return 0;
+}
+
+
+/******************************************************************************
 Description : Check that a memory address contents is as expected.
  Parameters : address - memory address to check (string)
             : value   - expected memory value (string)
@@ -862,28 +912,22 @@ assemble(WORD addr, char *opcodes)
     char *new_strcopy;
     int  num_opcodes = 0;
 
-    vlog("assemble: addr=%07o, opcodes=%s", addr, opcodes);
-
     // create the ASM file
     fd = fopen(AsmFilename, "wb");
     fprintf(fd, "\torg\t%07o\n", addr);
     while ((new_strcopy = split(strcopy, '|')))
     {
-        vlog("assemble: code=%s", strcopy);
         fprintf(fd, "\t%s\n", strcopy);
         ++num_opcodes;
         strcopy = new_strcopy;
     }
     // handle last opcode
-    vlog("assemble: code=%s", strcopy);
     fprintf(fd, "\t%s\n", strcopy);
     ++num_opcodes;
 
     fprintf(fd, "\tend\n");
     fclose(fd);
     free(old_strcopy);
-
-    vlog("assemble: num_opcodes=%d", num_opcodes);
 
     // assemble the file
     sprintf(buffer, "../iasm/iasm -l %s %s", LstFilename, AsmFilename);
@@ -910,7 +954,6 @@ assemble(WORD addr, char *opcodes)
         // read first word value
         if (sscanf(buffer, "%o", &new_opcode->opcode) != 1)
             error("Badly formatted assembler output: %s", buffer);
-        vlog("assemble: assembly output: %07o", new_opcode->opcode);
 
         // add binary opcode to end of result list
         if (result == NULL)
@@ -1016,7 +1059,6 @@ parse_one_cmd(char *scan)
                     v = v->next;
                 }
                 field2 = tmpbuff+1;
-                vlog("parse_one_cmd: field2=%s", field2);
             }
             else
             {
@@ -1314,6 +1356,8 @@ run_one_test(Test *test)
 
     UsedCycles = 0;
 
+    ptrptp_reset();
+
     trace_open();
 
     for (Command *cmd = test->commands; cmd; cmd = cmd->next)
@@ -1357,6 +1401,10 @@ run_one_test(Test *test)
             error += checkcpu(fld1, fld2);
         else if (STREQ(opcode, "MOUNT"))
             error += mount(fld1, fld2);
+        else if (STREQ(opcode, "DISMOUNT"))
+            error += dismount(fld1, fld2);
+        else if (STREQ(opcode, "CHECKFILE"))
+            error += checkfile(fld1, fld2);
         else
         {
             printf("Unrecognized operation '%s' at line %d\n",
@@ -1433,7 +1481,7 @@ run_tests(Test *test)
         test = test->next;
     }
 
-    printf("\r");
+    printf("\n");
     fflush(stdout);
 
     return errors;

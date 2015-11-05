@@ -12,6 +12,9 @@
 #include <string.h>
 #include <errno.h>
 
+#include "error.h"
+
+
 typedef unsigned int	WORD;
 typedef unsigned char	BYTE;
 
@@ -22,7 +25,11 @@ typedef unsigned char	BYTE;
 #define OVERFLOWMASK	0x10000
 #define LOWBITMASK	0x1
 
+// macro to convert a boolean value to a string
+#define BOOL2STR(a)     ((a) ? "true" : "false")
 
-void error(char *msg, ...);
+// macro to more reliably compare strings
+#define STREQ(a, b) ((a) && (strcmp((a), (b)) == 0))
+
 
 #endif

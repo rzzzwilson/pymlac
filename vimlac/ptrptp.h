@@ -5,6 +5,7 @@
 #ifndef PTRPTP_H
 #define PTRPTP_H
 
+void ptrptp_reset(void);
 int ptr_mount(char *fname);
 void ptr_dismount(void);
 void ptr_start(void);

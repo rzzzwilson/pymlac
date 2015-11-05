@@ -1,15 +1,15 @@
 DEVFILES = cpu.o dcpu.o ptrptp.o memory.o kb.o ttyin.o ttyout.o trace.o error.o log.o plist.o bootstrap.o
+HFILES = cpu.h dcpu.h ptrptp.h memory.h kb.h ttyin.h ttyout.h trace.h error.h log.h plist.h bootstrap.h
 OFILES = vimlac.o $(DEVFILES)
 
-#CFLAGS=-fPIC -O2 -Wall -ansi -pedantic -std=c99 -g
 CFLAGS=-O2 -Wall -ansi -pedantic -std=c99 -g
-
-test_cpu:	test_cpu.c $(DEVFILES) Makefile
-	gcc -o test_cpu ${CFLAGS} $(DEVFILES) test_cpu.c
 
 test:	test_cpu
 	rm -f vimlac.log
 	./test_cpu CPU.test
+
+test_cpu:	test_cpu.c $(DEVFILES) Makefile
+	gcc -o test_cpu ${CFLAGS} $(DEVFILES) test_cpu.c
 
 vimlac:	${OFILES} Makefile
 	gcc -o vimlac ${CFLAGS} ${OFILES}

@@ -21,7 +21,7 @@ error(char *fmt, ...)
 
     va_start(ap, fmt);
     vsprintf(buff, fmt, ap);
-    fprintf(stderr, "%s\n", buff);
+    fprintf(stderr, "\n%s\n", buff);
     va_end(ap);
 
     exit(10);
