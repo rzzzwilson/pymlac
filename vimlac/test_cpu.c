@@ -622,21 +622,27 @@ Description : Check that the main CPU is in the correct state.
 int
 checkcpu(char *state, char *unused)
 {
-    if ((STREQ(state, "on")) && !cpu_running())
+    if (STREQ(state, "ON"))
     {
-        vlog("Main CPU run state is %s, should be 'ON'",
-                (DisplayOn ? "ON": "OFF"));
-        return 1;
+        if (!cpu_running())
+        {
+            vlog("Main CPU run state is %s, should be 'ON'",
+                    (DisplayOn ? "ON": "OFF"));
+            return 1;
+        }
     }
-    else if ((STREQ(state, "off")) && cpu_running())
+    else if (STREQ(state, "OFF"))
     {
-        vlog("Main CPU run state is %s, should be 'OFF'",
-                (DisplayOn ? "ON": "OFF"));
-        return 1;
+        if (cpu_running())
+        {
+            vlog("Main CPU run state is %s, should be 'OFF'",
+                    (DisplayOn ? "ON": "OFF"));
+            return 1;
+        }
     }
     else
     {
-        vlog("checkcpu: state should be 'on' or 'OFF', got %s", state);
+        vlog("checkcpu: state should be 'ON' or 'OFF', got '%s'", state);
         return 1;
     }
 
@@ -744,6 +750,7 @@ checkfile(char *file1, char *file2)
 
     // assemble the file
     sprintf(buffer, "cmp %s %s >/dev/null 2>&1", file1, file2);
+    vlog("checkfile: file1=%s, file2=%s, buffer=%s", file1, file2, buffer);
     printf("%s\n", buffer);
     if (system(buffer) == -1)
     {
@@ -1357,6 +1364,8 @@ run_one_test(Test *test)
     UsedCycles = 0;
 
     ptrptp_reset();
+
+    cpu_start();
 
     trace_open();
 
