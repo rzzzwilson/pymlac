@@ -5,7 +5,7 @@ OFILES = vimlac.o $(DEVFILES)
 CFLAGS=-O2 -Wall -ansi -pedantic -std=c99 -g
 
 test:	test_cpu
-	rm -f vimlac.log
+	rm -f vimlac.log trace.out
 	./test_cpu CPU.test
 
 test_cpu:	test_cpu.c $(DEVFILES) Makefile

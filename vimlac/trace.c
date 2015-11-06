@@ -22,7 +22,7 @@ static FILE *trace_fp = NULL;
 void
 trace_open(void)
 {
-    trace_fp = fopen(TraceFile, "wb");
+    trace_fp = fopen(TraceFile, "a");
     TraceFlag = true;
 }
 
@@ -83,7 +83,7 @@ trace_delim(char *fmt, ...)
     vsprintf(buff, fmt, ap);
     va_end(ap);
 
-    Emit("-------- %s\n", buff);
+    Emit("%s\n", buff);
 }
 
 

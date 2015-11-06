@@ -49,6 +49,7 @@ typedef struct _Test
     struct _Test *next;
     int line_number;
     Command *commands;
+    char *orig;
 } Test;
 
 typedef struct _Assoc
@@ -148,6 +149,40 @@ str2word(char *str)
     }
 
     return value;
+}
+
+
+/******************************************************************************
+Description : Create a new Opcode struct.
+ Parameters : 
+    Returns : The address of the new Opcode.
+   Comments : The ->next field is set to NULL.
+ ******************************************************************************/
+Opcode *
+new_Opcode(void)
+{
+    Opcode *result = (Opcode *) malloc(sizeof(Opcode));
+
+    result->next = NULL;
+
+    return result;
+}
+
+/******************************************************************************
+Description : Dump (with vlog()) the contents od an Opcode list.
+ Parameters : opcode - the Opcode list to dump
+    Returns : 
+   Comments : 
+ ******************************************************************************/
+void
+dump_Opcodes(Opcode *opcode)
+{
+    vlog("Dump of Opcode list:");
+    while (opcode)
+    {
+        vlog("%p: %07o", opcode, opcode->opcode);
+        opcode = opcode->next;
+    }
 }
 
 
@@ -381,8 +416,6 @@ setmem(char *addr, char *fld2)
     {
         value = str2word(fld2);
 
-        trace_delim("setmem: setting address %07o to value %07o", address, value);
-
         mem_put(address, false, value);
         save_mem_plist(address, value);
         ++address;
@@ -391,7 +424,6 @@ setmem(char *addr, char *fld2)
 
     // handle last part of field
     value = str2word(fld2);
-    trace_delim("setmem: setting address %07o to value %07o", address, value);
     mem_put(address, false, value);
     save_mem_plist(address, value);
 
@@ -674,7 +706,7 @@ checkdcpu(char *state, char *unused)
     }
     else
     {
-        vlog("checkd: state should be 'on' or 'OFF', got %s", state);
+        vlog("checkd: Display CPU state should be 'ON' or 'OFF', got %s", state);
         return 1;
     }
 
@@ -865,6 +897,7 @@ new_Test(int line_number, Command *commands)
     result->next = NULL;
     result->line_number = line_number;
     result->commands = commands;
+    result->orig = NULL;
 
     return result;
 }
@@ -950,9 +983,7 @@ assemble(WORD addr, char *opcodes)
 
     while (num_opcodes-- > 0)
     {
-        Opcode *new_opcode = malloc(sizeof(Opcode));
-
-        new_opcode->next = NULL;
+        Opcode *new_opcode = new_Opcode();
 
         // get next line of assembler listing
         if (fgets(buffer, sizeof(buffer), fd) == NULL)
@@ -965,7 +996,8 @@ assemble(WORD addr, char *opcodes)
         // add binary opcode to end of result list
         if (result == NULL)
         {
-            result = last_result = new_opcode;
+            result = new_opcode;
+            last_result = new_opcode;
         }
         else
         {
@@ -975,6 +1007,10 @@ assemble(WORD addr, char *opcodes)
     }
 
     fclose(fd);
+
+#ifdef DEBUG
+    dump_Opcodes(result);
+#endif
 
     return result;
 }
@@ -1020,7 +1056,7 @@ parse_one_cmd(char *scan)
     char *field1 = NULL;
     char *field2 = NULL;
     char *orig2 = NULL;
-    char tmpbuff[256];
+    char tmpbuff[256] = "";
 
     // find start and end of opcode
     while (*scan && isspace(*scan))     // skip leading space
@@ -1037,7 +1073,7 @@ parse_one_cmd(char *scan)
         ++scan;
 
     if (*scan)
-    {   // we have field1, at least
+    {    // we have field1, at least
         field1 = scan;
         while (*scan && !isspace(*scan))
             ++scan;
@@ -1062,8 +1098,12 @@ parse_one_cmd(char *scan)
                 Opcode *v = assemble(str2word(field1), field2); // destroys field2
                 while (v)
                 {
+                    Opcode *last_v = v;
+
                     sprintf(tmpbuff+strlen(tmpbuff), "|%d", v->opcode);
+
                     v = v->next;
+                    free(last_v);
                 }
                 field2 = tmpbuff+1;
             }
@@ -1211,7 +1251,10 @@ parse_script(char *scriptpath)
         }
         else
         {   // new test
+            char *orig = new_String(buffer);
             Test *new_test = new_Test(line_number, parse_cmds(buffer));
+
+            new_test->orig = orig;
 
             if (head_test == NULL)
             {   // first test
@@ -1369,6 +1412,8 @@ run_one_test(Test *test)
 
     trace_open();
 
+    trace_delim("%04d: %s", test->line_number, test->orig);
+
     for (Command *cmd = test->commands; cmd; cmd = cmd->next)
     {
         char *opcode = cmd->opcode;
@@ -1380,7 +1425,7 @@ run_one_test(Test *test)
                     opcode, fld1, str2word(fld2), (cmd->orig2) ? cmd->orig2 : "");
         else
             sprintf(buffer, "%s %s", opcode, fld1);
-        trace_delim(buffer);
+        trace_delim("%04d: %s", test->line_number, buffer);
 
         if (STREQ(opcode, "SETREG"))
             error += setreg(fld1, fld2);
@@ -1438,7 +1483,7 @@ run_one_test(Test *test)
 
 /******************************************************************************
 Description : Run tests and collect number of errors.
- Parameters : test - pointer to a chain if Test structs
+ Parameters : test - pointer to a chain of Test structs
     Returns : The number of errors encountered.
    Comments :
  ******************************************************************************/
@@ -1447,7 +1492,7 @@ run_tests(Test *test)
 {
     int errors = 0;
     int one_test_errors = 0;
-    char buffer[1024];
+    char buffer[2048];
     int loop_count = 0;
 
     while (test)
@@ -1476,6 +1521,8 @@ run_tests(Test *test)
 
             sprintf(buffer+strlen(buffer), ";");
         }
+
+        LogPrefix = new_String("-----");
 
         one_test_errors = run_one_test(test);
         if (one_test_errors)
