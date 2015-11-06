@@ -4,7 +4,7 @@
 #
 
 test:	test.ptr
-	rm -f test.ptp
+	rm -f test.ptp CPU.test.trace test_CPU.log
 	python test_CPU.py CPU.test
 
 test.ptr:

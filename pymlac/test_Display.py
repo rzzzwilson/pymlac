@@ -11,13 +11,13 @@ Usage: test_Display.py [-h]
 import wx
 import Display
 
-# if we don't have log.py, don't crash                                           
-try:                                                                             
-    import log                                                     
-    log = log.Log('test.log', log.Log.DEBUG)                                     
-except ImportError:                                                              
-    def log(*args, **kwargs):                                                    
-        pass                                                                     
+# if we don't have log.py, don't crash
+try:
+    import log
+    log = log.Log('test.log', log.Log.DEBUG)
+except ImportError:
+    def log(*args, **kwargs):
+        pass
 
 
 ######
