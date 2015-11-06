@@ -424,4 +424,4 @@ setreg ac 0; setreg pc 0100; mount ptp test.ptp;
 # and lots of IOT instructions
 
 # check multiple assemblerinstructions in DSL
-setmem 0100 [LAW 1|HLT]; setreg pc 0100; RUNUNTIL 0102; checkcycles 2; checkreg pc 0102; checkreg ac 1
+setreg pc 0100; setmem 0100 [LAW 1|HLT]; RUNUNTIL 0102; checkcycles 2; checkreg pc 0102; checkreg ac 1

@@ -737,17 +737,17 @@ i_KSN(void)
 
 
 /******************************************************************************
-Description : Emulate the IMLAC PUN instruction.
+Description : Emulate the IMLAC PPC instruction.
  Parameters : 
     Returns : 
    Comments : Punch AC low byte to tape.
  ******************************************************************************/
 static int
-i_PUN(void)
+i_PPC(void)
 {
     ptp_punch(r_AC & 0xff);
 
-    trace("PUN\t");
+    trace("PPC\t");
 
     return 1;
 }
@@ -1532,7 +1532,7 @@ page00(WORD instruction)
         case 001141: return i_IOT141();
         case 001161: return i_IOF();
         case 001162: return i_ION();
-        case 001271: return i_PUN();
+        case 001271: return i_PPC();
         case 001274: return i_PSF();
         case 003001: return i_RAL(1);
         case 003002: return i_RAL(2);

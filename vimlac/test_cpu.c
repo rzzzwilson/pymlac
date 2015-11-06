@@ -744,15 +744,15 @@ int
 checkfile(char *file1, char *file2)
 {
     char buffer[1024];
+    int result;
 
     strlower(file1);
     strlower(file2);
 
     // assemble the file
     sprintf(buffer, "cmp %s %s >/dev/null 2>&1", file1, file2);
-    vlog("checkfile: file1=%s, file2=%s, buffer=%s", file1, file2, buffer);
-    printf("%s\n", buffer);
-    if (system(buffer) == -1)
+    result = system(buffer) & 0xff;         // only low 8 bits count
+    if (result != 0)
     {
         vlog("checkfile: files '%s' and '%s' differ", file1, file2);
         return 1;
@@ -1567,7 +1567,10 @@ main(int argc, char *argv[])
 
     errors = execute(script);
 
-    printf("%d errors found\n", errors);
+    if (errors == 1)
+        printf("%d error found\n", errors);
+    else
+        printf("%d errors found\n", errors);
 
     return errors;
 }

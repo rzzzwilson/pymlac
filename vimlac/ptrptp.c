@@ -227,7 +227,6 @@ ptp_start(void)
     if (STREQ(device_use, InUsePTR))
        error("ptp_dismount: Can't start PTP, device being used as PTR");
 
-    device_motor_on = true;
     device_ready = false;
     device_cycle_count = PTP_NOT_READY_CYCLES;
 }
@@ -239,7 +238,6 @@ ptp_stop(void)
     if (STREQ(device_use, InUsePTR))
        error("ptp_stop: Can't stop PTP, device being used as PTR");
 
-    device_motor_on = false;
     device_cycle_count = PTP_NOT_READY_CYCLES;
 }
 
@@ -250,7 +248,7 @@ ptp_punch(BYTE value)
     if (STREQ(device_use, InUsePTR))
        error("ptp_punch: Can't punch PTP, device being used as PTR");
 
-    if (device_motor_on && device_open_file != NULL)
+    if (device_open_file != NULL)
     {
         putc(value, device_open_file);
         device_cycle_count = PTP_NOT_READY_CYCLES;
