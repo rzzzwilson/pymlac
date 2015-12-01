@@ -408,6 +408,11 @@ setreg ac 0; setreg pc 0100; mount ptr test.ptr;
         rununtil 0105; checkreg ac 0; checkreg pc 0105
         rununtil 0105; checkreg ac 1; checkreg pc 0105
         rununtil 0105; checkreg ac 2; checkreg pc 0105;
+        rununtil 0105; checkreg ac 3; checkreg pc 0105;
+        rununtil 0105; checkreg ac 4; checkreg pc 0105;
+        rununtil 0105; checkreg ac 5; checkreg pc 0105;
+        rununtil 0105; checkreg ac 6; checkreg pc 0105;
+        rununtil 0105; checkreg ac 7; checkreg pc 0105;
 # HOF
 # HON
 # STB
@@ -421,7 +426,12 @@ setreg ac 0; setreg pc 0100; mount ptp test.ptp;
         rununtil 0104; checkreg ac 1;
         rununtil 0104; checkreg ac 2; checkreg pc 0104
 	checkfile test.ptp test.ptr
+setreg pc 0100; mount ptp test.ptp;
+        setmem 0100 [LWC 10|DAC 1|LAW 0|PSF|JMP 0103|PPC|IAC|ISZ 1|JMP 0103|HLT]
+        rununtil 0111; checkreg ac 013; checkreg pc 0111
+	checkfile test.ptp test.ptr
 # and lots of IOT instructions
 
 # check multiple assemblerinstructions in DSL
 setmem 0100 [LAW 1|HLT]; setreg pc 0100; RUNUNTIL 0102; checkcycles 2; checkreg pc 0102; checkreg ac 1
+

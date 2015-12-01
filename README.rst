@@ -1,4 +1,5 @@
-##STATUS
+STATUS
+======
 
 Development is occurring mainly in the *pymlac* subdirectory.  Occasionally
 the python code is mirrored into the *vimlac* subdirectory (translated to C).
@@ -7,10 +8,11 @@ The current state is the CPU testing is nearing completion.  That is, all
 of the pure-CPU instructions are tested and working.  I/O instructions and
 conditionals on device state are being tested at the moment.
 
-##The Imlac
+The Imlac
+=========
 
 When I was doing post-graduate study at Sydney University one fun machine I
-worked on was an [Imlac PDS-4](http://en.wikipedia.org/wiki/Imlac_PDS-1).
+worked on was an `Imlac PDS-4 <http://en.wikipedia.org/wiki/Imlac_PDS-1>`_ .
 
 This was a 16 bit vector graphics minicomputer with a general purpose main CPU
 and a specialised display CPU - all implemented with 7400 series chips.  It had
@@ -19,7 +21,7 @@ on it acquired 8-inch floppy drives but few people used these as they were too
 unreliable.  Besides, there's just something about papertape!
 
 The attraction of the machine was its simplicity, its graphics capability and
-that it ran [Spacewar!](http://en.wikipedia.org/wiki/Spacewar!)  I have many
+that it ran `Spacewar! <http://en.wikipedia.org/wiki/Spacewar!>`_  I have many
 fond memories of this machine.  It was the first machine that I programmed in
 assembler.
 
@@ -28,12 +30,12 @@ No one knows what happened to it.
 
 There is a little information online:
 
-*  Tom Uban's [Imlac picture gallery](http://www.ubanproductions.com/imlac.html) and [software library](http://www.ubanproductions.com/imlac_sw.html)
-* The [Blinkenlights](http://www.blinkenlights.com/classiccmp/imlac/) archive of Imlac information
-* Imlac at [old-computers.com](http://www.old-computers.com/museum/computer.asp?st=1&c=1295)
-* Inevitably, there is an [Imlac Facebook page](http://www.facebook.com/pages/Imlac-PDS-1/124593560918139)
-* A working Imlac emulator is [here](http://rottedbits.blogspot.com/2013/05/an-introduction-to-imlac-pds-1.html)
-* Some information from [chilton-computing.org.uk](http://www.chilton-computing.org.uk/acd/icf/terminals/p008.htm)
+* Tom Uban's `Imlac picture gallery <http://www.ubanproductions.com/imlac.html>`_ and `software library <http://www.ubanproductions.com/imlac_sw.html>`_
+* The `Blinkenlights <http://www.blinkenlights.com/classiccmp/imlac/>`_ archive of Imlac information
+* Imlac at `old-computers.com <http://www.old-computers.com/museum/computer.asp?st=1&c=1295>`_
+* Inevitably, there is an `Imlac Facebook page <http://www.facebook.com/pages/Imlac-PDS-1/124593560918139>`_
+* A working Imlac emulator is `here <http://rottedbits.blogspot.com/2013/05/an-introduction-to-imlac-pds-1.html>`_
+* Some information from `chilton-computing.org.uk <http://www.chilton-computing.org.uk/acd/icf/terminals/p008.htm>`_
 
 It's a little sad to see this machine fade from memory.  I wrote an emulator for
 the Imlac in C with an X display window quite a while ago, but didn't proceed
@@ -41,7 +43,8 @@ with it, possibly because it would only run on Linux.  Now I would like to
 experiment with a rewrite in Python and use wxPython or pySide for the graphics.
 This repository holds the code.
 
-###Overview
+Overview
+--------
 
 The Imlac was a simple machine that was driven in the old style: the user sat at
 the screen and loaded a papertape, set the PC address and then pressed the RUN
@@ -62,70 +65,62 @@ right.  These operations are things such as loading a papertape into the reader,
 examining memory contents, setting the data switches or setting the machine run
 address.
 
-###Console usage
+Console usage
+-------------
 
 The console version of pymlac is used:
 
-```
-pymlac [ <option> ]*
-```
+::
+
+    pymlac [ <option> ]*
+
 
 That is, the user may specify zero or more options interspersed in any manner
 required.  The options are:
 
-```
--b (ptr | tty | none)         sets the bootstrap ROM code:
-                                  ptr   uses the papertape bootstrap ROM
-                                  tty   uses the teletype bootstrap ROM
-                                  none  uses no bootstrap ROM
-```
-```
--c                            clears core including bootstrap ROM, if write enabled
-```
-```
--cf <filename>                sets the name of the core file to read and write
-                              (default file is 'pymlac.core')
-```
-```
--d <value>                    sets the console data switches to the <value>
-```
-```
--h                            prints this help
-```
-```
--ptp <file>                   loads a file on to the papertape punch device
-```
-```
--ptr <file>                   loads a file on to the papertape reader device
-```
-```
--r (<address> | pc)           executes from <address> or the current PC contents
-```
-```
--s <setfile>                  sets memory adress values from <setfile>
-```
-```
--t (<addr1> [,<addr2>] | off) controls the execution trace:
-                                  -t 0100     trace from address 0100 (octal)
-                                  -t 0100,200 trace from 0100 octal to 200 decimal
-                                  -t off      turns trace off
-```
-```
--ttyin <file>                 loads a file on to the teletype reader device
-```
-```
--ttyout <file>                loads a file on to the teletype writer device
-```
-```
--v <viewfile>                 views contents of memory addresses from file
-```
-```
--w (on | off)                 controls ROM write property:
-                                  -w on     ROM addresses are writable
-                                  -w off    ROM addresses are write protected
-```
+::
+
+    -b (ptr | tty | none)         sets the bootstrap ROM code:
+                                      ptr   uses the papertape bootstrap ROM
+                                      tty   uses the teletype bootstrap ROM
+                                      none  uses no bootstrap ROM
+    
+    -c                            clears core including bootstrap ROM, if write enabled
+    
+    -cf <filename>                sets the name of the core file to read and write
+                                  (default file is 'pymlac.core')
+    
+    -d <value>                    sets the console data switches to the <value>
+    
+    -h                            prints this help
+    
+    -ptp <file>                   loads a file on to the papertape punch device
+    
+    -ptr <file>                   loads a file on to the papertape reader device
+    
+    -r (<address> | pc)           executes from <address> or the current PC contents
+    
+    -s <setfile>                  sets memory adress values from <setfile>
+    
+    -t (<addr1> [,<addr2>] | off) controls the execution trace:
+                                      -t 0100     trace from address 0100 (octal)
+                                      -t 0100,200 trace from 0100 octal to 200 decimal
+                                      -t off      turns trace off
+    
+    -ttyin <file>                 loads a file on to the teletype reader device
+    
+    -ttyout <file>                loads a file on to the teletype writer device
+    
+    -v <viewfile>                 views contents of memory addresses from file
+    
+    -w (on | off)                 controls ROM write property:
+                                      -w on     ROM addresses are writable
+                                      -w off    ROM addresses are write protected
+
 For example, if we wanted the pymlac machine to load a papertape file and run at
 address 0100 with trace between 0110 and 0120 we would do:
+
+::
 
     pymlac -b ptr -ptr test.ptp -r 040 -t 0110,0120 -r 0100
 
@@ -136,7 +131,10 @@ into memory and the machine then halts.  The trace is set to be within the
 address range [0110, 0120] and the machine starts execution at 0100 and then
 again halts.  The core file is saved.
 
-Given the persistence of the emulated core contents, the above single command could have been executed in this manner:
+Given the persistence of the emulated core contents, the above single command
+could have been executed in this manner:
+
+::
 
     pymlac -b ptr -ptr test.ptp -r 040
 
@@ -145,6 +143,8 @@ Given the persistence of the emulated core contents, the above single command co
 If we wanted to use an existing core file from yesterday that contained a
 program that reads a data file from the TTY reader and we wanted to look at the
 contents of some parts of memory after running the program, we would do:
+
+::
 
     pymlac -ttyin data.tty -r 0100 -v read_memory
 
@@ -155,12 +155,15 @@ file is saved.
 
 And finally, if we just want to set some memory values in core, we would do:
 
+::
+
     pymlac -s setdatafile
 
 Which loads the existing core file, sets some addresses to values given in the
 file **setdatafile** and then saves the core file.
 
-##File formats and implementation notes
+File formats and implementation notes
+-------------------------------------
 
 There are some details on papertape file formats and implementation notes
-in [the wiki](https://github.com/rzzzwilson/pymlac/wiki).
+in `the wiki <https://github.com/rzzzwilson/pymlac/wiki>`_.
