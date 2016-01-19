@@ -4,7 +4,7 @@ STATUS
 Development is occurring mainly in the *pymlac* subdirectory.  Occasionally
 the python code is mirrored into the *vimlac* subdirectory (translated to C).
 
-The current state is the CPU testing is nearing completion.  That is, all
+The current state of the CPU testing is nearing completion.  That is, all
 of the pure-CPU instructions are tested and working.  I/O instructions and
 conditionals on device state are being tested at the moment.
 
