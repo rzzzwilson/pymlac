@@ -55,7 +55,6 @@ class PtrPtp(object):
         self.device_use = None
         self.device_motor_on = False
         self.device_open_file = None
-        self.device_open_file = None
         self.device_filename = None
         self.device_ready = False
 
@@ -93,15 +92,10 @@ class PtrPtp(object):
         if self.device_use == self.InUsePTP:
             raise RuntimeError("ptr_dismount: Can't dismount PTR file, being used as PTP")
 
-        self.device_use = None
-        self.device_motor_on = False
-        self.device_ready = False
         if self.device_filename:
             self.device_open_file.close()
-            self.device_open_file = None
-        self.device_filename = None
-        self.ptr_at_eof = True
-        self.ptr_value = self.PtrEOF
+
+        self.reset()
 
     def start(self):
         """Turn papertape reader motor on."""
@@ -196,14 +190,10 @@ class PtrPtp(object):
         if self.device_use == self.InUsePTR:
             raise RuntimeError("ptp_dismount: Can't dismount PTP file, being used as PTR")
 
-        self.device_motor_on = False
-        self.device_ready = False
         if self.ptp_filename:
             self.device_open_file.close()
-            self.device_open_file = None
-        self.ptp_filename = None
-        self.ptp_at_eof = True
-        self.ptp_value = self.PtrEOF
+
+        self.reset()
 
     def punch(self, value):
         """Write byte to papertape file.
@@ -216,7 +206,7 @@ class PtrPtp(object):
 
         self.device_ready = False
         self.device_cycle_count = self.PtpNotReadyCycles
-        self.device_open_file.write(struct.pack('1B', value))
+        self.device_open_file.write(value)
 
     def ptp_tick(self, cycles):
         """Called to push PTP state along.

@@ -15,14 +15,22 @@ where <options> is zero or more of:
 #   2. writing test *.ptp files which we mount and read
 
 
-import Ptr
-import Ptp
+import os
+
+import PtrPtp
 
 
 # module global constants
 PtrFilename = '_#PTR#_.ptp'
 PtpFilename = '_#PTP#_.ptp'
 
+Logfile = 'test_PTR_PTP.log'
+
+
+def logger(*args):
+    msg = ' '.join(args)
+    with open(Logfile, 'ab') as fd:
+        fd.write(msg + '\n')
 
 def read_no_tape(ptr):
     """Read from device with no tape mounted."""
@@ -31,22 +39,23 @@ def read_no_tape(ptr):
     byte = ptr.read()
     if byte != 0377:
         print('Error')
-    ptr.tick(1000000)     # wait a long time
+    ptr.ptr_tick(1000000)     # wait a long time
     byte = ptr.read()
     if byte != 0377:
         print('Error')
 
     # turn device on, still no tape
     ptr.start()
-    ptr.tick(1000000)     # wait a long time
+    ptr.ptr_tick(1000000)     # wait a long time
     byte = ptr.read()
     if byte != 0377:
         print('Error')
-    ptr.tick(1000000)     # wait a long time
+    ptr.ptr_tick(1000000)     # wait a long time
     byte = ptr.read()
     if byte != 0377:
         print('Error')
     ptr.stop()
+    ptr.ptr_dismount()
 
 def create_papertape(filename):
     """Create a PTP file."""
@@ -67,41 +76,38 @@ def create_papertape(filename):
 def create_papertape_ptp(ptp, filename):
     """Create a PTP file using the Ptp device."""
 
-    ptp.mount(filename)
-    ptp.start()
+#    ptp.reset()
+    ptp.ptp_mount(filename)
 
     # leader
     for _ in range(128):
         while not ptp.ready():
-            ptp.tick(1)
-        ptp.write(chr(0))
+            ptp.ptp_tick(1)
+        ptp.punch(chr(0))
         while ptp.ready():
-            ptp.tick(1)
+            ptp.ptp_tick(1)
 
     # body
     for v in range(1, 256):
         while not ptp.ready():
-            ptp.tick(1)
-        ptp.write(chr(v))
-        while ptp.ready():
-            ptp.tick(1)
+            ptp.ptp_tick(1)
+        ptp.punch(chr(v))
 
     # trailer
     for _ in range(128):
         while not ptp.ready():
-            ptp.tick(1)
-        ptp.write(chr(0))
-        while ptp.ready():
-            ptp.tick(1)
+            ptp.ptp_tick(1)
+        ptp.punch(chr(0))
 
-    ptp.stop()
-    ptp.dismount()
+#    ptp.stop()
+    ptp.ptp_dismount()
 
 def read_tape(ptr, filename):
     """Create tape and read it."""
 
     # now mount and read tape
-    ptr.mount(filename)
+#    ptr.reset()
+    ptr.ptr_mount(filename)
     ptr.start()
 
     # read leader
@@ -109,10 +115,10 @@ def read_tape(ptr, filename):
     count = 0
     while True:
         while not ptr.ready():
-            ptr.tick(1)
+            ptr.ptr_tick(1)
         byte = ptr.read()
-        while ptr.ready():                                                   
-            ptr.tick(1)
+        while ptr.ready():
+            ptr.ptr_tick(1)
         if byte != 0:
             break
         count += 1
@@ -124,10 +130,10 @@ def read_tape(ptr, filename):
     count = 1
     while True:
         while not ptr.ready():
-            ptr.tick(1)
+            ptr.ptr_tick(1)
         byte = ptr.read()
-        while ptr.ready():                                                   
-            ptr.tick(1)
+        while ptr.ready():
+            ptr.ptr_tick(1)
         if byte == 0:
             break
         count += 1
@@ -139,29 +145,41 @@ def read_tape(ptr, filename):
     count = 1
     while True:
         while not ptr.ready():
-            ptr.tick(1)
+            ptr.ptr_tick(1)
         byte = ptr.read()
         if byte != 0:
             break
         count += 1
-        while ptr.ready():                                                   
-            ptr.tick(1)
+        while ptr.ready():
+            ptr.ptr_tick(1)
 
     ptr.stop()
 
     print('%d bytes of trailer' % count)
 
+    ptr.ptr_dismount()
+
 def main():
     """Test the papertape reader."""
 
-    ptr = Ptr.Ptr()
-    ptp = Ptp.Ptp()
+    try:
+        os.remove(Logfile)
+    except OSError:
+        pass        # ignore 'file not there'
 
-    read_no_tape(ptr)
+    ptrptp = PtrPtp.PtrPtp()
+    logger('created reader/punch device')
+
+    read_no_tape(ptrptp)
+    logger('After read_no_tape')
     create_papertape(PtrFilename)
-    read_tape(ptr, PtrFilename)
-    create_papertape_ptp(ptp, PtpFilename)
-    read_tape(ptr, PtpFilename)
+    logger('After create_papertape')
+    read_tape(ptrptp, PtrFilename)
+    logger('After read_tape')
+    create_papertape_ptp(ptrptp, PtpFilename)
+    logger('After create_papertape_ptp')
+    read_tape(ptrptp, PtpFilename)
+    logger('After read_tape')
 
 
 
