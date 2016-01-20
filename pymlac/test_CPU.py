@@ -563,6 +563,7 @@ class TestCPU(object):
             elif opcode == 'checkfile':
                 r = self.checkfile(fld1, fld2)
             else:
+                print("Unrecognized opcode '%s' in: %s" % (opcode, test))
                 raise Exception("Unrecognized opcode '%s' in: %s" % (opcode, test))
 
             if r is not None:
