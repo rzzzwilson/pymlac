@@ -8,7 +8,9 @@ test:
 	./make_ptr > test.ptr
 	python test_CPU.py CPU.test
 	#python test_Display.py     # interactive!
-	#test_KBD.py                # interactive!
+	@echo "##########  Run 'python test_Display.py' by hand!  ##########"
+	#python test_KBD.py                # interactive!
+	@echo "##########  Run 'python test_KBD.py' by hand!  ##########"
 	python test_Memory.py
 	python test_PTR_PTP.py
 	python test_TTYIN.py
