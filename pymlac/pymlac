@@ -1,0 +1,206 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+"""
+A simulator for an Imlac PDS-1 or PDS-4.
+
+Usage: pymlac [ <option> ]*
+
+That is, the user may specify zero or more options interspersed in any manner
+required. The options are:
+
+    -b (ptr | tty | none)         sets the bootstrap ROM code:
+                                      ptr   uses the papertape bootstrap ROM
+                                      tty   uses the teletype bootstrap ROM
+                                      none  uses no bootstrap ROM
+    -c                            clears core including bootstrap ROM, if write enabled
+    -cf <filename>                sets the name of the core file to read and write
+                                  (default file is 'pymlac.core')
+    -d <value>                    sets the console data switches to the <value>
+    -h                            prints this help
+    -ptp <file>                   loads a file on to the papertape punch device
+    -ptr <file>                   loads a file on to the papertape reader device
+    -r (<address> | pc)           executes from <address> or the current PC contents
+    -s <setfile>                  sets memory adress values from <setfile>
+    -t (<addr1> [,<addr2>] | off) controls the execution trace:
+                                      -t 0100     trace from address 0100 (octal)
+                                      -t 0100,200 trace from 0100 octal to 200 decimal
+                                      -t off      turns trace off
+    -ttyin <file>                 loads a file on to the teletype reader device
+    -ttyout <file>                loads a file on to the teletype writer device
+    -v <viewfile>                 views contents of memory addresses from file
+    -w (on | off)                 controls ROM write property:
+                                      -w on     ROM addresses are writable
+                                      -w off    ROM addresses are write protected
+"""
+
+import sys
+import getopt
+
+
+def str2int(s):
+    """Convert a strinf to an integer value.
+
+    s  the string to convert
+
+    The string may indicate a decimal or octal value.
+    None is returned if the string cannot be converted.
+    """
+
+    return None
+
+
+def usage(msg=None):
+    if msg:
+        print('*'*60)
+        print(msg)
+        print('*'*60)
+    print(__doc__)
+
+
+def main():
+    """Main function of the simulator.  Mostly interpret CLI args."""
+
+    print('sys.argv=%s' % str(sys.argv))
+
+    len_sys_argv = len(sys.argv)
+
+    ndx = 1
+    while ndx < len_sys_argv:
+        opt = sys.argv[ndx]
+        ndx += 1
+        print('opt=%s' % opt)
+        if opt[0] != '-':
+            usage("Bad option: '%s'" % str(opt))
+
+        if opt == '-b':
+            if ndx >= len_sys_argv:
+                usage("'-b' option needs a following device name")
+                sys.exit(10)
+            dev = sys.argv[ndx].lower()
+            ndx += 1
+            if dev  == 'ptr':
+                set_bootrom('PTR')
+            elif dev  == 'tty':
+                set_bootrom('TTYIN')
+            elif dev  == 'none':
+                set_bootrom(None)
+            else:
+                usage("-b option must be followed by 'ptr', 'tty' or 'none'")
+                sys.exit(10)
+        elif opt == '-c':
+            clear_core()
+        elif opt == '-cf':
+            if ndx >= len_sys_argv:
+                usage("'-cf' option needs a following filename")
+                sys.exit(10)
+            filename = sys.argv[ndx]
+            ndx += 1
+            set_core_file(filename)
+        elif opt == '-d':
+            if ndx >= len_sys_argv:
+                usage("'-d' option needs a following data switch value")
+                sys.exit(10)
+            value = str2int(sys.argv[ndx])
+            ndx += 1
+            if value is None:
+                usage("The '-d' option must be followed by a decimal or octal value")
+                sys.exit(10)
+            set_data_switch(value)
+        elif opt == '-h':
+            usage()
+            sys.exit(0)
+        elif opt == '-ptp':
+            if ndx >= len_sys_argv:
+                usage("'-ptp' option needs a following PTP filename")
+                sys.exit(10)
+            filename = sys.argv[ndx]
+            ndx += 1
+            set_ptp_filename(filename)
+        elif opt == '-ptr':
+            if ndx >= len_sys_argv:
+                usage("'-ptr' option needs a following PTR filename")
+                sys.exit(10)
+            filename = sys.argv[ndx]
+            ndx += 1
+            set_ptr_filename(filename)
+        elif opt == '-r':
+            if ndx >= len_sys_argv:
+                usage("'-r' option needs a following address or 'pc'")
+                sys.exit(10)
+            address = sys.argv[ndx].lower()
+            ndx += 1
+            if address != 'pc':
+                addr_value = str2int(address)
+                if addr_value is None:
+                    usage("'-r' option needs a following address or 'pc'")
+                    sys.exit(10)
+                set_pc(addr_value)
+            start_running()
+        elif opt == '-s':
+            if ndx >= len_sys_argv:
+                usage("'-s' option needs a following data filename")
+                sys.exit(10)
+            filename = sys.argv[ndx]
+            ndx += 1
+            set_mem_from_file(filename)
+        elif opt == '-t':
+            if ndx >= len_sys_argv:
+                usage("'-t' option needs a following address range or 'off'")
+                sys.exit(10)
+            r = sys.argv[ndx]
+            ndx += 1
+            if r == 'off':
+                set_trace_off()
+            else:
+                if ',' in r:
+                    rr = r.split(',')
+                    if len(rr) != 2:
+                        usage("'-r' option may be followed by only two addresses")
+                        sys.exit(10)
+                    (start, stop) = rr
+                    start_addr = str2int(start)
+                    stop_addr = str2int(stop)
+                else:
+                    start_addr = str2int(r)
+                    stop_addr = None
+                set_trace_on(star_addr, stop_addr)
+        elif opt == '-ttyin':
+            if ndx >= len_sys_argv:
+                usage("'-ttyin' option needs a following data filename")
+                sys.exit(10)
+            filename = sys.argv[ndx]
+            ndx += 1
+            set_tty_in(filename)
+        elif opt == '-ttyout':
+            if ndx >= len_sys_argv:
+                usage("'-ttyout' option needs a following data filename")
+                sys.exit(10)
+            filename = sys.argv[ndx]
+            ndx += 1
+            set_tty_out(filename)
+        elif opt == '-v':
+            if ndx >= len_sys_argv:
+                usage("'-v' option needs a following address filename")
+                sys.exit(10)
+            filename = sys.argv[ndx]
+            ndx += 1
+            view_mem(filename)
+        elif opt == '-w':
+            if ndx >= len_sys_argv:
+                usage("'-v' option needs a following 'on' or 'off'")
+                sys.exit(10)
+            state = sys.argv[ndx]
+            ndx += 1
+            if state == 'on':
+                state = True
+            elif state == 'off':
+                state = False
+            else:
+                usage("'-v' option needs a following 'on' or 'off'")
+                sys.exit(10)
+            set_rom_write(state)
+
+
+if __name__ == '__main__':
+    main()
