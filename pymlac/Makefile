@@ -7,6 +7,13 @@ test:
 	rm -f test.ptr test.ptp CPU.test.trace test_CPU.log
 	./make_ptr > test.ptr
 	python test_CPU.py CPU.test
+	#python test_Display.py     # interactive!
+	#test_KBD.py                # interactive!
+	python test_Memory.py
+	python test_PTR_PTP.py
+	python test_TTYIN.py
+	python test_TTYOUT.py
+
 
 %:	%.ptp
 	./pymlac -b ptr -ptr $< -r 040 -t 0100 -r 0100
