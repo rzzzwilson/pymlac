@@ -2,7 +2,7 @@
 
 #
 # Make a PTR test file
-# 3 bytes: 0 1 2
+# 8 bytes: 0 1 2 3 4 5 6 7
 #
 
-echo -n -e "\00\01\02"
+echo -n -e "\00\01\02\03\04\05\06\07"

@@ -206,7 +206,7 @@ class PtrPtp(object):
 
         self.device_ready = False
         self.device_cycle_count = self.PtpNotReadyCycles
-        self.device_open_file.write(value)
+        self.device_open_file.write(chr(value))
 
     def ptp_tick(self, cycles):
         """Called to push PTP state along.

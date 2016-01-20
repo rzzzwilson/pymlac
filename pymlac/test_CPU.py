@@ -69,19 +69,20 @@ class TestCPU(object):
 
         return result
 
-    def str2int(self, string):
+    def str2int(self, s):
         """Convert string to numeric value.
 
-        string  numeric string (decimal or octal)
+        s  numeric string (decimal or octal)
 
         Returns the numeric value.
         """
 
+        base = 10
+        if s[0] == '0':
+            base = 8
+
         try:
-            if string[0] == '0':
-                value = int(string, base=8)
-            else:
-                value = int(string)
+            value = int(s, base=base)
         except:
             return None
 
@@ -256,8 +257,9 @@ class TestCPU(object):
 
         address  address at which to stop
 
-        We allow PC to be stop address first instruction.
-        We stop after that if PC == address.
+        We must handle the case where PC initial address is the actual stop
+        address, that is, execute one instruction before checking for the
+        stop address.
         """
 
         new_address = self.str2int(address)
@@ -487,8 +489,8 @@ class TestCPU(object):
         # set globals
         self.reg_values = {}
         self.mem_values = {}
-        self.reg_all_value = 0
-        self.mem_all_value = 0
+        self.reg_all_value = '0'
+        self.mem_all_value = '0'
 
         result = []
 

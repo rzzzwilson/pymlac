@@ -3,12 +3,10 @@
 # And run the test files.
 #
 
-test:	test.ptr
-	rm -f test.ptp CPU.test.trace test_CPU.log
-	python test_CPU.py CPU.test
-
-test.ptr:
+test:	
+	rm -f test.ptr test.ptp CPU.test.trace test_CPU.log
 	./make_ptr > test.ptr
+	python test_CPU.py CPU.test
 
 %:	%.ptp
 	./pymlac -b ptr -ptr $< -r 040 -t 0100 -r 0100
