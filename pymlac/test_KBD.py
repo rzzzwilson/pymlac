@@ -12,13 +12,13 @@ import string
 import wx
 import Kbd
 
-# if we don't have log.py, don't crash                                           
-try:                                                                             
-    import log                                                     
-    log = log.Log('test_KBD.log', log.Log.DEBUG)                                     
-except ImportError:                                                              
-    def log(*args, **kwargs):                                                    
-        pass                                                                     
+# if we don't have log.py, don't crash
+try:
+    import log
+    log = log.Log('test_KBD.log', log.Log.DEBUG)
+except ImportError:
+    def log(*args, **kwargs):
+        pass
 
 
 ######

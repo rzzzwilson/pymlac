@@ -9,8 +9,7 @@ import sys
 
 from Globals import *
 
-import Ptr
-import Ptp
+import PtrPtp
 import TtyIn
 import TtyOut
 import Memory
@@ -50,8 +49,8 @@ class Imlac(object):
         pass
 
     def __tick_all(cycles):
-        Ptr.tick(cycles)
-        Ptp.tick(cycles)
+        PtrPtp.ptr_tick(cycles)
+        PtrPtp.ptp_tick(cycles)
         TtyIn.tick(cycles)
         TtyOut.tick(cycles)
 
