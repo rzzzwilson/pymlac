@@ -83,7 +83,7 @@ def create_papertape_ptp(ptp, filename):
     for _ in range(128):
         while not ptp.ready():
             ptp.ptp_tick(1)
-        ptp.punch(chr(0))
+        ptp.punch(0)
         while ptp.ready():
             ptp.ptp_tick(1)
 
@@ -91,13 +91,13 @@ def create_papertape_ptp(ptp, filename):
     for v in range(1, 256):
         while not ptp.ready():
             ptp.ptp_tick(1)
-        ptp.punch(chr(v))
+        ptp.punch(v)
 
     # trailer
     for _ in range(128):
         while not ptp.ready():
             ptp.ptp_tick(1)
-        ptp.punch(chr(0))
+        ptp.punch(0)
 
 #    ptp.stop()
     ptp.ptp_dismount()
@@ -171,15 +171,10 @@ def main():
     logger('created reader/punch device')
 
     read_no_tape(ptrptp)
-    logger('After read_no_tape')
     create_papertape(PtrFilename)
-    logger('After create_papertape')
     read_tape(ptrptp, PtrFilename)
-    logger('After read_tape')
     create_papertape_ptp(ptrptp, PtpFilename)
-    logger('After create_papertape_ptp')
     read_tape(ptrptp, PtpFilename)
-    logger('After read_tape')
 
 
 
