@@ -1,5 +1,5 @@
 # check multiple assemblerinstructions in DSL
-setmem 0100 [LAW 1|HLT]; setreg pc 0100; RUNUNTIL 0102; checkcycles 2; checkreg pc 0102; checkreg ac 1
+setmem 0100 [LAW 1|NOP|NOP|NOP]; setreg pc 0100; RUNUNTIL 0102; checkcycles 2; checkreg pc 0102; checkreg ac 1
 
 # LAW
 setreg ac 0177777; setreg l 1; setmem 0100 [LAW 0]; setreg pc 0100; RUN
