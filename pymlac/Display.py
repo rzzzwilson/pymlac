@@ -1,4 +1,4 @@
-#!/usr/bin/python 
+#!/usr/bin/python
 # -*- coding: utf-8 -*-
 
 """
@@ -39,11 +39,11 @@ class _BufferedCanvas(wx.Panel):
     # The backing buffer
     buffer = None
 
-    # max coordinates of scaled display                                          
-    ScaleMaxX = 2048                                                            
-    ScaleMaxY = 2048                                                            
-#    ScaleMaxX = 512                                                            
-#    ScaleMaxY = 512                                                            
+    # max coordinates of scaled display
+    ScaleMaxX = 2048
+    ScaleMaxY = 2048
+#    ScaleMaxX = 512
+#    ScaleMaxY = 512
 
     def __init__(self, parent, id=wx.ID_ANY, pos=wx.DefaultPosition,
                  size=wx.DefaultSize, style=wx.NO_FULL_REPAINT_ON_RESIZE):
@@ -133,18 +133,18 @@ class Display(_BufferedCanvas):
     SYNC_HZ = 40
     SYNC_40HZ_CYCLE_COUNT = int(CYCLES_PER_SECOND / SYNC_HZ)
 
-    # max coordinates of pymlac display                                          
-#    ScaleMaxX = 2048                                                            
-#    ScaleMaxY = 2048                                                            
-    ScaleMaxX = 1024                                                            
-    ScaleMaxY = 1024                                                            
+    # max coordinates of pymlac display
+#    ScaleMaxX = 2048
+#    ScaleMaxY = 2048
+    ScaleMaxX = 1024
+    ScaleMaxY = 1024
 
 
     def __init__(self, parent, **kwargs):
-        # create and initialise the base panel                                   
-        _BufferedCanvas.__init__(self, parent=parent, **kwargs)                  
-        self.SetBackgroundColour(self.BackgroundColour)                        
-                                                                                                         
+        # create and initialise the base panel
+        _BufferedCanvas.__init__(self, parent=parent, **kwargs)
+        self.SetBackgroundColour(self.BackgroundColour)
+
         # set internal state
         self.running = 0
         self.cycle_count = 0
@@ -187,7 +187,7 @@ class Display(_BufferedCanvas):
                 pen.SetStyle(wx.DOT)
                 pen.SetWidth(2)
             dc.SetPen(pen)
-        
+
             dc.DrawLine(x1, self.ScaleMaxY - y1,
                         x2, self.ScaleMaxY - y2)
 

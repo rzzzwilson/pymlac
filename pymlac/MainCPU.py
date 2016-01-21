@@ -158,6 +158,11 @@ class MainCPU(object):
 
         self.running = False
 
+    def set_dataswitches(self, value):
+        """Set given value into the data switches."""
+
+        self.DS = value
+
     def BLOCKADDR(self, address):
         """Get address WITHIN THE BLOCK."""
 

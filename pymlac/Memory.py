@@ -1,4 +1,4 @@
-#!/usr/bin/python 
+#!/usr/bin/python
 
 """
 Emulate the Imlac Memory.
@@ -111,10 +111,15 @@ class Memory(object):
             self.clear_core()
 
         self.set_ROM(self.boot_rom)
-    
+
+    def set_corefile(self, corefile):
+        """Set name of the core save/restore file."""
+
+        self.corefile = corefile
+
     def clear_core(self):
         """Clears memory to all zeros.
-    
+
         If using ROM, that is unchanged.
         """
 
@@ -186,6 +191,11 @@ class Memory(object):
         else:
             self.rom_protected = save_flag
 
+    def set_ROM_writable(self, writable):
+        """Set ROM write protection state."""
+
+        self.rom_protected = writable
+
     def fetch(self, address, indirect):
         """Get a value from a memory address.
 
@@ -222,19 +232,19 @@ class Memory(object):
 
         return address
 
-    def str_trace(self, msg=None):                                                         
-        """Get a traceback string."""                                                
+    def str_trace(self, msg=None):
+        """Get a traceback string."""
 
         import traceback
-                                                             
-        result = []                                                                  
 
-        if msg:                                                                      
-            result.append(msg+'\n')                                                  
+        result = []
 
-        result.extend(traceback.format_stack())                                      
+        if msg:
+            result.append(msg+'\n')
 
-        return ''.join(result)                 
+        result.extend(traceback.format_stack())
+
+        return ''.join(result)
 
     def put(self, value, address, indirect):
         """Put a value into a memory address.
@@ -260,13 +270,13 @@ class Memory(object):
     def dump(self, low, high):
         """Dump memory in range [low, high] inclusive to a file."""
 
-        with open('x.dump', 'wb') as fd:                                     
+        with open('x.dump', 'wb') as fd:
             for i in range(high - low + 1):
                 val = self.fetch(low + i, False)
-                high = val >> 8                                              
-                low = val & 0xff                                             
-                data = struct.pack('B', high)                                
-                fd.write(data)                                               
-                data = struct.pack('B', low)                                 
-                fd.write(data)                                               
+                high = val >> 8
+                low = val & 0xff
+                data = struct.pack('B', high)
+                fd.write(data)
+                data = struct.pack('B', low)
+                fd.write(data)
 
