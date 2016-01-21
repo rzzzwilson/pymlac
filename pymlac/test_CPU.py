@@ -26,8 +26,7 @@ import Memory
 import PtrPtp
 import Trace
 
-import log
-log = log.Log('test_CPU.log', log.Log.DEBUG)
+trace = Trace.Trace(TRACE_FILENAME)
 
 
 class TestCPU(object):
@@ -247,6 +246,7 @@ class TestCPU(object):
         self.used_cycles= 0
         for _ in range(number):
             cycles = self.cpu.execute_one_instruction()
+            trace.itraceend(False)
             self.ptrptp.ptr_tick(cycles)
             self.ptrptp.ptp_tick(cycles)
             self.used_cycles += cycles
@@ -269,6 +269,7 @@ class TestCPU(object):
         self.used_cycles= 0
         while True:
             cycles = self.cpu.execute_one_instruction()
+            trace.itraceend(False)
             self.ptrptp.ptr_tick(cycles)
             self.ptrptp.ptp_tick(cycles)
             self.used_cycles += cycles
@@ -472,17 +473,6 @@ class TestCPU(object):
         else:
             raise Exception('setd: bad state: %s' % str(state))
 
-    def debug_operation(self, op, var1, var2):
-        """Write operation to log file."""
-
-        if var1:
-            if var2:
-                log.debug('Operation: %s %s %s' % (op, var1, var2))
-            else:
-                log.debug('Operation: %s %s' % (op, var1))
-        else:
-            log.debug('Operation: %s' % op)
-
     def execute(self, test, filename):
         """Execute test string in 'test'."""
 
@@ -501,12 +491,17 @@ class TestCPU(object):
         self.cpu.running = True
         self.display_state = False
 
-        trace_filename = filename + '.trace'
-        Trace.init(trace_filename, self.cpu, None)
+        # prepare the trace
+        trace.add_maincpu(self.cpu)
 
         # clear registers and memory to 0 first
         self.allreg(self.reg_all_value, None)
         self.allmem(self.mem_all_value, None)
+
+        # show the DSL we are about execute
+        trace.comment('')
+        trace.comment(test)
+        trace.comment('-'*80)
 
         # interpret the test instructions
         suite = test.split(';')
@@ -524,8 +519,6 @@ class TestCPU(object):
             elif len(fields) == 3:
                 fld1 = fields[1].strip().lower()
                 fld2 = fields[2].strip().lower()
-
-            self.debug_operation(opcode, fld1, fld2)
 
             # cll the correct DSL primitive
             if opcode == 'setreg':
@@ -600,8 +593,6 @@ class TestCPU(object):
     def main(self, filename):
         """Execute CPU tests from 'filename'."""
 
-        log.debug("Running test file '%s'" % filename)
-
         # get all tests from file
         with open(filename, 'rb') as fd:
             lines = fd.readlines()
@@ -622,8 +613,9 @@ class TestCPU(object):
 
             if line[0] in ('\t', ' '):      # continuation
                 if test:
-                    test += '; '
-                test += line[1:]
+                    if not test.endswith(';'):
+                        test += ';'
+                test += ' ' + line[1:].strip()
             else:                           # beginning of new test
                 if test:
                     tests.append(test)
@@ -636,7 +628,6 @@ class TestCPU(object):
         # now do each test
         for test in tests:
             self.show_progress()
-            log.debug('Executing test: %s' % test)
             self.execute(test, filename)
 
 ################################################################################

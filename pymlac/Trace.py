@@ -2,89 +2,129 @@
 
 """
 The Imlac trace stuff.
+
+Simple usage:
+    import Trace
+    trace = Trace.Trace('my_log.log', maincpu, dispcpu)
+    trace.itrace(msg)
+
+Based on the 'borg' recipe from [http://code.activestate.com/recipes/66531/].
 """
 
-
-import time
-import datetime
+import os
 
 from Globals import *
 
-# module-level state variables
-tracing = False
-tracefile = None
-cpu = None
-dcpu = None
 
+class Trace(object):
 
-def init(filename, maincpu, displaycpu):
-    global tracing, tracefile, cpu, dcpu
+    __shared_state = {}                # this __dict__ shared by ALL instances
 
-    tracing = True
-    tracefile = open(filename, 'wa')
-    trace('%s trace\n%s\n' % (PYMLAC_VERSION, '-'*60))
-    tracing = False
-    comment = None
+    def __init__(self, filename, maincpu=None, displaycpu=None):
+        """Initialize the trace:
 
-    cpu = maincpu
-    dcpu = displaycpu
+        filename   name of the trace file
+        maincpu    the main CPU object (may be added later)
+        displaycpu  the display CPU object (may be added later)
+        """
 
-def close():
-    global tracing, tracefile
+        # ensure same state as all other instances
+        self.__dict__ = Trace.__shared_state
 
-    tracefile.close()
-    tracing = False
-    tracefile = None
+        # set internal state
+        self.tracing = True
+        self.tracefile = filename
+        try:
+            os.remove(filename)
+        except:
+            pass
+        self.tracefile = open(filename, 'wb')
+        self.tracefile.write('%s trace\n%s\n' % (PYMLAC_VERSION, '-'*60))
 
-def trace(msg):
-    if tracing:
-        tracefile.write(msg)
-    
-def deimtrace(opcode, code):
-    if tracing:
-        tracefile.write('%s\t%s\t' % (opcode, code))
-        tracefile.flush()
+        self.cpu = maincpu
+        self.dcpu = displaycpu
 
-def dtrace(opcode, address=None):
-    if tracing:
-        if address is None:
-            tracefile.write('%s\t\t' % opcode)
-        else:
-            tracefile.write('%s\t%5.5o\t' % (opcode, address))
-        tracefile.flush()
+    def add_maincpu(self, maincpu):
+        """Add the main CPU object."""
 
-def itrace(opcode, indirect=False, address=None):
-    if tracing:
-        char = '*' if indirect else ''
-        if address is None:
-            tracefile.write('%s\t%s\t' % (opcode, char))
-        else:
-            tracefile.write('%s\t%s%5.5o\t' % (opcode, char, address))
-        tracefile.flush()
+        self.cpu = maincpu
 
-def itraceend(dispon):
-    if dispon:
-        trace('L=%1.1o AC=%6.6o DX=%5.5o DY=%6.6o\n' %
-                   (cpu.L, cpu.AC, dcpu.DX, dcpu.DY))
-    else:
-        trace('L=%1.1o AC=%6.6o\n' % (cpu.L, cpu.AC))
+    def add_dispcpu(self, dispcpu):
+        """Add the display CPU object."""
 
-# time the instruction execution
-#    # get time
-#    to = datetime.datetime.now()
-#    hr = to.hour
-#    min = to.minute
-#    sec = to.second
-#    msec = to.microsecond
-#    trace('  %02d:%02d:%02d.%06d' % (hr, min, sec, msec))
+        self.dcpu = dispcpu
 
-    tracefile.flush()
+    def close(self):
+        """Close trace."""
 
-def comment(msg):
-    tracefile.write(msg+'\n')
-    tracefile.flush()
+        self.tracefile.close()
+        self.tracing = False
+        self.tracefile = None
 
-def settrace(new_tracing):
-    global tracing
+    def deimtrace(self, opcode, code):
+        """Trace the DEIM instruction.
 
-    tracing = new_tracing
+        opcode  DEIM opcode
+        code    the operation
+        """
+
+        if self.tracing:
+            self.tracefile.write('%s\t%s\t' % (opcode, code))
+            self.tracefile.flush()
+
+    def dtrace(self, opcode, address=None):
+        """Trace the display CPU.
+
+        opcode   display opcode
+        address  address for the opcode
+        """
+
+        if self.tracing:
+            if address is None:
+                self.tracefile.write('%s\t\t' % opcode)
+            else:
+                self.tracefile.write('%s\t%5.5o\t' % (opcode, address))
+            self.tracefile.flush()
+
+    def itrace(self, opcode, indirect=False, address=None):
+        """Main CPU trace.
+
+        opcode   the main CPU opcode
+        indirect  True if instruction was indirect
+        adress    address for the instruction (if any)
+        """
+
+        if self.tracing:
+            char = '*' if indirect else ''
+            if address is None:
+                self.tracefile.write('%s\t%s\t' % (opcode, char))
+            else:
+                self.tracefile.write('%s\t%s%5.5o\t' % (opcode, char, address))
+            self.tracefile.flush()
+
+    def itraceend(self, dispon):
+        """Trace at the end of one execution cycle.
+
+        dispon  True if the display was on
+        """
+
+        self.tracefile.write('L=%1.1o AC=%6.6o PC=%6.6o'
+                             % (self.cpu.L, self.cpu.AC, self.cpu.PC))
+
+        if dispon:
+            self.tracefile.write(' DX=%5.5o DY=%6.6o'
+                                 % (self.dcpu.DX, self.dcpu.DY))
+        self.tracefile.write('\n')
+
+        self.tracefile.flush()
+
+    def comment(self, msg):
+        """Add a comment to the trace."""
+
+        self.tracefile.write(msg+'\n')
+        self.tracefile.flush()
+
+    def settrace(self, new_tracing):
+        """Set the trace ON or OFF."""
+
+        self.tracing = new_tracing
