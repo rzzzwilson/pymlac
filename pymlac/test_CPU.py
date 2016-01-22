@@ -24,6 +24,8 @@ from Globals import *
 import MainCPU
 import Memory
 import PtrPtp
+import TtyIn
+import TtyOut
 import Trace
 
 trace = Trace.Trace(TRACE_FILENAME)
@@ -214,7 +216,7 @@ class TestCPU(object):
         for mem in range(MEMORY_SIZE):
             self.memory.put(new_value, mem, False)
 
-    def bootrom(loader_type, ignore):
+    def bootrom(self, loader_type, ignore):
         """Set bootloader memory range to appropriate bootloader code.
 
         loader_type  either 'ptr' or 'tty'
@@ -224,7 +226,7 @@ class TestCPU(object):
             return 'bootrom: invalid bootloader type: %s' % loader_type
         self.memory.set_ROM(loader_type)
 
-    def romwrite(writable, ignore):
+    def romwrite(self, writable, ignore):
         """Set ROM to be writable or not."""
 
         self.memory.rom_protected = writable
@@ -260,6 +262,8 @@ class TestCPU(object):
         We must handle the case where PC initial address is the actual stop
         address, that is, execute one instruction before checking for the
         stop address.
+
+        We also stop if the CPU executes the HLT instruction.
         """
 
         new_address = self.str2int(address)
@@ -267,7 +271,7 @@ class TestCPU(object):
             return 'rununtil: invalid stop address: %s' % address
 
         self.used_cycles= 0
-        while True:
+        while self.cpu.running:
             cycles = self.cpu.execute_one_instruction()
             trace.itraceend(False)
             self.ptrptp.ptr_tick(cycles)
@@ -486,8 +490,10 @@ class TestCPU(object):
 
         self.memory = Memory.Memory()
         self.ptrptp = PtrPtp.PtrPtp()
+        self.ttyin = TtyIn.TtyIn()
+        self.ttyout = TtyOut.TtyOut()
         self.cpu = MainCPU.MainCPU(self.memory, None, None,
-                                   None, None, None, self.ptrptp)
+                                   None, self.ttyin, self.ttyout, self.ptrptp)
         self.cpu.running = True
         self.display_state = False
 
