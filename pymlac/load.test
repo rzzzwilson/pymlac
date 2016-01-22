@@ -1,2 +1,2 @@
 # test of loading simple code
-bootrom ptr; mount ptr simpledisplay.ptp; setreg pc 040; rununtil 017777
+bootrom ptr; mount ptr simpledisplay.ptp; setreg pc 040; rununtil 0; setreg pc 0100; rununtil 0
