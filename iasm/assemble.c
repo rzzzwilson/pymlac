@@ -384,12 +384,19 @@ delimfields(char *buffer,
 {
     char *chptr;
 
-    /* point 'label', 'opcode' and 'field' to strings */
+    // point 'label', 'opcode' and 'field' to strings
     *label = *opcode = *field = *comment = NULL;
 
     chptr = buffer;
 
-    /* check for a label */
+    // handle comment starting column 1
+    if (*chptr == ';')
+    {
+        *comment = chptr;
+        return;
+    }
+
+    // check for a label starting column 1
     if (isalpha(*chptr))
     {
         *label = chptr;
@@ -407,12 +414,20 @@ delimfields(char *buffer,
 
         if (*chptr)
         {
-            *opcode = chptr;
-            while (*chptr && !isspace(*chptr) && *chptr != ';')
-                ++chptr;
-            if (*chptr)
-                *(chptr++) = '\0';
+            if (*chptr == ';')
+            {
+                *comment = chptr;
+                return;
+            }
+            else
+            {
+                *opcode = chptr;
+                while (*chptr && !isspace(*chptr) && *chptr != ';')
+                    ++chptr;
+                if (*chptr)
+                    *(chptr++) = '\0';
 
+            }
         }
     }
 
@@ -424,11 +439,19 @@ delimfields(char *buffer,
 
         if (*chptr)
         {
-            *field = chptr;
-            while (*chptr && !isspace(*chptr) && *chptr != ';')
-                ++chptr;
-            if (*chptr)
-                *(chptr++) = '\0';
+            if (*chptr == ';')
+            {
+                *comment = chptr;
+                return;
+            }   
+            else
+            {
+                *field = chptr;
+                while (*chptr && !isspace(*chptr) && *chptr != ';')
+                    ++chptr;
+                if (*chptr)
+                    *(chptr++) = '\0';
+            }
         }
     }
 
