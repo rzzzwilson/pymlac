@@ -1,7 +1,8 @@
 ; test some jump instructions
 	org	0100	;
 			;
-	jmp	.+1	; pc-relative
+	jmp	.+2	; pc-relative
+        hlt     00      ; shouldn't get here
 	jmp	j	; to label
 	hlt	01	; shouldn't get here
 j	jmp	*l	; indirect
