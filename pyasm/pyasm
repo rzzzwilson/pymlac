@@ -1,0 +1,245 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+"""
+An assembler for the Imlac simulator.
+
+Usage: pyasm [ -h ] [ -l <listfile> ] [ -o <outputfile> ] <asmfile>
+
+Where <asmfile>  is the file to assemble,
+      <outputfile>  is the output PTP file
+      <listfile>    is the optional listing file
+
+If <outputfile> is not specified the output filename is the input
+<asmfile> with any extension removed and a .ptp axtenstion added.
+"""
+
+"""
+The basic structure of the assembler:
+0.  Read all file lines into memory
+1.  Create ORG blocks
+2.  Create CODE blocks from ORG blocks (assemble() function)
+3.  Check for undefined things in the symbol table
+4.  Allocate addresses to literal CODE blocks
+5.  Fix relative addresses in literal blocks
+6.  Backpatch all code blocks
+7.  Emit PTP data
+"""
+
+import sys
+import os
+import string
+import getopt
+
+######
+# Globals
+######
+
+# the input assembler filename
+AsmFile = None
+
+# the output listing file
+ListFile = None
+
+# the output PTP file
+OutputFile = None
+
+# the program start address (optional)
+StartAddr = None
+
+######
+# Mostly constant stuff
+######
+
+# the output PTP filename extension
+PTPExtension = '.ptp'
+
+# the output listing filename extension
+ListFileExtension = '.lst'
+
+
+def usage(msg=None):
+    if msg:
+        print('*'*60)
+        print(msg)
+        print('*'*60)
+    print(__doc__)
+
+def error(msg):
+    """Print error message and stop."""
+
+    print(msg)
+    sys.exit(10)
+
+def str2int(s):
+    """Convert string to numeric value.
+
+    s  numeric string (decimal or octal)
+
+    Returns the numeric value.
+    """
+
+    base = 10
+    if s[0] == '0':
+        base = 8
+
+    try:
+        value = int(s, base=base)
+    except:
+        return None
+
+    return value
+
+def next_symbol(line):
+    """Return next symbol and line remainder."""
+
+    fields = string.split(line, maxsplit=1)
+    if len(fields) != 2:
+        fields.append('')
+
+    return fields
+
+def split_fields(line):
+    """Split one ASM line into fields: label, opcode, address."""
+
+    if not line:
+        return (None, None, None)
+
+    # check for the label
+    label = None
+    if line and line[0] not in (' ', ';'):
+        (label, line) = next_symbol(line)
+    print('label=%s' % label)
+    print("line='%s'" % line)
+
+    # get opcode
+    opcode = None
+    if line and line[0] != ';':
+        (opcode, line) = next_symbol(line)
+    print('opcode=%s' % opcode)
+    print("line='%s'" % line)
+
+    # get address
+    address = None
+    if line and line[0] != ';':
+        (address, line) = next_symbol(line)
+    print('address=%s' % address)
+    print("line='%s'" % line)
+
+    return (label, opcode, address)
+
+#    # a comment may have been split, join
+#    ndx = 0
+#    while ndx < len(fields):
+#        if fields[ndx][0] == ';':
+#            fields = fields[:ndx+1]
+#            break
+#    print('fields=%s' % str(fields))
+#
+#    if len(fields) < 4:
+#        if len(fields) == 1:
+#            # one label, opcode or comment
+#            if line[0] != ' ':
+#                # just a label, add other fields
+#                fields.extend((None, None, None)
+#            if fields[0][0] == ';':
+#                # just a comment
+#
+#
+#    return fields
+
+def split_orgs(asm_lines):
+    """Split ASM lines into ORG blocks (one or more).
+
+    Error if no ORG pseudo-opcode found.
+    """
+
+    result = []
+    block = []
+
+    for (lnum, line) in enumerate(asm_lines):
+        (_, opcode, addr) = split_fields(line)
+        if opcode:
+            if opcode.lower() == 'org':
+                if block:
+                    # save previous ORG block
+                    result.append(block)
+                    block = []
+                if str2int(addr) is None:
+                    error('Line %d: %s\nORG pseudo-opcode without an address?'
+                          % (lnum, line))
+        block.append(line)
+
+    if block:
+        # save previous ORG block
+        result.append(block)
+        block = []
+
+    return result
+
+def assemble_file():
+    """Assemble the file and produce listing, output files."""
+
+    # read all of ASM file into memory, strip \n, etc
+    with open(AsmFile, 'rb') as fd:
+        asm_lines = fd.readlines()
+    asm_lines = [line.rstrip() for line in asm_lines]
+
+    print('asm_lines=\n%s' % '\n'.join(asm_lines))
+
+    org_blocks = split_orgs(asm_lines)
+    print('org_blocks=%s' % str(org_blocks))
+
+def main():
+    """The assembler."""
+
+    global AsmFile, ListFile, OutputFile
+
+    # handle the options
+    try:
+        (opts, args) = getopt.gnu_getopt(sys.argv, "hl:o:",
+                                         ["help", "list=", "output="])
+    except getopt.GetoptError:
+        usage()
+        sys.exit(10)
+
+    ListFile = None
+    OutputFile = None
+
+    for opt, arg in opts:
+        if opt in ('-h', '--help'):
+            usage()
+            sys.exit(0)
+        elif opt in ('-l', '--list'):
+            ListFile = arg
+        elif opt in ('-o', '--output'):
+            OutputFile = arg
+
+    if len(args) != 2:
+        usage()
+        sys.exit(10)
+
+    # get ASM filename and make sure it exists
+    AsmFile = args[1]
+    try:
+        f = open(AsmFile, 'rb')
+    except IOError:
+        print("Sorry, can't find file '%s'" % AsmFile)
+        sys.exit(10)
+    f.close()
+
+    if OutputFile is None:
+        (path, ext) = os.path.splitext(AsmFile)
+        OutputFile = path + PTPExtension
+
+    if ListFile is None:
+        (path, ext) = os.path.splitext(AsmFile)
+        ListFile = path + ListFileExtension
+
+    print('ListFile=%s, OutputFile=%s, AsmFile=%s'
+          % (str(ListFile), str(OutputFile), str(AsmFile)))
+
+    assemble_file()
+
+if __name__ == '__main__':
+    main()
