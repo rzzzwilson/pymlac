@@ -40,12 +40,22 @@ AsmFile = None
 
 # the output listing file
 ListFile = None
+ListFileHandle = None       # open listing file
 
 # the output PTP file
 OutputFile = None
+OutputFileHandle = None     # open output file
 
 # the program start address (optional)
 StartAddr = None
+
+# the symbol table
+# {<name>: [<value>, <line#>], ... }
+SymTable = {}
+
+# the backpatch list
+# [[symname, coderef, offset], [symname, coderef, offset], ... ]
+BackpatchList = []
 
 ######
 # Mostly constant stuff
@@ -59,6 +69,7 @@ ListFileExtension = '.lst'
 
 
 def usage(msg=None):
+    """Print usage and optional error message."""
     if msg:
         print('*'*60)
         print(msg)
@@ -90,6 +101,90 @@ def str2int(s):
 
     return value
 
+def list(code, addr, lnum, line):
+    """Generate one line of listing file.
+
+    code  is the word of generated code
+    addr  is the address of the generated code
+    lnum  file line number
+    line  complete text of the line of assembler
+    """
+
+    code_str = '%06o' % code if code else ''
+    addr_str = '%04o' % addr if addr else ''
+
+    ListFileHandle.write('%6s %4s %04d: %s\n'
+                         % (code_str, addr_str, lnum, line))
+    ListFileHandle.flush()
+
+def assemble_line(lnum, opcode, addr):
+    """Assemble one line of code.
+
+    lnum    source file line number
+    opcode  opcode, uppercase
+    addr    address expression, uppercase
+
+    Returns the 16bit word value, with possibly the backpatch list
+    updated.
+    """
+
+    return 1025
+
+def assemble_oblock(oblock):
+    """Assemble one org block to a code block.
+
+    An org block: [(lnum, line, label, opcode, addr), ...]
+    A code block: [address, [word, word, word, ...]]
+    """
+
+    cblock = [None, []]
+
+    # if we get an empty block, do nothing
+    if len(oblock) == 0:
+        return cblock
+
+    # assemble the org block
+    address = None          # '.' value
+    for (lnum, line, label, opcode, addr) in oblock:
+        print("lnum=%d, line='%s', label='%s', opcode='%s', addr'%s'" % (lnum, line, label, opcode, addr))
+
+        # if no code, just list it
+        if label is None and opcode is None:
+            list(None, None, lnum, line)
+        else:
+            # we have some code to generate
+            if label:
+                # we have a label, so a new symbol
+                label_upper = label.upper()
+                # {<name>: [<value>, <line#>], ... }
+                if label_upper in SymTable:
+                    prev_lnum = SymTable[label_upper][1]
+                    error("Label '%s' define twice, lines %d and %d."
+                          % (label, prev_lnum, lnum))
+                SymTable[label_upper] = [address, lnum]
+            if opcode:
+                opcode_upper = opcode.upper()
+                if opcode == 'ORG':
+                    address = str2int(addr)
+                    code = None
+                    cblock = [address, []]
+                else:
+                    code = assemble_line(lnum, opcode, addr)
+                    print('cblock=%s' % str(cblock))
+                    cblock[1].append(code)
+                list(code, address, lnum, line)
+
+def assemble_org_blocks(blocks):
+    """Assemble org blocks producing a code blocks list."""
+
+    code_block = []
+
+    # for each org block, assemble to code block
+    for oblock in blocks:
+        code_block.append(assemble_oblock(oblock))
+
+    return code_block
+
 def next_symbol(line):
     """Return next symbol and line remainder."""
 
@@ -109,44 +204,18 @@ def split_fields(line):
     label = None
     if line and line[0] not in (' ', ';'):
         (label, line) = next_symbol(line)
-    print('label=%s' % label)
-    print("line='%s'" % line)
 
     # get opcode
     opcode = None
     if line and line[0] != ';':
         (opcode, line) = next_symbol(line)
-    print('opcode=%s' % opcode)
-    print("line='%s'" % line)
 
     # get address
     address = None
     if line and line[0] != ';':
         (address, line) = next_symbol(line)
-    print('address=%s' % address)
-    print("line='%s'" % line)
 
     return (label, opcode, address)
-
-#    # a comment may have been split, join
-#    ndx = 0
-#    while ndx < len(fields):
-#        if fields[ndx][0] == ';':
-#            fields = fields[:ndx+1]
-#            break
-#    print('fields=%s' % str(fields))
-#
-#    if len(fields) < 4:
-#        if len(fields) == 1:
-#            # one label, opcode or comment
-#            if line[0] != ' ':
-#                # just a label, add other fields
-#                fields.extend((None, None, None)
-#            if fields[0][0] == ';':
-#                # just a comment
-#
-#
-#    return fields
 
 def split_orgs(asm_lines):
     """Split ASM lines into ORG blocks (one or more).
@@ -158,7 +227,7 @@ def split_orgs(asm_lines):
     block = []
 
     for (lnum, line) in enumerate(asm_lines):
-        (_, opcode, addr) = split_fields(line)
+        (label, opcode, addr) = split_fields(line)
         if opcode:
             if opcode.lower() == 'org':
                 if block:
@@ -168,7 +237,7 @@ def split_orgs(asm_lines):
                 if str2int(addr) is None:
                     error('Line %d: %s\nORG pseudo-opcode without an address?'
                           % (lnum, line))
-        block.append(line)
+        block.append((lnum+1, line, label, opcode, addr))
 
     if block:
         # save previous ORG block
@@ -190,10 +259,15 @@ def assemble_file():
     org_blocks = split_orgs(asm_lines)
     print('org_blocks=%s' % str(org_blocks))
 
+    code_blocks = assemble_org_blocks(org_blocks)
+    print('code_blocks=%s' % str(code_blocks))
+    print('SymTable=%s' % str(SymTable))
+
 def main():
     """The assembler."""
 
     global AsmFile, ListFile, OutputFile
+    global ListFileHandle, OutputFileHandle
 
     # handle the options
     try:
@@ -231,10 +305,12 @@ def main():
     if OutputFile is None:
         (path, ext) = os.path.splitext(AsmFile)
         OutputFile = path + PTPExtension
+    OutputFileHandle = open(OutputFile, 'wb')
 
     if ListFile is None:
         (path, ext) = os.path.splitext(AsmFile)
         ListFile = path + ListFileExtension
+    ListFileHandle = open(ListFile, 'wb')
 
     print('ListFile=%s, OutputFile=%s, AsmFile=%s'
           % (str(ListFile), str(OutputFile), str(AsmFile)))
