@@ -101,7 +101,7 @@ def str2int(s):
 
     return value
 
-def list(code, addr, lnum, line):
+def write_list(code, addr, lnum, line):
     """Generate one line of listing file.
 
     code  is the word of generated code
@@ -150,9 +150,28 @@ def assemble_oblock(oblock):
 
         # if no code, just list it
         if label is None and opcode is None:
-            list(None, None, lnum, line)
+            write_list(None, None, lnum, line)
         else:
-            # we have some code to generate
+            # maybe we have some code to generate
+            if opcode:
+                opcode = opcode.upper()
+                if opcode == 'ORG':
+                    # ORG just sets the code address and starts the code block
+                    address = str2int(addr)
+                    print('ORG set address to %06o' % address)
+                    code = None
+                    cblock = [address, []]
+                    write_list(None, None, lnum, line)
+                elif opcode == 'END':
+                    # END pseudo-op, terminate assembly
+                    write_list(None, str2int(addr), lnum, line)
+                    return cblock
+                else:
+                    code = assemble_line(lnum, opcode, addr)
+                    print('cblock=%s' % str(cblock))
+                    cblock[1].append(code)
+                    write_list(code, address, lnum, line)
+                    address += 1
             if label:
                 # we have a label, so a new symbol
                 label_upper = label.upper()
@@ -162,17 +181,6 @@ def assemble_oblock(oblock):
                     error("Label '%s' define twice, lines %d and %d."
                           % (label, prev_lnum, lnum))
                 SymTable[label_upper] = [address, lnum]
-            if opcode:
-                opcode_upper = opcode.upper()
-                if opcode == 'ORG':
-                    address = str2int(addr)
-                    code = None
-                    cblock = [address, []]
-                else:
-                    code = assemble_line(lnum, opcode, addr)
-                    print('cblock=%s' % str(cblock))
-                    cblock[1].append(code)
-                list(code, address, lnum, line)
 
 def assemble_org_blocks(blocks):
     """Assemble org blocks producing a code blocks list."""
