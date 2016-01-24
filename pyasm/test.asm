@@ -1,5 +1,5 @@
-; a test comment
-        org     0000100
+; a test comment on the first line
+        org     0100
 
 start   law     10          ; comment
         lac     start2      ; another comment

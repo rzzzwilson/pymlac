@@ -28,6 +28,7 @@ The basic structure of the assembler:
 
 import sys
 import os
+import copy
 import string
 import getopt
 
@@ -49,13 +50,19 @@ OutputFileHandle = None     # open output file
 # the program start address (optional)
 StartAddr = None
 
-# the symbol table
-# {<name>: [<value>, <line#>], ... }
+# the symbol table(s)
+# {<name>: <value>, ... }
 SymTable = {}
+# {<name>: <line#>, ... }
+SymTableLine = {}
 
 # the backpatch list
 # [[symname, coderef, offset], [symname, coderef, offset], ... ]
 BackpatchList = []
+
+# current line number and the line
+CurrentLine = None
+CurrentLineNumber = None
 
 ######
 # Mostly constant stuff
@@ -117,6 +124,37 @@ def write_list(code, addr, lnum, line):
                          % (code_str, addr_str, lnum, line))
     ListFileHandle.flush()
 
+def eval_expression(expr, dot):
+    """Evaluate an expression.
+
+    expr  string holding expression
+    dot   current code address (the "." symbol value)
+
+    Valid expressions are:
+#        <expr>               ::= <string> | <numeric_expression>
+#        <string>             ::= ('|") <characters> ('|")
+        <numeric_expression> ::= (<numeric_const>|<name_const>|".") [ (+|-) <numeric_expression> ]
+        <name_const>         ::= <name_characters>
+    """
+
+    # replace any "." value with "dot" defined in the symbol table
+    print('eval_expression: expr=%s, dot=%s' % (str(expr), str(dot)))
+    expr = string.replace(expr, '.', 'dot')
+    expr = expr.upper()
+    glob = copy.deepcopy(SymTable)
+    glob['DOT'] = dot
+    print('eval_expression: expr=%s' % expr)
+    print('eval_expression: glob=%s' % str(glob))
+
+    # evaluate the expression
+    try:
+        result = eval(expr, glob)
+    except TypeError as e:
+        error('ORG pseudo-opcode expression contains unsatisfied references\n'
+              '%d: %s' % (CurrentLineNumber, CurrentLine))
+
+    return result
+
 def assemble_line(lnum, opcode, addr):
     """Assemble one line of code.
 
@@ -137,6 +175,8 @@ def assemble_oblock(oblock):
     A code block: [address, [word, word, word, ...]]
     """
 
+    global CurrentLineNumber, CurrentLine
+
     cblock = [None, []]
 
     # if we get an empty block, do nothing
@@ -147,6 +187,8 @@ def assemble_oblock(oblock):
     address = None          # '.' value
     for (lnum, line, label, opcode, addr) in oblock:
         print("lnum=%d, line='%s', label='%s', opcode='%s', addr'%s'" % (lnum, line, label, opcode, addr))
+        CurrentLineNumber = lnum
+        CurrentLine = line
 
         # if no code, just list it
         if label is None and opcode is None:
@@ -157,7 +199,8 @@ def assemble_oblock(oblock):
                 opcode = opcode.upper()
                 if opcode == 'ORG':
                     # ORG just sets the code address and starts the code block
-                    address = str2int(addr)
+                    address = eval_expression(addr, address)
+#                    address = str2int(addr)
                     print('ORG set address to %06o' % address)
                     code = None
                     cblock = [address, []]
@@ -177,10 +220,11 @@ def assemble_oblock(oblock):
                 label_upper = label.upper()
                 # {<name>: [<value>, <line#>], ... }
                 if label_upper in SymTable:
-                    prev_lnum = SymTable[label_upper][1]
+                    prev_lnum = SymTableLine[label_upper]
                     error("Label '%s' define twice, lines %d and %d."
                           % (label, prev_lnum, lnum))
-                SymTable[label_upper] = [address, lnum]
+                SymTable[label_upper] = address
+                SymTableLine[label_upper] = lnum
 
 def assemble_org_blocks(blocks):
     """Assemble org blocks producing a code blocks list."""
@@ -203,25 +247,59 @@ def next_symbol(line):
     return fields
 
 def split_fields(line):
-    """Split one ASM line into fields: label, opcode, address."""
+    """Split one ASM line into fields: label, opcode, address.
+
+    We take pains not to split the address field if it's something like
+        ALPHA + 100
+    """
+
+    print('split_fields: line=%s' % str(line))
 
     if not line:
         return (None, None, None)
 
     # check for the label
     label = None
-    if line and line[0] not in (' ', ';'):
-        (label, line) = next_symbol(line)
+    if line[0] not in ' \t;':
+        (label, remainder) = next_symbol(line)
+        label = label.upper()
+    else:
+        remainder = line.strip()
+    print('split_fields: label=%s, remainder=%s' % (str(label), str(remainder)))
 
     # get opcode
     opcode = None
-    if line and line[0] != ';':
-        (opcode, line) = next_symbol(line)
+    if remainder and remainder[0] != ';':
+        (opcode, remainder) = next_symbol(remainder)
+        opcode = opcode.upper()
+    print('split_fields: opcode=%s, remainder=%s' % (str(opcode), str(remainder)))
 
     # get address
     address = None
-    if line and line[0] != ';':
-        (address, line) = next_symbol(line)
+    if remainder and remainder[0] != ';':
+        # first, check for a string
+        if remainder[0] in "'\"":
+            delim = remainder[0]
+            remainder = remainder[1:]
+            ndx = remainder.find(delim)
+            if ndx == -1:
+                error('Unbalanced string delimiter:\n'
+                      '%d: %s' % (CurrentLineNumber, CurrentLine))
+            address = remainder[:ndx].strip()
+            remainder = remainder[ndx+1:].strip()
+        else:
+            # strip off any comment
+            ndx = remainder.find(';')
+            if ndx != -1:
+                remainder = remainder[ndx+1:].strip()
+            address = remainder.strip()
+            remainder = None
+    print('split_fields: address=%s, remainder=%s' % (str(address), str(remainder)))
+
+    # check that remainder is empty or only a comment
+    if remainder and remainder[0] != ';':
+        error('Badly formed instruction:\n'
+              '%d: %s' % (CurrentLineNumber, CurrentLine))
 
     return (label, opcode, address)
 
@@ -231,18 +309,23 @@ def split_orgs(asm_lines):
     Error if no ORG pseudo-opcode found.
     """
 
+    global CurrentLineNumber, CurrentLine
+
     result = []
     block = []
 
     for (lnum, line) in enumerate(asm_lines):
         (label, opcode, addr) = split_fields(line)
+        CurrentLineNumber = lnum
+        CurrentLine = line
+        print('split_orgs: label=%s, opcode=%s, addr=%s' % (str(label), str(opcode), str(addr)))
         if opcode:
             if opcode.lower() == 'org':
                 if block:
                     # save previous ORG block
                     result.append(block)
                     block = []
-                if str2int(addr) is None:
+                if addr is None:
                     error('Line %d: %s\nORG pseudo-opcode without an address?'
                           % (lnum, line))
         block.append((lnum+1, line, label, opcode, addr))
@@ -270,6 +353,7 @@ def assemble_file():
     code_blocks = assemble_org_blocks(org_blocks)
     print('code_blocks=%s' % str(code_blocks))
     print('SymTable=%s' % str(SymTable))
+    print('SymTableLine=%s' % str(SymTableLine))
 
 def main():
     """The assembler."""
