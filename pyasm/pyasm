@@ -138,13 +138,10 @@ def eval_expression(expr, dot):
     """
 
     # replace any "." value with "dot" defined in the symbol table
-    print('eval_expression: expr=%s, dot=%s' % (str(expr), str(dot)))
     expr = string.replace(expr, '.', 'dot')
     expr = expr.upper()
     glob = copy.deepcopy(SymTable)
-    glob['DOT'] = dot
-    print('eval_expression: expr=%s' % expr)
-    print('eval_expression: glob=%s' % str(glob))
+    glob['DOT'] = dot       # add in the "." address
 
     # evaluate the expression
     try:
@@ -186,9 +183,11 @@ def assemble_oblock(oblock):
     # assemble the org block
     address = None          # '.' value
     for (lnum, line, label, opcode, addr) in oblock:
-        print("lnum=%d, line='%s', label='%s', opcode='%s', addr'%s'" % (lnum, line, label, opcode, addr))
         CurrentLineNumber = lnum
         CurrentLine = line
+
+        print("%d: '%s', label=%s, opcode=%s, addr=%s"
+              % (lnum, line, str(label), str(opcode), str(addr)))
 
         # if no code, just list it
         if label is None and opcode is None:
@@ -201,17 +200,18 @@ def assemble_oblock(oblock):
                     # ORG just sets the code address and starts the code block
                     address = eval_expression(addr, address)
 #                    address = str2int(addr)
-                    print('ORG set address to %06o' % address)
                     code = None
                     cblock = [address, []]
                     write_list(None, None, lnum, line)
                 elif opcode == 'END':
                     # END pseudo-op, terminate assembly
-                    write_list(None, str2int(addr), lnum, line)
+                    start_addr = None
+                    if addr:
+                        start_addr = eval_expression(addr, address)
+                    write_list(None, start_addr, lnum, line)
                     return cblock
                 else:
                     code = assemble_line(lnum, opcode, addr)
-                    print('cblock=%s' % str(cblock))
                     cblock[1].append(code)
                     write_list(code, address, lnum, line)
                     address += 1
@@ -223,6 +223,7 @@ def assemble_oblock(oblock):
                     prev_lnum = SymTableLine[label_upper]
                     error("Label '%s' define twice, lines %d and %d."
                           % (label, prev_lnum, lnum))
+                print("Adding '%s:%s' to SymTable" % (label_upper, str(address)))
                 SymTable[label_upper] = address
                 SymTableLine[label_upper] = lnum
 
@@ -249,11 +250,15 @@ def next_symbol(line):
 def split_fields(line):
     """Split one ASM line into fields: label, opcode, address.
 
+    Returns a tuple: (label, opcode, address).
+    If label and opcode ar not None, uppercase the result string.
+
+    If a field is missing, return None for it.  If the line is empty, return
+    (None, None, None).
+
     We take pains not to split the address field if it's something like
         ALPHA + 100
     """
-
-    print('split_fields: line=%s' % str(line))
 
     if not line:
         return (None, None, None)
@@ -265,14 +270,12 @@ def split_fields(line):
         label = label.upper()
     else:
         remainder = line.strip()
-    print('split_fields: label=%s, remainder=%s' % (str(label), str(remainder)))
 
     # get opcode
     opcode = None
     if remainder and remainder[0] != ';':
         (opcode, remainder) = next_symbol(remainder)
         opcode = opcode.upper()
-    print('split_fields: opcode=%s, remainder=%s' % (str(opcode), str(remainder)))
 
     # get address
     address = None
@@ -291,10 +294,9 @@ def split_fields(line):
             # strip off any comment
             ndx = remainder.find(';')
             if ndx != -1:
-                remainder = remainder[ndx+1:].strip()
+                remainder = remainder[:ndx].strip()
             address = remainder.strip()
             remainder = None
-    print('split_fields: address=%s, remainder=%s' % (str(address), str(remainder)))
 
     # check that remainder is empty or only a comment
     if remainder and remainder[0] != ';':
@@ -318,7 +320,6 @@ def split_orgs(asm_lines):
         (label, opcode, addr) = split_fields(line)
         CurrentLineNumber = lnum
         CurrentLine = line
-        print('split_orgs: label=%s, opcode=%s, addr=%s' % (str(label), str(opcode), str(addr)))
         if opcode:
             if opcode.lower() == 'org':
                 if block:

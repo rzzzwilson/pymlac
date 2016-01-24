@@ -2,12 +2,13 @@
         org     0100
 
 start   law     10          ; comment
-        lac     start2      ; another comment
+        lac     undef       ; another comment
         hlt
 
         org     0200 + 1
 start2  
-        lac     0100
+        lac     0100        ; comment
         hlt
+string  data    'ascii'
 
         end     start
