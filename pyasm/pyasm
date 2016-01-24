@@ -165,6 +165,17 @@ def assemble_line(lnum, opcode, addr):
 
     return 1025
 
+def define_label(label, address, lnum):
+    """Put 'label' into the symbol tables."""
+
+    if label in SymTable:
+        prev_lnum = SymTableLine[label]
+        error("Label '%s' define twice, lines %d and %d."
+              % (label, prev_lnum, lnum))
+    print("Adding '%s:%s' to SymTable" % (label, str(address)))
+    SymTable[label] = address
+    SymTableLine[label] = lnum
+
 def assemble_oblock(oblock):
     """Assemble one org block to a code block.
 
@@ -186,8 +197,8 @@ def assemble_oblock(oblock):
         CurrentLineNumber = lnum
         CurrentLine = line
 
-        print("%d: '%s', label=%s, opcode=%s, addr=%s"
-              % (lnum, line, str(label), str(opcode), str(addr)))
+        print("%d: '%s', label=%s, opcode=%s, addr=%s, address=%s"
+              % (lnum, line, str(label), str(opcode), str(addr), str(address)))
 
         # if no code, just list it
         if label is None and opcode is None:
@@ -195,14 +206,16 @@ def assemble_oblock(oblock):
         else:
             # maybe we have some code to generate
             if opcode:
-                opcode = opcode.upper()
                 if opcode == 'ORG':
                     # ORG just sets the code address and starts the code block
+                    if label:
+                        error('%d: %s\nORG opcode may not have a label'
+                              % (lnum, line))
                     address = eval_expression(addr, address)
-#                    address = str2int(addr)
                     code = None
                     cblock = [address, []]
                     write_list(None, None, lnum, line)
+                    continue
                 elif opcode == 'END':
                     # END pseudo-op, terminate assembly
                     start_addr = None
@@ -210,22 +223,25 @@ def assemble_oblock(oblock):
                         start_addr = eval_expression(addr, address)
                     write_list(None, start_addr, lnum, line)
                     return cblock
+                elif opcode == 'EQU':
+                    if label is None:
+                        error('%d: %s\nEQU opcode missing a label'
+                              % (lnum, line))
+                    value = eval_expression(addr, None)
+                    define_label(label, value, lnum)
+                    write_list(None, None, lnum, line)
+                    continue
                 else:
                     code = assemble_line(lnum, opcode, addr)
                     cblock[1].append(code)
                     write_list(code, address, lnum, line)
+                    if label:
+                        define_label(label, address, lnum)
                     address += 1
-            if label:
-                # we have a label, so a new symbol
-                label_upper = label.upper()
-                # {<name>: [<value>, <line#>], ... }
-                if label_upper in SymTable:
-                    prev_lnum = SymTableLine[label_upper]
-                    error("Label '%s' define twice, lines %d and %d."
-                          % (label, prev_lnum, lnum))
-                print("Adding '%s:%s' to SymTable" % (label_upper, str(address)))
-                SymTable[label_upper] = address
-                SymTableLine[label_upper] = lnum
+            elif label:
+                # we have a label and no opcode, just define the label and list it
+                define_label(label, address, lnum)
+                write_list(None, None, lnum, line)
 
 def assemble_org_blocks(blocks):
     """Assemble org blocks producing a code blocks list."""
