@@ -3,7 +3,8 @@
 
 start   law     10
         lac     start2      ; comment
-        lac     undef       ; another comment
+        lac     .-2
+;        lac     undef       ; another comment
         hlt
 
 fred    equ     2           ; EQU
@@ -11,8 +12,9 @@ fred    equ     2           ; EQU
         org     128 + 1
 
 start2  
-        lac     0100        ; comment
-        hlt
+        lac     start + 2   ; comment
+        nop
 string  data    'ascii'
+        hlt
 
         end     start
