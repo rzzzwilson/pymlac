@@ -92,25 +92,6 @@ def error(msg):
     print(msg)
     sys.exit(10)
 
-def str2int(s):
-    """Convert string to numeric value.
-
-    s  numeric string (decimal or octal)
-
-    Returns the numeric value.
-    """
-
-    base = 10
-    if s[0] == '0':
-        base = 8
-
-    try:
-        value = int(s, base=base)
-    except:
-        return None
-
-    return value
-
 def write_list(code, addr, lnum, line):
     """Generate one line of listing file.
 
