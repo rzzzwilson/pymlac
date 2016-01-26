@@ -3,7 +3,8 @@
 #
 
 test:
-	pyasm test.asm
+	cp pyasm pyasm.py
+	python test_pyasm.py
 
 clean:
-	rm -f *.log
+	rm -f *.log pyasm.py
