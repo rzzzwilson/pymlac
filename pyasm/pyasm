@@ -144,8 +144,6 @@ def eval_expression(expr, dot):
 
     global Undefined
 
-    print('eval_expression: expr=%s' % expr)
-
     # if no expression, do nothing
     if expr is None:
         return None
@@ -160,12 +158,12 @@ def eval_expression(expr, dot):
     # replace any "." value with "dot" defined in the symbol table
     expr = string.replace(expr, '.', 'dot')
     expr = expr.upper()
-    glob = copy.deepcopy(SymTable)
-    glob['DOT'] = dot       # add in the "." address
+    env = copy.deepcopy(SymTable)
+    env['DOT'] = dot       # add in the "." address
 
     # evaluate the expression
     try:
-        result = eval(expr, glob)
+        result = eval(expr, env)
     except TypeError as e:
         error('ORG pseudo-opcode expression contains unsatisfied references\n'
               '%d: %s' % (CurrentLineNumber, CurrentLine))
@@ -197,9 +195,32 @@ def define_label(label, address, lnum):
         prev_lnum = SymTableLine[label]
         error("Label '%s' define twice, lines %d and %d."
               % (label, prev_lnum, lnum))
-    print("Adding '%s:%s' to SymTable" % (label, str(address)))
     SymTable[label] = address
     SymTableLine[label] = lnum
+
+def gen_ascii(string, address, lnum, line):
+    """Generate data words for ASCII string.
+
+    string   the string to generate data for
+    address  'dot' value for first word generated
+    lnum     line number of code
+    line     actual line of code
+    """
+
+    # ensure even number of bytes in string
+    if len(string) % 2:
+        string += '\0'      # append zero byte as padding
+
+    # get 2 bytes at a time and generate words
+    while string:
+        ch1 = string[0]
+        ch2 = string[1]
+        string = string[2:]
+        value = (ord(ch1) << 8) + ord(ch2)
+        write_list(value, address, lnum, line)
+        address += 1
+        lnum = None
+        line = None
 
 def assemble_oblock(oblock):
     """Assemble one org block to a code block.
@@ -221,9 +242,6 @@ def assemble_oblock(oblock):
     for (lnum, line, label, opcode, addr) in oblock:
         CurrentLineNumber = lnum
         CurrentLine = line
-
-        print("%d: '%s', label=%s, opcode=%s, addr=%s, address=%s"
-              % (lnum, line, str(label), str(opcode), str(addr), str(address)))
 
         # if no code, just list it
         if label is None and opcode is None:
@@ -276,12 +294,7 @@ def assemble_oblock(oblock):
                     ln = lnum
                     li = line
                     if isinstance(value, basestring):
-                        # ASCII constant
-                        for ch in value:
-                            write_list(ord(ch), address, ln, li)
-                            address += 1
-                            ln = None
-                            li = None
+                        gen_ascii(value, address, lnum, line)
                     else:
                         write_list(value, address, lnum, line)
                         address += 1
@@ -424,10 +437,7 @@ def check_org_overlap(code_blocks):
         (block_start, code) = cb
         block_end = block_start + len(code) - 1
 
-        print('block: %06o,%06o' % (block_start, block_end))
-
         for (start, end) in block_span:
-            print('check block: %06o,%06o' % (start, end))
             if start <= block_start <= end:
                 error('ORG block at address %06o overwrites previous block at [%06o,%06o]'
                       % (block_start, start, end))
@@ -448,12 +458,9 @@ def backpatch(code_blocks):
     Returns a simplified code block list: [[address, [code, code, ...]], ...].
     """
 
-    print('backpatch: code_blocks=%s' % str(code_blocks))
-
     result = []
 
     for cb in code_blocks:
-        print('cb=%s' % str(cb))
         (address, codes) = cb
         if address is None and not codes:
             # empty code block, ignore
@@ -483,7 +490,6 @@ def assemble_file():
     with open(AsmFile, 'rb') as fd:
         asm_lines = fd.readlines()
     asm_lines = [line.rstrip() for line in asm_lines]
-
     print('asm_lines=\n%s' % '\n'.join(asm_lines))
 
     org_blocks = split_orgs(asm_lines)
