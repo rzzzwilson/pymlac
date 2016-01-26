@@ -9,7 +9,8 @@ start   law     10
 
 fred    equ     2           ; EQU
 
-        org     128 + 1
+;        org     128 + 1
+        org     . + 010
 
 start2  
         lac     start + 2   ; comment
