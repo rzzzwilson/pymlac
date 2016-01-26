@@ -84,6 +84,31 @@ class TestPyasm(unittest.TestCase):
                    % (test, str(expected), str(result)))
             self.assertEqual(result, expected, msg)
 
+    def test_define_label(self):
+        """Run lots of tests on define_label().
+
+        Note that we CAN'T test defining a label twice as define_line() will
+        call sys.exit().
+        """
+
+        # define tests: (label, address, lnum, expected_symtab, expected_symtabline
+        tests = (
+                 ('A', 1, 2, {'A': 1}, {'A': 2}),
+                 ('B', 0100, 5, {'B': 0100}, {'B': 5}),
+                )
+
+        # now run them
+        for (label, address, lnum, exp_symtab, exp_symtabline) in tests:
+            pyasm.SymTable = {}
+            pyasm.SymTableLine = {}
+            pyasm.define_label(label, address, lnum)
+            msg = ("Expected define_label('%s', %d, %d) to set SymTable '%s', got '%s'"
+                   % (label, address, lnum, str(exp_symtab), str(pyasm.SymTable)))
+            self.assertEqual(exp_symtab, pyasm.SymTable, msg)
+            msg = ("Expected define_label('%s', %d, %d) to set SymTableLine '%s', got '%s'"
+                   % (label, address, lnum, str(exp_symtabline), str(pyasm.SymTableLine)))
+            self.assertEqual(exp_symtabline, pyasm.SymTableLine, msg)
+
 ################################################################################
 
 if __name__ == '__main__':
