@@ -80,6 +80,36 @@ PTPExtension = '.ptp'
 # the output listing filename extension
 ListFileExtension = '.lst'
 
+# length of a word in bits
+WordBits = 16
+
+# dict containing opcode -> (word, mask, ok_indirect) mapping
+def mask(n):
+    return (0xFFFF << n) & 0xFFFF
+
+Op2Word = {
+           'LAW': (0004000, mask(11), False),
+           'LWC': (0104000, mask(11), False),
+           'JMP': (0010000, mask(11), True),
+           'DAC': (0020000, mask(11), True),
+           'XAM': (0024000, mask(11), True),
+           'ISZ': (0030000, mask(11), True),
+           'JMS': (0034000, mask(11), True),
+           'AND': (0044000, mask(11), True),
+           'IOR': (0050000, mask(11), True),
+           'XOR': (0054000, mask(11), True),
+           'LAC': (0060000, mask(11), True),
+           'ADD': (0064000, mask(11), True),
+           'SUB': (0070000, mask(11), True),
+           'SAM': (0074000, mask(11), True),
+          }
+
+
+for (key, value) in Op2Word.items():
+    (word, mask, ind) = value
+    word_s = format(word, '016b')
+    mask_s = format(mask, '016b')
+    print('%s: %s, %s (%s)' % (key, word_s, mask_s, str(ind)))
 
 def usage(msg=None):
     """Print usage and optional error message."""
@@ -159,16 +189,31 @@ def eval_expression(expr, dot):
 
     return result
 
-def assemble_line(lnum, opcode, addr):
+def assemble_line(lnum, line, dot, opcode, addr):
     """Assemble one line of code.
 
     lnum    source file line number
+    line    the actual source line (for error reporting)
+    dot     current address in the assembly
     opcode  opcode, uppercase
     addr    address expression, uppercase
 
     Returns the 16bit word value, with possibly the backpatch list
     updated.
     """
+
+    print('assemble_line: lnum=%d, line=%s, opcode=%s, addr=%s' % (lnum, line, opcode, addr))
+    try:
+        (word, mask, ind) = Op2Word[opcode]
+    except KeyError:
+        error("%d: %s\nUnrecognized opcode '%s'" % (lnum, line, opcode))
+
+    value = eval_expression(addr, dot)
+
+    word_s = format(word, '016b')
+    mask_s = format(mask, '016b')
+    value_s = format(value, '016b')
+    print('word=%s, mask=%s, ind=%s, value=%s' % (word_s, mask_s, str(ind), value_s))
 
     return 1025
 
@@ -286,7 +331,7 @@ def assemble_oblock(oblock):
                         write_list(value, Address, lnum, line)
                         Address += 1
                 else:
-                    code = assemble_line(lnum, opcode, addr)
+                    code = assemble_line(lnum, line, Address, opcode, addr)
                     cblock[1].append((code, addr))
                     write_list(code, Address, lnum, line)
                     if label:
