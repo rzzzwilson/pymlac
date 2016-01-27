@@ -50,6 +50,9 @@ OutputFileHandle = None     # open output file
 # the program start address (optional)
 StartAddr = None
 
+# the current address in assembled code (dot)
+Address = None
+
 # the symbol table(s)
 # {<name>: <value>, ... }
 SymTable = {}
@@ -139,12 +142,12 @@ def eval_expression(expr, dot):
     # replace any "." value with "dot" defined in the symbol table
     expr = string.replace(expr, '.', 'dot')
     expr = expr.upper()
-    env = copy.deepcopy(SymTable)
-    env['DOT'] = dot       # add in the "." address
+    globs = copy.deepcopy(SymTable)
+    globs['DOT'] = dot       # add in the "." address
 
     # evaluate the expression
     try:
-        result = eval(expr, env)
+        result = eval(expr, globs)
     except TypeError as e:
         error('ORG pseudo-opcode expression contains unsatisfied references\n'
               '%d: %s' % (CurrentLineNumber, CurrentLine))
@@ -183,9 +186,11 @@ def gen_ascii(string, address, lnum, line):
     """Generate data words for ASCII string.
 
     string   the string to generate data for
-    address  'dot' value for first word generated
+    address  addres of first generated word (dot)
     lnum     line number of code
     line     actual line of code
+
+    Returns the updated 'dot' value.
     """
 
     # ensure even number of bytes in string
@@ -203,6 +208,8 @@ def gen_ascii(string, address, lnum, line):
         lnum = None
         line = None
 
+    return address
+
 def assemble_oblock(oblock):
     """Assemble one org block to a code block.
 
@@ -210,7 +217,7 @@ def assemble_oblock(oblock):
     A code block: [address, [word, word, word, ...]]
     """
 
-    global CurrentLineNumber, CurrentLine
+    global CurrentLineNumber, CurrentLine, Address
 
     cblock = [None, []]
 
@@ -219,14 +226,14 @@ def assemble_oblock(oblock):
         return cblock
 
     # assemble the org block
-    address = None          # '.' value
+#    address = None          # '.' value
     for (lnum, line, label, opcode, addr) in oblock:
         CurrentLineNumber = lnum
         CurrentLine = line
 
         # if no code, just list it
         if label is None and opcode is None:
-            write_list(None, None, lnum, line)
+            write_list(label, opcode, lnum, line)
         else:
             # maybe we have some code to generate
             if opcode:
@@ -236,11 +243,11 @@ def assemble_oblock(oblock):
                         error('%d: %s\nORG opcode may not have a label'
                               % (lnum, line))
                     try:
-                        address = eval_expression(addr, address)
+                        Address = eval_expression(addr, Address)
                     except NameError as e:
                         error("%d: %s\nName '%s' is undefined"
                               % (lnum, line, Undefined))
-                    cblock = [address, []]
+                    cblock = [Address, []]
                     write_list(None, None, lnum, line)
                     continue
                 elif opcode == 'END':
@@ -248,7 +255,7 @@ def assemble_oblock(oblock):
                     start_addr = None
                     if addr:
                         try:
-                            start_addr = eval_expression(addr, address)
+                            start_addr = eval_expression(addr, Address)
                         except NameError as e:
                             error("%d: %s\nName '%s' is undefined"
                                   % (lnum, line, undefined))
@@ -259,7 +266,7 @@ def assemble_oblock(oblock):
                         error('%d: %s\nEQU opcode missing a label'
                               % (lnum, line))
                     try:
-                        value = eval_expression(addr, None)
+                        value = eval_expression(addr, Address)
                     except NameError as e:
                         error("%d: %s\nName '%s' is undefined"
                               % (lnum, line, Undefined))
@@ -268,27 +275,26 @@ def assemble_oblock(oblock):
                     continue
                 elif opcode == 'DATA':
                     try:
-                        value = eval_expression(addr, address)
+                        value = eval_expression(addr, Address)
                     except NameError as e:
                         error("%d: %s\nName '%s' is undefined"
                               % (lnum, line, Undefined))
-                    ln = lnum
-                    li = line
+
                     if isinstance(value, basestring):
-                        gen_ascii(value, address, lnum, line)
+                        Address = gen_ascii(value, Address, lnum, line)
                     else:
-                        write_list(value, address, lnum, line)
-                        address += 1
+                        write_list(value, Address, lnum, line)
+                        Address += 1
                 else:
                     code = assemble_line(lnum, opcode, addr)
                     cblock[1].append((code, addr))
-                    write_list(code, address, lnum, line)
+                    write_list(code, Address, lnum, line)
                     if label:
-                        define_label(label, address, lnum)
-                    address += 1
+                        define_label(label, Address, lnum)
+                    Address += 1
             elif label:
                 # we have a label and no opcode, just define the label and list it
-                define_label(label, address, lnum)
+                define_label(label, Address, lnum)
                 write_list(None, None, lnum, line)
 
     return cblock
@@ -387,7 +393,7 @@ def split_orgs(asm_lines):
         CurrentLineNumber = lnum
         CurrentLine = line
         if opcode:
-            if opcode.lower() == 'org':
+            if opcode == 'ORG':
                 if block:
                     # save previous ORG block
                     result.append(block)
@@ -407,12 +413,14 @@ def split_orgs(asm_lines):
 def check_org_overlap(code_blocks):
     """Check that we don't have overlapping ORG blocks."""
 
+    global Address
+
    # remember org block span: [(start, end), (start', end'), ...]
     block_span = []
 
     for cb in code_blocks:
-        (address, code) = cb
-        if address is None and not code:
+        (Address, code) = cb
+        if Address is None and not code:
             # empty code block, ignore
             continue
         (block_start, code) = cb
@@ -465,7 +473,7 @@ def backpatch(code_blocks):
     return [address, new_code]
 
 def assemble_file():
-    """Assemble the file and produce listing, output files."""
+    """Assemble the file and produce listing & output files."""
 
     # read all of ASM file into memory, strip \n, etc
     with open(AsmFile, 'rb') as fd:
@@ -474,20 +482,27 @@ def assemble_file():
     print('asm_lines=\n%s' % '\n'.join(asm_lines))
 
     org_blocks = split_orgs(asm_lines)
-    print('org_blocks=%s' % str(org_blocks))
+    for (n, ob) in enumerate(org_blocks):
+        print('Block %d:' % n)
+        for e in ob:
+            print('\t%s' % str(e))
 
     code_blocks = assemble_org_blocks(org_blocks)
-    print('code_blocks=%s' % str(code_blocks))
+    for (n, cb) in enumerate(code_blocks):
+        print('Code block %d: Address=%s, code=%s' % (n, str(cb[0]), str(cb[1])))
     print('SymTable=%s' % str(SymTable))
     print('SymTableLine=%s' % str(SymTableLine))
 
 # allow programmer to overlap ORG blocks
 #    check_org_overlap(code_blocks)
 
-    allocate_literals(code_blocks)
+#    allocate_literals(code_blocks)
 
     patched_code_blocks = backpatch(code_blocks)
     print('patched_code_blocks=%s' % str(patched_code_blocks))
+#    for (n, pb) in enumerate(patched_code_blocks):
+#        print('Patched %d:' % n)
+#        print('\t%s' % str(pb))
 
 def main():
     """The assembler."""
