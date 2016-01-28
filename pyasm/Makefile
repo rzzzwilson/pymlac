@@ -10,4 +10,4 @@ run:
 	python pyasm test.asm
 
 clean:
-	rm -f *.log pyasm.py *.lst
+	rm -f *.log pyasm.py *.lst *.ptp
