@@ -48,7 +48,7 @@ OutputFile = None
 OutputFileHandle = None     # open output file
 
 # the program start address (optional)
-StartAddr = None
+StartAddress = None
 
 # the current address in assembled code (dot)
 Address = None
@@ -352,7 +352,7 @@ def emit_byte(byte):
     Write only the low 8 bits of 'byte'.
     """
 
-    OutputFileFD.write(byte & 0xFF)
+    OutputFileHandle.write(chr(byte & 0xFF))
 
 def emit_word(word):
     """Emit a 16-bit word to the output file."""
@@ -369,13 +369,13 @@ def emit_start(address):
 def emit_loader():
     """Emit the block loader prefix code."""
 
-    for _ in rangeZeroLoaderSize():
+    for _ in range(ZeroLeaderSize):
         emit_byte(0)
 
     for word in BlockLoader:
         emit_word(word)
 
-    for _ in rangeZeroLoaderSize():
+    for _ in range(ZeroLeaderSize):
         emit_byte(0)
 
 def emit_block():
@@ -427,6 +427,8 @@ def eval_expr(expr):
 
     Returns 'None' if there is no valid expression.
     """
+
+    print('eval_expr: expr=%s' % str(expr))
 
     global Undefined
 
@@ -481,12 +483,14 @@ def pass_1(lines):
     Returns False if there was an error.
     """
 
-    global Dot
+    global Dot, CurrentLineNumber, CurrentLine
 
     # for each line in the file
     Dot = None
     for (lnum, line) in enumerate(lines):
         lnum += 1           # line numbers are 1-based
+        CurrentLineNumber = lnum
+        CurrentLine = line
 
         # get line fields
         (label, opcode, addr) = split_fields(line)
@@ -553,82 +557,136 @@ def pass_1(lines):
 def pass_2(lines):
     """Perform the second pass of the assembly."""
 
-    pass
+    global Dot, CurrentLineNumber, CurrentLine
+
+    # punch the zero leader and ptr/tty loader
+    emit_loader()
+
+    # for each line in the file
+    Dot = None
+    for (lnum, line) in enumerate(lines):
+        lnum += 1           # line numbers are 1-based
+        CurrentLineNumber = lnum
+        CurrentLine = line
+
+        # get line fields
+        (label, opcode, addr) = split_fields(line)
+        print('#####: label=%s, opcode=%s, addr=%s' % (str(label), str(opcode), str(addr)))
+
+        if opcode:
+            # we have an opcode, so code might be generated
+            if opcode == 'ORG':
+                if not addr or eval_expr(addr) is None:
+                    syn_error("ORG pseudo-op has bad address")
+                    return False
+                Dot = eval_expr(addr)
+
+            elif opcode == 'EQU':
+                # no code, but we define a label
+                if not label:
+                    syn_error("EQU pseudo-op must have a label")
+                    return False
+                if not addr or eval_expr(addr) is None:
+                    syn_error("EQU pseudo-op has bad value")
+                    return False
+                # check EQU value unchanged
+                try:
+                    old_value = SymTable[label]
+                    value = eval_expr(addr)
+                    if value != old_value:
+                        error("EQU value in '%s' has changed,\n"
+                              "was %06o, is now %06o"
+                              % (old_value, value))
+                except KeyError:
+                    error("EQU label '%s' not defined in second pass!?"
+                          % label)
+            elif opcode == 'BSS':
+                # no code, but Dot moves
+                if not addr or eval_expr(addr) is None:
+                    syn_error("BSS pseudo-op has bad value")
+                    return False
+                Dot += eval_expr(addr)
+
+            elif opcode == 'DATA':
+                # a single data word
+                if not addr or eval_expr(addr) is None:
+                    syn_error("BSS pseudo-op has bad value")
+                    return False
+                Dot += 1
+
+# TODO: implement "label ASCII 'Abcde'", producing packed ASCII chars, possible label
+#            elif opcode == 'ASCII':
+#                pass
+
+            elif opcode == 'END':
+                # get optional start address
+                global StartAddress
+
+                StartAddress = None
+                if addr:
+                    StartAddress = eval_expr(addr)
+                return True
+
+            else:
+                # actual machine instruction!
+                # if label, check value unchanged
+                if label:
+                    if not label in SymTable:
+                        error("Label '%s' not defined in pass 2!?" % label)
+                    old_dot = SymTable[label]
+                    if old_dot != Dot:
+                        error("Label '%s' has different value in pass 2.\n"
+                              "Was %06o, now %06o"
+                              % (label. old_dot, Dot))
+                gen_code(lnum, line, label, label, opcode, addr)
+                Dot += 1
+
+        elif label:
+            # label but no code generated, just check Dot dor label unchanged
+            if label in SymTable:
+                dot = SymTable[label]
+                if dot != Dot:
+                    error("Second pass, line '%s'\n"
+                          "Label '%s' has value %06o, was %06o in first pass"
+                          % (line, label, Dot, dor))
+
+    # punch the final block of code and optional start address
+    emit_block()
+    emit_start()
+
+    # check nothing after END
+    if lnum - 1 > len(lines):
+        syn_error("Something after the 'END' pseudo-op!?")
 
 
-#/******
-# * Start the output - emit tape or tty block loader
-# ******/
-#
-#    emitloader();
-#
-#/******
-# * Read the file, generating code as we go.
-# ******/
-#
-#    while (fgets(buffer, sizeof(buffer), InFile) != NULL)
-#    {
-#        char *chptr;
-#
-#        ++LineNumber;
-#
-#        chptr = strrchr(buffer, '\r');
-#        if (chptr)
-#            strcpy(chptr, chptr + 1);
-#
-#        strcpy(inputline, buffer);
-#
-#        /* point 'label', 'opcode' and 'field' to strings */
-#        delimfields(buffer, &label, &opcode, &field, &comment);
-#
-#        /* if there's something there, generate code */
-#        if (gencode(label, opcode, field, comment) == False)
-#            break;        /* gencode() returns False on 'END' pseudoop */
-#    }
-#
-#/******
-# * Check there is nothing after END statement.
-# ******/
-#
-#    if (fgets(buffer, sizeof(buffer), InFile) != NULL)
-#    {
-#        ++LineNumber;
-#        synerror(buffer, "Something after END!?");
-#        return False;
-#    }
-#
-#/******
-# * Emit the  data.
-# ******/
-#
-#    emitblock();
-#    emitstart(WORDMASK);
-
-
-def assemble_line(lnum, line, dot, opcode, addr):
+def gen_code(lnum, line, dot, label, opcode, addr):
     """Assemble one line of code.
 
     lnum    source file line number
     line    the actual source line (for error reporting)
     dot     current address in the assembly
+    label   optional label
     opcode  opcode, uppercase
     addr    address expression, uppercase
 
-    Returns the 16bit word value, with possibly the backpatch list
-    updated.
+    Puts the assembled word into the punch buffer.
     """
 
-    print('assemble_line: lnum=%d, line=%s, opcode=%s, addr=%s' % (lnum, line, opcode, addr))
+    print('gen_code: lnum=%d, line=%s, label=%s, opcode=%s, addr=%s'
+          % (lnum, line, str(label), str(opcode), str(addr)))
+
     try:
-        (word, mask, ind) = Op2Word[opcode]
+        (word, aok, mask, ind) = OpcodeData[opcode]
     except KeyError:
         error("%d: %s\nUnrecognized opcode '%s'" % (lnum, line, opcode))
 
     value = eval_expr(addr)
+    print('addr=%s, value=%s' % (str(addr), str(value)))
 
-    word_s = format(word, '016b')
-    mask_s = format(mask, '016b')
-    value_s = format(value, '016b')
+    word_s = format(word, '016b') if word else ''
+    mask_s = format(mask, '016b') if mask else ''
+    value_s = format(value, '016b') if value else ''
+
     print('word=%s, mask=%s, ind=%s, value=%s' % (word_s, mask_s, str(ind), value_s))
 
     return 1025
@@ -645,7 +703,7 @@ def define_label(label, address, lnum):
 
     if label in SymTable:
         prev_lnum = SymTableLine[label]
-        error("Label '%s' define twice, lines %d and %d."
+        error("Label '%s' defined twice, at lines %d and %d."
               % (label, prev_lnum, lnum))
     SymTable[label] = address
     SymTableLine[label] = lnum
@@ -677,106 +735,6 @@ def gen_ascii(string, address, lnum, line):
         line = None
 
     return address
-
-def assemble_oblock(oblock):
-    """Assemble one org block to a code block.
-
-    An org block: [(lnum, line, label, opcode, addr), ...]
-    A code block: [address, [word, word, word, ...]]
-    """
-
-    global CurrentLineNumber, CurrentLine, Address
-
-    cblock = [None, []]
-
-    # if we get an empty block, do nothing
-    if len(oblock) == 0:
-        return cblock
-
-    # assemble the org block
-#    address = None          # '.' value
-    for (lnum, line, label, opcode, addr) in oblock:
-        CurrentLineNumber = lnum
-        CurrentLine = line
-
-        # if no code, just list it
-        if label is None and opcode is None:
-            write_list(label, opcode, lnum, line)
-        else:
-            # maybe we have some code to generate
-            if opcode:
-                if opcode == 'ORG':
-                    # ORG just sets the code address and starts the code block
-                    if label:
-                        error('%d: %s\nORG opcode may not have a label'
-                              % (lnum, line))
-                    try:
-                        Address = eval_expr(addr)
-                    except NameError as e:
-                        error("%d: %s\nName '%s' is undefined"
-                              % (lnum, line, Undefined))
-                    cblock = [Address, []]
-                    write_list(None, None, lnum, line)
-                    continue
-                elif opcode == 'END':
-                    # END pseudo-op, terminate assembly
-                    start_addr = None
-                    if addr:
-                        try:
-                            start_addr = eval_expr(addr)
-                        except NameError as e:
-                            error("%d: %s\nName '%s' is undefined"
-                                  % (lnum, line, undefined))
-                    write_list(None, start_addr, lnum, line)
-                    return cblock
-                elif opcode == 'EQU':
-                    if label is None:
-                        error('%d: %s\nEQU opcode missing a label'
-                              % (lnum, line))
-                    try:
-                        value = eval_expr(addr)
-                    except NameError as e:
-                        error("%d: %s\nName '%s' is undefined"
-                              % (lnum, line, Undefined))
-                    define_label(label, value, lnum)
-                    write_list(None, None, lnum, line)
-                    continue
-                elif opcode == 'DATA':
-                    try:
-                        value = eval_expr(addr)
-                    except NameError as e:
-                        error("%d: %s\nName '%s' is undefined"
-                              % (lnum, line, Undefined))
-
-                    if isinstance(value, basestring):
-                        Address = gen_ascii(value, Address, lnum, line)
-                    else:
-                        write_list(value, Address, lnum, line)
-                        Address += 1
-                else:
-                    code = assemble_line(lnum, line, Address, opcode, addr)
-                    cblock[1].append((code, addr))
-                    write_list(code, Address, lnum, line)
-                    if label:
-                        define_label(label, Address, lnum)
-                    Address += 1
-            elif label:
-                # we have a label and no opcode, just define the label and list it
-                define_label(label, Address, lnum)
-                write_list(None, None, lnum, line)
-
-    return cblock
-
-def assemble_org_blocks(blocks):
-    """Assemble org blocks producing a code blocks list."""
-
-    code_block = []
-
-    # for each org block, assemble to code block
-    for oblock in blocks:
-        code_block.append(assemble_oblock(oblock))
-
-    return code_block
 
 def next_symbol(line):
     """Return next symbol and line remainder."""
@@ -837,6 +795,7 @@ def split_fields(line):
                 remainder = remainder[:ndx].strip()
             address = remainder.strip()
             remainder = None
+        address = address.upper()
 
     # check that remainder is empty or only a comment
     if remainder and remainder[0] != ';':
@@ -844,101 +803,6 @@ def split_fields(line):
               '%d: %s' % (CurrentLineNumber, CurrentLine))
 
     return (label, opcode, address)
-
-def split_orgs(asm_lines):
-    """Split ASM lines into ORG blocks (one or more).
-
-    Error if no ORG pseudo-opcode found.
-    """
-
-    global CurrentLineNumber, CurrentLine
-
-    result = []
-    block = []
-
-    for (lnum, line) in enumerate(asm_lines):
-        (label, opcode, addr) = split_fields(line)
-        CurrentLineNumber = lnum
-        CurrentLine = line
-        if opcode:
-            if opcode == 'ORG':
-                if block:
-                    # save previous ORG block
-                    result.append(block)
-                    block = []
-                if addr is None:
-                    error('Line %d: %s\nORG pseudo-opcode without an address?'
-                          % (lnum, line))
-        block.append((lnum+1, line, label, opcode, addr))
-
-    if block:
-        # save previous ORG block
-        result.append(block)
-        block = []
-
-    return result
-
-def check_org_overlap(code_blocks):
-    """Check that we don't have overlapping ORG blocks."""
-
-    global Address
-
-   # remember org block span: [(start, end), (start', end'), ...]
-    block_span = []
-
-    for cb in code_blocks:
-        (Address, code) = cb
-        if Address is None and not code:
-            # empty code block, ignore
-            continue
-        (block_start, code) = cb
-        block_end = block_start + len(code) - 1
-
-        for (start, end) in block_span:
-            if start <= block_start <= end:
-                error('ORG block at address %06o overwrites previous block at [%06o,%06o]'
-                      % (block_start, start, end))
-            if start <= block_end <= end:
-                error('ORG block at address %06o overwrites previous block at [%06o,%06o]'
-                      % (block_start, start, end))
-
-        block_span.append((block_start, block_end))
-
-def allocate_literals(code_blocks):
-    """Allocate space for literal blocks."""
-
-    pass
-
-def backpatch(code_blocks):
-    """Generate final code values, evaluate address fields.
-
-    Returns a simplified code block list: [[address, [code, code, ...]], ...].
-    """
-
-    result = []
-
-    for cb in code_blocks:
-        (address, codes) = cb
-        if address is None and not codes:
-            # empty code block, ignore
-            continue
-
-        # got a code_block that has code
-        dot = address
-        new_code = []
-        for (code, addr) in codes:
-            try:
-                addr_value = eval_expr(addr)
-            except NameError as e:
-                error("Name '%s' is undefined" % Undefined)
-            if addr_value:
-                code |= addr_value
-            new_code.append(code)
-            dot += 1
-
-        result.append([address, new_code])
-
-    return [address, new_code]
 
 def assemble_file():
     """Assemble the file and produce listing & output files."""
