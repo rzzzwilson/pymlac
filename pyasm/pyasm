@@ -83,33 +83,244 @@ ListFileExtension = '.lst'
 # length of a word in bits
 WordBits = 16
 
-# dict containing opcode -> (word, mask, ok_indirect) mapping
+# number of bytes in the 'zero' leader
+ZeroLeaderSize = 16
+
+# address states, AYES = address required,
+#                 ANO  = address NOT required
+#                 AOPT = address optional
+(AYES, ANO, AOPT) = range(3)
+
+######
+# dict mapping opcode to generated word, address opts, address mask & indirect allowed
+######
+
+# helper function to generate N-bit mask
 def mask(n):
     return (0xFFFF << n) & 0xFFFF
 
-Op2Word = {
-           'LAW': (0004000, mask(11), False),
-           'LWC': (0104000, mask(11), False),
-           'JMP': (0010000, mask(11), True),
-           'DAC': (0020000, mask(11), True),
-           'XAM': (0024000, mask(11), True),
-           'ISZ': (0030000, mask(11), True),
-           'JMS': (0034000, mask(11), True),
-           'AND': (0044000, mask(11), True),
-           'IOR': (0050000, mask(11), True),
-           'XOR': (0054000, mask(11), True),
-           'LAC': (0060000, mask(11), True),
-           'ADD': (0064000, mask(11), True),
-           'SUB': (0070000, mask(11), True),
-           'SAM': (0074000, mask(11), True),
-          }
+OpcodeData = {
+              'LAW': ( 0004000, AYES, mask(11), False),
+              'LWC': ( 0104000, AYES, mask(11), False),
+              'JMP': ( 0010000, AYES, mask(11), True ),
+              'DAC': ( 0020000, AYES, mask(11), True ),
+              'XAM': ( 0024000, AYES, mask(11), True ),
+              'ISZ': ( 0030000, AYES, mask(11), True ),
+              'JMS': ( 0034000, AYES, mask(11), True ),
+              'AND': ( 0044000, AYES, mask(11), True ),
+              'IOR': ( 0050000, AYES, mask(11), True ),
+              'XOR': ( 0054000, AYES, mask(11), True ),
+              'LAC': ( 0060000, AYES, mask(11), True ),
+              'ADD': ( 0064000, AYES, mask(11), True ),
+              'SUB': ( 0070000, AYES, mask(11), True ),
+              'SAM': ( 0074000, AYES, mask(11), True ),
 
+              'HLT': ( 0000000, AOPT, mask(11), False),
+              'NOP': ( 0100000, ANO,  0,        False),
+              'CLA': ( 0100001, ANO,  0,        False),
+              'CMA': ( 0100002, ANO,  0,        False),
+              'STA': ( 0100003, ANO,  0,        False),
+              'IAC': ( 0100004, ANO,  0,        False),
+              'COA': ( 0100005, ANO,  0,        False),
+              'CIA': ( 0100006, ANO,  0,        False),
+              'CLL': ( 0100010, ANO,  0,        False),
+              'CML': ( 0100020, ANO,  0,        False),
+              'STL': ( 0100030, ANO,  0,        False),
+              'ODA': ( 0100040, ANO,  0,        False),
+              'LDA': ( 0100041, ANO,  0,        False),
+              'CAL': ( 0100011, ANO,  0,        False),
 
-for (key, value) in Op2Word.items():
-    (word, mask, ind) = value
-    word_s = format(word, '016b')
-    mask_s = format(mask, '016b')
-    print('%s: %s, %s (%s)' % (key, word_s, mask_s, str(ind)))
+              'RAL': ( 0003000, AYES, mask(2),  False),
+              'RAR': ( 0003020, AYES, mask(2),  False),
+              'SAL': ( 0003040, AYES, mask(2),  False),
+              'SAR': ( 0003060, AYES, mask(2),  False),
+              'DON': ( 0003100, ANO,  0,        False),
+
+              'ASZ': ( 0002001, ANO,  0,        False),
+              'ASN': ( 0102001, ANO,  0,        False),
+              'ASP': ( 0002002, ANO,  0,        False),
+              'ASM': ( 0102002, ANO,  0,        False),
+              'LSZ': ( 0002004, ANO,  0,        False),
+              'LSN': ( 0102004, ANO,  0,        False),
+              'DSF': ( 0002010, ANO,  0,        False),
+              'DSN': ( 0102010, ANO,  0,        False),
+              'KSF': ( 0002020, ANO,  0,        False),
+              'KSN': ( 0102020, ANO,  0,        False),
+              'RSF': ( 0002040, ANO,  0,        False),
+              'RSN': ( 0102040, ANO,  0,        False),
+              'TSF': ( 0002100, ANO,  0,        False),
+              'TSN': ( 0102100, ANO,  0,        False),
+              'SSF': ( 0002200, ANO,  0,        False),
+              'SSN': ( 0102200, ANO,  0,        False),
+              'HSF': ( 0002400, ANO,  0,        False),
+              'HSN': ( 0102400, ANO,  0,        False),
+
+              'DLA': ( 0001003, ANO,  0,        False),
+              'CTB': ( 0001011, ANO,  0,        False),
+              'DOF': ( 0001012, ANO,  0,        False),
+              'KRB': ( 0001021, ANO,  0,        False),
+              'KCF': ( 0001022, ANO,  0,        False),
+              'KRC': ( 0001023, ANO,  0,        False),
+              'RRB': ( 0001031, ANO,  0,        False),
+              'RCF': ( 0001032, ANO,  0,        False),
+              'RRC': ( 0001033, ANO,  0,        False),
+              'TPR': ( 0001041, ANO,  0,        False),
+              'TCF': ( 0001042, ANO,  0,        False),
+              'TPC': ( 0001043, ANO,  0,        False),
+              'HRB': ( 0001051, ANO,  0,        False),
+              'HOF': ( 0001052, ANO,  0,        False),
+              'HON': ( 0001061, ANO,  0,        False),
+              'STB': ( 0001062, ANO,  0,        False),
+              'SCF': ( 0001071, ANO,  0,        False),
+              'IOS': ( 0001072, ANO,  0,        False),
+
+              'IOT': ( 0001000, AYES, mask(9),  False),
+              'IOF': ( 0001161, ANO,  0,        False),
+              'ION': ( 0001162, ANO,  0,        False),
+              'PUN': ( 0001171, ANO,  0,        False),
+              'PSF': ( 0001274, ANO,  0,        False),
+              'PPC': ( 0001271, ANO,  0,        False),
+
+              'DLXA': (0010000, AYES, mask(12), False),
+              'DLYA': (0020000, AYES, mask(12), False),
+#             'DEIM': (0030000, AYES, mask(12), False), # handled as pseudo-op
+              'DJMS': (0050000, AYES, mask(12), False),
+              'DJMP': (0060000, AYES, mask(12), False),
+
+              'DOPR': (0004000, AYES, mask(4),  False),
+              'DHLT': (0000000, ANO,  0,        False),
+              'DSTS': (0004004, AYES, mask(2),  False),
+              'DSTB': (0004010, AYES, mask(3),  False),
+              'DRJM': (0004040, ANO,  0,        False),
+              'DIXM': (0005000, ANO,  0,        False),
+              'DIYM': (0004400, ANO,  0,        False),
+              'DDXM': (0004200, ANO,  0,        False),
+              'DDYM': (0004100, ANO,  0,        False),
+              'DHVC': (0006000, ANO,  0,        False),
+              'DDSP': (0004020, ANO,  0,        False),
+              'DNOP': (0004000, ANO,  0,        False),
+             }
+
+######
+# The papertape/teletype loader code
+######
+
+BlockLoader = [
+#     code     address  assembler source code
+#    -------   -------  ------------------------------------------------------------------------
+              #        ; Imlac Papertape Program Block Loader
+              #        ;
+              #        ; This loader is loaded by the bootstrap program at x7700, where x=0 for
+              #        ; a 4K machine, and x=1 for an 8K machine, etc.
+              #        ;
+              #        ; The load format consists of one or more contiguous blocks, with no
+              #        ; padding bytes between them.  Each block has the form:
+              #        ;
+              #        ;          word count      (byte)
+              #        ;          load address
+              #        ;          data word 1
+              #        ;          data word 2
+              #        ;          ...
+              #        ;          data word n
+              #        ;          checksum
+              #        ;
+              #        ; All values are 16bit words, except the word count, which is an 8bit byte.
+              #        ; Words are always received high-order byte first.
+              #        ;
+              #        ; After the word count there is the load address, followed by <word count>
+              #        ; data words, which are loaded starting at "load address".
+              #        ;
+              #        ; The sum of all the data words in the block must be the same as the checksum
+              #        ; word which follows the data words.  The checksum is calculated with 16bit
+              #        ; integers, incrementing the sum whenever the 16bit value overflows.
+              #        ;
+              #        ; The end of the load is signalled by a block with a negative starting address.
+              #        ;
+              #        ; Disassembled from the 40tp_simpleDisplay.ptp image file.
+              #        ;
+              #                org     003700  ;
+              #        cksum   equ     .-1     ;checksum stored here (before loader)
+     0001032, # 003700         rcf             ;
+     0013740, # 003701         jmp     patch   ;go decide TTY or PTR, clear AC
+     0023677, # 003702 ndpatch dac     cksum   ;zero checksum, AC is zero (from patch)
+     0037760, # 003703         jms     rdbyte  ;
+     0102001, # 003704         asn             ;wait here for non-zero byte
+     0013703, # 003705         jmp     .-2     ;
+     0100006, # 003706         cia             ;
+     0023777, # 003707         dac     wrdcnt  ;store negative word count
+     0037750, # 003710         jms     rdword  ;read load address
+     0023776, # 003711         dac     ldaddr  ;
+     0077730, # 003712         sam     neg1    ;
+     0013715, # 003713         jmp     rdblock ;
+     0000000, # 003714         hlt             ;if load address is -1, halt - finished
+     0037750, # 003715 rdblock jms     rdword  ;now read block to load address
+     0123776, # 003716         dac     *ldaddr ;
+     0037731, # 003717         jms     dosum   ;
+     0033776, # 003720         isz     ldaddr  ;
+     0033777, # 003721         isz     wrdcnt  ;
+     0013715, # 003722         jmp     rdblock ;
+     0037750, # 003723         jms     rdword  ;get expected checksum
+     0073677, # 003724         sub     cksum   ;compare with calculated
+     0102001, # 003725         asn             ;
+     0013746, # 003726         jmp     newblk  ;if same, get next block
+     0000000, # 003727         hlt             ;if not same, ERROR
+     0177777, # 003730 neg1    data    0177777 ;
+              #        ;------------------------
+              #        ;Compute checksum.  Word to sum in AC.
+              #        ;------------------------
+     0017720, # 003731 dosum   bss     1       ;
+     0100010, # 003732         cll             ;
+     0067677, # 003733         add     cksum   ;
+     0002004, # 003734         lsz             ;
+     0100004, # 003735         iac             ;
+     0023677, # 003736         dac     cksum   ;
+     0113731, # 003737         jmp     *dosum  ;
+              #        ;------------------------
+              #        ;Decide what input device we are using, PTR or TTY.
+              #        ;------------------------
+     0001061, # 003740 patch   hon             ;
+     0063774, # 003741         lac     ttyset  ;
+     0023761, # 003742         dac     devpat  ;
+     0005032, # 003743         law     1032    ;
+     0177775, # 003744         sam     *adr044 ;
+     0023761, # 003745         dac     devpat  ;
+     0100011, # 003746 newblk  cal             ;
+     0013702, # 003747         jmp     ndpatch ;
+              #        ;------------------------
+              #        ;Read WORD from input device.
+              #        ;------------------------
+     0017711, # 003750 rdword  bss     1       ;
+     0100011, # 003751         cal             ;
+     0037760, # 003752         jms     rdbyte  ;
+     0003003, # 003753         ral     3       ;
+     0003003, # 003754         ral     3       ;
+     0003002, # 003755         ral     2       ;
+     0037760, # 003756         jms     rdbyte  ;
+     0113750, # 003757         jmp     *rdword ;
+              #        ;------------------------
+              #        ;Read BYTE from input device. Read from PTR or TTY.
+              #        ;------------------------
+     0017757, # 003760 rdbyte  bss     1       ;
+     0001032, # 003761 devpat  rcf             ;could be patched to 'jmp rdtty'
+     0102400, # 003762         hsn             ;
+     0013762, # 003763         jmp     .-1     ;
+     0002400, # 003764         hsf             ;
+     0013764, # 003765         jmp     .-1     ;
+     0001051, # 003766         hrb             ;read PTR byte
+     0113760, # 003767         jmp     *rdbyte ;
+     0002040, # 003770 rdtty   rsf             ;
+     0013770, # 003771         jmp     .-1     ;
+     0001033, # 003772         rrc             ;read TTY byte, clear flag
+     0113760, # 003773         jmp     *rdbyte ;
+              #        ;------------------------
+     0013770, # 003774 ttyset  jmp     rdtty   ;
+     0000044, # 003775 adr044  data    044     ;
+     0000000, # 003776 ldaddr  data    0       ;
+     0000000, # 003777 wrdcnt  data    0       ;
+              #        ;------------------------
+              #                end             ;
+              ]
+
 
 def usage(msg=None):
     """Print usage and optional error message."""
@@ -124,6 +335,72 @@ def error(msg):
 
     print(msg)
     sys.exit(10)
+
+def syn_error(msg):
+    """Print a syntax error and abort."""
+
+    print('-' * 80)
+    print("%04d: %s" % (CurrentLineNumber, CurrentLine))
+    print(msg)
+    print('-' * 80)
+
+    sys.exit(10)
+
+def emit_byte(byte):
+    """Emit one byte to the output file.
+
+    Write only the low 8 bits of 'byte'.
+    """
+
+    OutputFileFD.write(byte & 0xFF)
+
+def emit_word(word):
+    """Emit a 16-bit word to the output file."""
+
+    emit_byte(word >> 8)
+    emit_byte(word)
+
+def emit_start(address):
+    """Emit the start block."""
+
+    emit_byte(1)        # one word block
+    emit_word(address)
+
+def emit_loader():
+    """Emit the block loader prefix code."""
+
+    for _ in rangeZeroLoaderSize():
+        emit_byte(0)
+
+    for word in BlockLoader:
+        emit_word(word)
+
+    for _ in rangeZeroLoaderSize():
+        emit_byte(0)
+
+def emit_block():
+    """Emit the current code block and reset the buffer."""
+
+    # emit the block size and load address
+    code_block_size = len(CodeBlock)
+    emit_byte(code_block_size)
+    emit_word(CodeBlockStart)
+
+    # emit the block & calculate checksum as we go
+    checksum = 0
+    for word in CodeBlock:
+        checksum += word
+        if checksum and ~WordMask:
+            ++checksum
+        checksum &= WordMask
+        emit_word(word)
+
+    # emit the block checksum
+    emit_word(checksum)
+
+    # reset the code buffer
+    CodeBlock = []
+    CodeBlockStart += code_block_size
 
 def write_list(code, addr, lnum, line):
     """Generate one line of listing file.
@@ -143,17 +420,12 @@ def write_list(code, addr, lnum, line):
                          % (code_str, addr_str, lnum_str, line_str))
     ListFileHandle.flush()
 
-def eval_expression(expr, dot):
-    """Evaluate an expression.
+def eval_expr(expr):
+    """Evaluate a expression string.
 
     expr  string holding expression
-    dot   current code address (the "." symbol value)
 
-    Valid expressions are:
-        <expr>               ::= <string> | <numeric_expression>
-        <string>             ::= ('|") <characters> ('|")
-        <numeric_expression> ::= (<numeric_const>|<name_const>|".") [ (+|-) <numeric_expression> ]
-        <name_const>         ::= <name_characters>
+    Returns 'None' if there is no valid expression.
     """
 
     global Undefined
@@ -162,32 +434,176 @@ def eval_expression(expr, dot):
     if expr is None:
         return None
 
-    # if expression is a string, return an iterable of ASCII values
-    if expr[0] in "'\"":
-        delim = expr[0]
-        if expr[-1] != delim:
-            error("Badly formed string value: '%s'" % expr)
-        return expr[1:-1]
-
     # replace any "." value with "dot" defined in the symbol table
-    expr = string.replace(expr, '.', 'dot')
-    expr = expr.upper()
+    expr = string.replace(expr, '.', 'DOT')
     globs = copy.deepcopy(SymTable)
-    globs['DOT'] = dot       # add in the "." address
+    globs['DOT'] = Dot       # add in the "." address
 
     # evaluate the expression
     try:
         result = eval(expr, globs)
     except TypeError as e:
-        error('ORG pseudo-opcode expression contains unsatisfied references\n'
-              '%d: %s' % (CurrentLineNumber, CurrentLine))
+        syn_error("ORG pseudo-opcode expression contains unsatisfied references")
+        return None
     except NameError as e:
         Undefined = e.message
         if 'is not defined' in e.message:
             Undefined = e.message[len("name '"):-len("' is not defined")]
-        raise
+            syn_error("ORG pseudo-opcode expression has '%s' undefined" % Undefined)
+        syn_error("ORG pseudo-opcode expression has an error")
 
     return result
+
+def num_gen_words(opcode, addr):
+    """Calculate number of words generated by this opcode."""
+
+    if opcode:
+        if opcode == 'EQU':
+            return 0
+        if opcode == 'DATA':
+            return 1
+#        if opcode == 'ASCII':
+#            return ?
+        if opcode == 'END':
+            return 0
+
+        # we assume opcode will return 1
+        return 1
+    else:
+        return 0
+
+def pass_1(lines):
+    """Do pass 1 of the assembly.
+
+    lines  lines of text with terminal EOL removed
+
+    Just read text and fill in the symbol table.
+    Returns False if there was an error.
+    """
+
+    global Dot
+
+    # for each line in the file
+    Dot = None
+    for (lnum, line) in enumerate(lines):
+        lnum += 1           # line numbers are 1-based
+
+        # get line fields
+        (label, opcode, addr) = split_fields(line)
+
+        if opcode:
+            # we have an opcode, so code might be generated
+            if opcode == 'ORG':
+                if not addr or eval_expr(addr) is None:
+                    syn_error("ORG pseudo-op has bad address")
+                    return False
+                Dot = eval_expr(addr)
+
+            elif opcode == 'EQU':
+                # no code, but we define a label
+                if not label:
+                    syn_error("EQU pseudo-op must have a label")
+                    return False
+                if not addr or eval_expr(addr) is None:
+                    syn_error("EQU pseudo-op has bad value")
+                    return False
+                define_label(label, eval_expr(addr), lnum)
+
+            elif opcode == 'BSS':
+                # no code, but Dot moves
+                if not addr or eval_expr(addr) is None:
+                    syn_error("BSS pseudo-op has bad value")
+                    return False
+                if label:
+                    define_label(label, Dot, lnum)
+                Dot += eval_expr(addr)
+
+            elif opcode == 'DATA':
+                # a single data word
+                if not addr or eval_expr(addr) is None:
+                    syn_error("BSS pseudo-op has bad value")
+                    return False
+                if label:
+                    define_label(label, Dot, lnum)
+                Dot += 1
+
+# TODO: implement "label ASCII 'Abcde'", producing packed ASCII chars, possible label
+#            elif opcode == 'ASCII':
+#                pass
+
+            elif opcode == 'END':
+                # TODO: get the start address, if any
+                return True
+
+            else:
+                # actual machine instruction!
+                if label:
+                    define_label(label, Dot, lnum)
+                Dot += num_gen_words(opcode, addr);
+
+        elif label:
+            # label but no code generated, just set label in symtab
+            if label in SymTable:
+                syn_error("Label '%s' has already been defined" % label)
+                return False
+            define_label(label, Dot, lnum)
+
+    return True
+
+def pass_2(lines):
+    """Perform the second pass of the assembly."""
+
+    pass
+
+
+#/******
+# * Start the output - emit tape or tty block loader
+# ******/
+#
+#    emitloader();
+#
+#/******
+# * Read the file, generating code as we go.
+# ******/
+#
+#    while (fgets(buffer, sizeof(buffer), InFile) != NULL)
+#    {
+#        char *chptr;
+#
+#        ++LineNumber;
+#
+#        chptr = strrchr(buffer, '\r');
+#        if (chptr)
+#            strcpy(chptr, chptr + 1);
+#
+#        strcpy(inputline, buffer);
+#
+#        /* point 'label', 'opcode' and 'field' to strings */
+#        delimfields(buffer, &label, &opcode, &field, &comment);
+#
+#        /* if there's something there, generate code */
+#        if (gencode(label, opcode, field, comment) == False)
+#            break;        /* gencode() returns False on 'END' pseudoop */
+#    }
+#
+#/******
+# * Check there is nothing after END statement.
+# ******/
+#
+#    if (fgets(buffer, sizeof(buffer), InFile) != NULL)
+#    {
+#        ++LineNumber;
+#        synerror(buffer, "Something after END!?");
+#        return False;
+#    }
+#
+#/******
+# * Emit the  data.
+# ******/
+#
+#    emitblock();
+#    emitstart(WORDMASK);
+
 
 def assemble_line(lnum, line, dot, opcode, addr):
     """Assemble one line of code.
@@ -208,7 +624,7 @@ def assemble_line(lnum, line, dot, opcode, addr):
     except KeyError:
         error("%d: %s\nUnrecognized opcode '%s'" % (lnum, line, opcode))
 
-    value = eval_expression(addr, dot)
+    value = eval_expr(addr)
 
     word_s = format(word, '016b')
     mask_s = format(mask, '016b')
@@ -218,7 +634,14 @@ def assemble_line(lnum, line, dot, opcode, addr):
     return 1025
 
 def define_label(label, address, lnum):
-    """Put 'label' into the symbol tables."""
+    """Put 'label' into the symbol tables.
+
+    label    the label to define
+    address  dot value for he label
+    lnum     ine number the label is defined on
+
+    It's an error if the label is already defined.
+    """
 
     if label in SymTable:
         prev_lnum = SymTableLine[label]
@@ -288,7 +711,7 @@ def assemble_oblock(oblock):
                         error('%d: %s\nORG opcode may not have a label'
                               % (lnum, line))
                     try:
-                        Address = eval_expression(addr, Address)
+                        Address = eval_expr(addr)
                     except NameError as e:
                         error("%d: %s\nName '%s' is undefined"
                               % (lnum, line, Undefined))
@@ -300,7 +723,7 @@ def assemble_oblock(oblock):
                     start_addr = None
                     if addr:
                         try:
-                            start_addr = eval_expression(addr, Address)
+                            start_addr = eval_expr(addr)
                         except NameError as e:
                             error("%d: %s\nName '%s' is undefined"
                                   % (lnum, line, undefined))
@@ -311,7 +734,7 @@ def assemble_oblock(oblock):
                         error('%d: %s\nEQU opcode missing a label'
                               % (lnum, line))
                     try:
-                        value = eval_expression(addr, Address)
+                        value = eval_expr(addr)
                     except NameError as e:
                         error("%d: %s\nName '%s' is undefined"
                               % (lnum, line, Undefined))
@@ -320,7 +743,7 @@ def assemble_oblock(oblock):
                     continue
                 elif opcode == 'DATA':
                     try:
-                        value = eval_expression(addr, Address)
+                        value = eval_expr(addr)
                     except NameError as e:
                         error("%d: %s\nName '%s' is undefined"
                               % (lnum, line, Undefined))
@@ -505,7 +928,7 @@ def backpatch(code_blocks):
         new_code = []
         for (code, addr) in codes:
             try:
-                addr_value = eval_expression(addr, dot)
+                addr_value = eval_expr(addr)
             except NameError as e:
                 error("Name '%s' is undefined" % Undefined)
             if addr_value:
@@ -526,28 +949,9 @@ def assemble_file():
     asm_lines = [line.rstrip() for line in asm_lines]
     print('asm_lines=\n%s' % '\n'.join(asm_lines))
 
-    org_blocks = split_orgs(asm_lines)
-    for (n, ob) in enumerate(org_blocks):
-        print('Block %d:' % n)
-        for e in ob:
-            print('\t%s' % str(e))
-
-    code_blocks = assemble_org_blocks(org_blocks)
-    for (n, cb) in enumerate(code_blocks):
-        print('Code block %d: Address=%s, code=%s' % (n, str(cb[0]), str(cb[1])))
-    print('SymTable=%s' % str(SymTable))
-    print('SymTableLine=%s' % str(SymTableLine))
-
-# allow programmer to overlap ORG blocks
-#    check_org_overlap(code_blocks)
-
-#    allocate_literals(code_blocks)
-
-    patched_code_blocks = backpatch(code_blocks)
-    print('patched_code_blocks=%s' % str(patched_code_blocks))
-#    for (n, pb) in enumerate(patched_code_blocks):
-#        print('Patched %d:' % n)
-#        print('\t%s' % str(pb))
+    if pass_1(asm_lines):
+        print('SymTable=%s' % str(SymTable))
+        pass_2(asm_lines)
 
 def main():
     """The assembler."""
@@ -605,3 +1009,1185 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+#    sys.exit(0)
+#
+#
+#/******
+# * Local constants, definitions, etc.
+# ******/
+#
+##define BUFFERSIZE        1024
+##define MAXNAME_LEN             7
+##define HASHTABSIZE             1023
+##define MAXBLOCKSIZE            255
+##define WORDADDRMASK            03777
+##define INDIRECTBIT             (1 << 15)
+##define WORDMASK                0xFFFF
+#
+#typedef int WORD;
+#
+#typedef struct sym        /* one symbol */
+#{
+#    struct sym *next;            /* next symbol */
+#    char       name[MAXNAME_LEN + 1];    /* symbol name */
+#    WORD       address;            /* symbol address */
+#} SYM;
+#
+#
+#/******
+# * File globals.
+# ******/
+#
+#static char inputline[BUFFERSIZE + 1];
+#static SYM  *hashtab[HASHTABSIZE];
+#
+#static long dot = -1L;
+#static WORD codeblockstart = 0;
+#static WORD codeblock[MAXBLOCKSIZE];
+#static int  nextcodeword = 0;
+#
+#static int  LineNumber = 0;
+#
+#
+#/******
+# * Forward prototypes.
+# ******/
+#
+#static WORD   atoo(char *str);
+#static SYM    *deflabel(char *name, WORD address);
+#static void   emitblock(void);
+#static void   emitbyte(WORD word);
+#static void   emitloader(void);
+#static void   emitstart();
+#static void   emitword(WORD word);
+#static void   emitcode(WORD code);
+#static WORD   geninc(char *field);
+#static WORD   genincbyte(char *field);
+#static void   genlist(WORD code);
+#static WORD   getaddress(char *field, BOOL indok);
+#static int    hash(char *name);
+#static BOOL   isdecimal(char *str);
+#static BOOL   islabel(char *name);
+#static BOOL   isoctal(char *str);
+#static SYM    *lookup(char *label);
+#static OPCODE *lookupopcode(char *opcode);
+#static void   newcodeblock(WORD org);
+#static SYM    *newSYM(char *name);
+#static void   strupper(char *str);
+#static void   synerror(char *buff, char *fmt, ...);
+#
+#
+#/******************************************************************************
+#       Name : atoo()
+#Description : Get octal number from a string.
+# Parameters : str - string to get octal number from
+#    Returns : The octal value of the string.
+#   Comments :
+# ******************************************************************************/
+#static WORD
+#atoo(char *str)
+#{
+#    WORD result = 0;
+#
+#    for (; *str; ++str)
+#        result = result * 8 + *str - '0';
+#
+#    return result;
+#}
+#
+#
+#/******************************************************************************
+#       Name : deflabel()
+#Description : Define a label in the symbol table.
+# Parameters : name - name to define
+#            : addr - the label address
+#    Returns :
+#   Comments :
+# ******************************************************************************/
+#static SYM *
+#deflabel(char *name, WORD addr)
+#{
+#    int hashval = hash(name);
+#    SYM *newsym = newSYM(name);
+#
+#    newsym->address = addr;
+#
+#    newsym->next = hashtab[hashval];
+#    hashtab[hashval] = newsym;
+#
+#    return newsym;
+#}
+#
+#
+#/******************************************************************************
+#       Name : delimfields()
+#Description : Delimit label, opcode and address fields of assembler line.
+# Parameters : buffer  - address of line buffer
+#            : label   - address of label pointer (returned)
+#            : opcode  - address of opcode pointer (returned)
+#            : field   - address of address field pointer (returned)
+#            : comment - address of comment string (returned)
+#    Returns :
+#   Comments : 'buffer' is destroyed (broken into shorter strings).
+#            : If any field is empty, return NULL in corresponding pointer.
+# ******************************************************************************/
+#static void
+#delimfields(char *buffer,
+#            char **label, char **opcode, char **field, char **comment)
+#{
+#    char *chptr;
+#
+#    // point 'label', 'opcode' and 'field' to strings
+#    *label = *opcode = *field = *comment = NULL;
+#
+#    chptr = buffer;
+#
+#    // handle comment starting column 1
+#    if (*chptr == ';')
+#    {
+#        *comment = chptr;
+#        return;
+#    }
+#
+#    // check for a label starting column 1
+#    if (isalpha(*chptr))
+#    {
+#        *label = chptr;
+#        while (!isspace(*chptr) && *chptr != ';')
+#            ++chptr;
+#        if (*chptr)
+#            *(chptr++) = '\0';
+#    }
+#
+#    /* if not off end of buffer, look for opcode */
+#    if (*chptr)
+#    {
+#        while (*chptr && isspace(*chptr) && *chptr != ';')
+#            ++chptr;
+#
+#        if (*chptr)
+#        {
+#            if (*chptr == ';')
+#            {
+#                *comment = chptr;
+#                return;
+#            }
+#            else
+#            {
+#                *opcode = chptr;
+#                while (*chptr && !isspace(*chptr) && *chptr != ';')
+#                    ++chptr;
+#                if (*chptr)
+#                    *(chptr++) = '\0';
+#
+#            }
+#        }
+#    }
+#
+#    /* if not off end of buffer, look for field */
+#    if (*chptr)
+#    {
+#        while (*chptr && isspace(*chptr) && *chptr != ';')
+#            ++chptr;
+#
+#        if (*chptr)
+#        {
+#            if (*chptr == ';')
+#            {
+#                *comment = chptr;
+#                return;
+#            }
+#            else
+#            {
+#                *field = chptr;
+#                while (*chptr && !isspace(*chptr) && *chptr != ';')
+#                    ++chptr;
+#                if (*chptr)
+#                    *(chptr++) = '\0';
+#            }
+#        }
+#    }
+#
+#    if (*chptr == ';')
+#        *comment = chptr;
+#
+#    if (*label)
+#        strupper(*label);
+#    if (*opcode)
+#        strupper(*opcode);
+#    if (*field)
+#        strupper(*field);
+#}
+#
+#
+#/******************************************************************************
+#       Name : emitblock()
+#Description : Emit the code for the current block.
+# Parameters :
+#    Returns :
+#   Comments :
+# *****************************************************************************/
+#static void
+#emitblock(void)
+#{
+#    if (nextcodeword > 0)
+#    {
+#        WORD checksum;
+#        int  i;
+#
+#    /******
+#     * Emit block header stuff.
+#     ******/
+#
+#        emitbyte(nextcodeword);
+#        emitword(codeblockstart);
+#
+#    /******
+#     * Calculate the checksum while we emit code.
+#     ******/
+#
+#        checksum = 0;
+#
+#        for (i = 0; i < nextcodeword; ++i)
+#        {
+#            checksum = checksum + codeblock[i];
+#            if (checksum & ~WORDMASK)
+#                ++checksum;
+#            checksum &= WORDMASK;
+#            emitword(codeblock[i]);
+#        }
+#
+#    /******
+#     * Emit bchecksum.
+#     ******/
+#
+#        emitword(checksum);
+#    }
+#}
+#
+#
+#/******************************************************************************
+#       Name : emitbyte()
+#Description : Emit one BYTE to output stream.
+# Parameters : word - the BYTE value to emit
+#    Returns :
+#   Comments :
+# ******************************************************************************/
+#static void
+#emitbyte(WORD word)
+#{
+#    fputc(word & 0xFF, OutFile);
+#}
+#
+#
+#/******************************************************************************
+#       Name : emitcode()
+#Description : Generate code for one word.
+# Parameters : code - the WORD to put into current code block
+#    Returns :
+#   Comments : If the block buffer is full, spill to the output file first.
+# ******************************************************************************/
+#static void
+#emitcode(WORD code)
+#{
+#    if (dot == -1L)
+#        synerror(inputline, "Expected ORG pseudo-op");
+#
+#    /* if current block is full, emit and reset */
+#    if (nextcodeword >= MAXBLOCKSIZE)
+#    {
+#        emitblock();
+#
+#        codeblockstart = dot;
+#        nextcodeword = 0;
+#    }
+#
+#    codeblock[nextcodeword++] = code;
+#}
+#
+#
+#/******************************************************************************
+#       Name : emitloader()
+#Description : Emit papertape loader.
+# Parameters : fname - output filename (for error reporting)
+#    Returns :
+#   Comments :
+# ******************************************************************************/
+#static void
+#emitloader(void)
+#{
+#    int i;
+#
+#    for (i = 0; i < ZEROLEADERSIZE; ++i)
+#        emitbyte(0);
+#
+#    for (i = 0; i < BLKLDR_SIZE; ++i)
+#        emitword(blkldr[i]);
+#
+#    for (i = 0; i < ZEROLEADERSIZE; ++i)
+#        emitbyte(0);
+#}
+#
+#
+#/******************************************************************************
+#       Name : emitstart()
+#Description : Emit papertape end-of-code start block.
+# Parameters : address - the program start address
+#    Returns :
+#   Comments : We have to emit a block size byte, just use 1
+# ******************************************************************************/
+#static void
+#emitstart(WORD address)
+#{
+#    emitbyte(1);        /* one byte block */
+#    emitword(address);        /* start address */
+#}
+#
+#
+#/******************************************************************************
+#       Name : emitword()
+#Description : Emit one WORD to output stream.
+# Parameters : word - the WORD value to emit
+#            : out  - open FILE stream for output
+#    Returns :
+#   Comments :
+# ******************************************************************************/
+#static void
+#emitword(WORD word)
+#{
+#    fputc((word >> 8) & 0xFF, OutFile);
+#    fputc(word & 0xFF, OutFile);
+#}
+#
+#
+#/******************************************************************************
+#       Name : gencode()
+#Description : Generate code for one line.
+# Parameters : olabel  - pointer to label token (NULL if no label)
+#            : oopcode - pointer to opcode token (NULL if no opcode)
+#            : ofield  - pointer to field buffer (NULL if no field)
+#            : comment - pointer to coment buffer (NULL if no field)
+#    Returns : True if assembly should continue, False if END opcode found.
+#   Comments : Called by pass 2.
+# ******************************************************************************/
+#static BOOL
+#gencode(char *olabel, char *oopcode, char *ofield, char *comment)
+#{
+#    BOOL result = True;
+#    char *label = CopyStr(olabel);
+#    char *opcode = CopyStr(oopcode);
+#    char *field = CopyStr(ofield);
+#
+#/******
+# * If there is a label, make sure it's valid.
+# ******/
+#
+#    if (label != NULL && !islabel(label))
+#        synerror(inputline, "Label '%s' is not legal", olabel);
+#
+#/******
+# * If there is an opcode, handle it.
+# ******/
+#
+#    if (opcode != NULL)
+#    {
+#        if (STREQ(opcode, "ORG"))
+#        {
+#            if (label != NULL)
+#                synerror(inputline, "Label not allowed on ORG statement");
+#
+#            if (field == NULL || !isoctal(field))
+#                synerror(inputline, "ORG statement must have octal address");
+#
+#            emitblock();
+#            dot = atoo(field);
+#            newcodeblock(dot);
+#            genlist(-1);
+#        }
+#        else if (STREQ(opcode, "END"))
+#        {
+#            if (label != NULL)
+#                synerror(inputline, "Label not allowed on END statement");
+#            if (field != NULL)
+#                synerror(inputline, "Address not allowed on END statement");
+#            result = False;
+#            genlist(-1);
+#        }
+#        else if (STREQ(opcode, "DATA"))
+#        {
+#            WORD   code;
+#
+#            if (field == NULL)
+#                synerror(inputline, "Data field required on DATA statement");
+#            if (isoctal(field))
+#                code = atoo(field);
+#            else if (isdecimal(field))
+#                code = atoi(field);
+#            else
+#                code = getaddress(field, False);
+#/*                 synerror(inputline, "DATA field must be octal or decimal");  */
+#
+#            emitcode(code);
+#            genlist(code);
+#            ++dot;
+#        }
+#        else if (STREQ(opcode, "INC"))
+#        {
+#            WORD code = geninc(field);
+#
+#            emitcode(code);
+#            genlist(code);
+#            ++dot;
+#        }
+#        else
+#        {
+#            OPCODE *optr = lookupopcode(opcode);
+#            WORD   code;
+#
+#            if (optr == NULL)
+#                synerror(inputline, "Unrecognised opcode");
+#
+#            if (optr->address == AYES && field == NULL)
+#                synerror(inputline, "Opcode requires address field");
+#
+#            if (optr->address == ANO && field != NULL)
+#                synerror(inputline, "Opcode must not have address field");
+#
+#            code = optr->code;
+#
+#            if (field != NULL)
+#            {
+#                WORD address;
+#                WORD mask = optr->addrmask;
+#
+#                if (optr->indirect)
+#                    mask |= INDIRECTBIT;
+#
+#                address = getaddress(field, optr->indirect);
+#                if (address & ~mask)
+#                    synerror(inputline, "Address field overflow!");
+#
+#                code = (code & ~optr->addrmask) | address;
+#            }
+#
+#            emitcode(code);
+#            genlist(code);
+#            ++dot;
+#        }
+#    }
+#    else    /* blank line */
+#        genlist(-1);
+#
+#/******
+# * Return line assemble result.
+# ******/
+#
+#    return result;
+#}
+#
+#
+#/******************************************************************************
+#       Name : geninc()
+#Description : Generate code for one word of INC code.
+# Parameters : field  - INC field to generate code for
+#    Returns : The code word generated.
+#   Comments :
+# ******************************************************************************/
+#static WORD
+#geninc(char *field)
+#{
+#    char *endfld;
+#    WORD highbyte;
+#    WORD lowbyte;
+#
+#    if (field == NULL)
+#        synerror(inputline, "Data field required on INC statement");
+#
+#    endfld = strchr(field, ',');
+#    if (endfld == NULL)
+#        synerror(inputline, "Bad data field on INC statement");
+#    *endfld = '\0';
+#    ++endfld;
+#
+#    highbyte = genincbyte(field);
+#    lowbyte = genincbyte(endfld);
+#
+#    return (highbyte << 8) | lowbyte;
+#}
+#
+#
+#/******************************************************************************
+#       Name : genincbyte()
+#Description : Generate code for one byte of INC code.
+# Parameters : infile - input filename (error reporting)
+#            : lnum   - input line number (error reporting)
+#            : field  - INC byte field to generate code for
+#    Returns :
+#   Comments :
+# ******************************************************************************/
+#static WORD
+#genincbyte(char *field)
+#{
+#    static int  beam = 1;
+#
+#    int  x;
+#    int  y;
+#    int  xneg = 0;
+#    int  yneg = 0;
+#
+#    switch (toupper(*field))
+#    {
+#        case 'A':    /* make byte */
+#            ++field;
+#            if (isoctal(field))
+#                return atoo(field);
+#            else if (isdecimal(field))
+#                return atoi(field);
+#            else
+#                synerror(inputline, "Bad INC 'A' field");
+#            break;
+#        case 'B':        /* beam on */
+#            beam = 1;
+#            ++field;
+#            break;
+#        case 'D':        /* beam off */
+#            beam = 0;
+#            ++field;
+#            break;
+#        case 'E':        /* enter INC mode */
+#/*            beam = 1; UNUSED */
+#            return 0060;
+#            break;
+#        case 'F':        /* escape INC mode */
+#            return 0171;
+#            break;
+#        case 'N':
+#            return 0111;
+#            break;
+#        case 'P':        /* pause (filler) */
+#            return 0200;
+#            break;
+#        case 'R':
+#            return 0151;
+#            break;
+#        case 'X':
+#            return 0010;
+#            break;
+#        case 'Y':
+#            return 0001;
+#            break;
+#        case '+': case '-': case '0': case '1': case '2': case '3':
+#            break;
+#        default:
+#            synerror(inputline, "Bad INC field");
+#            break;
+#    }
+#
+#    if (*field == '+')
+#    {
+#        xneg = 0;
+#        ++field;
+#    }
+#    else if (*field == '-')
+#    {
+#        xneg = 1;
+#        ++field;
+#    }
+#
+#    if (strchr("0123", *field) == NULL)
+#        synerror(inputline, "Bad INC field");
+#
+#    x = *field - '0';
+#    ++field;
+#
+#    if (*field == '+')
+#    {
+#        yneg = 0;
+#        ++field;
+#    }
+#    else if (*field == '-')
+#    {
+#        yneg = 1;
+#        ++field;
+#    }
+#
+#    if (strchr("0123", *field) == NULL)
+#        synerror(inputline, "Bad INC field");
+#
+#    y = *field - '0';
+#    ++field;
+#
+#    if (strlen(field) != 0)
+#        synerror(inputline, "Bad INC field");
+#
+#    return 0200 | (beam << 6) | (xneg << 5) | (x << 3) | (yneg << 2) | y;
+#}
+#
+#
+#
+#/******************************************************************************
+#       Name : genlist()
+#Description : Generate a listing line, if required.
+# Parameters : code  - the code word generated by this instruction
+#    Returns :
+#   Comments : If 'code' is -1, don't show code word.
+# ******************************************************************************/
+#static void
+#genlist(WORD code)
+#{
+#    if (ListFile != NULL)
+#    {
+#        if (code == -1)
+#            fprintf(ListFile, "                 %4d:\t%s",
+#                    LineNumber, inputline);
+#        else
+#            fprintf(ListFile, "%6.6o   %6.6o  %4d:\t%s",
+#                    code, (int) dot, LineNumber, inputline);
+#    }
+#}
+#
+#
+#/******************************************************************************
+#       Name : getaddress()
+#Description : Get an address value from the 'field' string.
+# Parameters : field  - the field string to get the address from
+#            : indok  - True if indirection allowed
+#    Returns : The address value.
+#   Comments : A valid address field can be:
+#            :    <label>
+#            :    <octal>
+#            :    .+<octal>
+#            :    .-<octal>
+#            : If the field is a <label> and the label is not yet defined, create
+#            : a fixup and return a zero address.
+# ******************************************************************************/
+#static WORD
+#getaddress(char *field, BOOL indok)
+#{
+#    WORD result = 0;
+#    SYM  *sym;
+#
+#/******
+# * If indirect flag, note and continue.
+# ******/
+#
+#    if (*field == '*')
+#    {
+#        result = INDIRECTBIT;
+#        ++field;
+#    }
+#
+#    switch (*field)
+#    {
+#        case '0':        /* an octal value */
+#            if (!isoctal(field))
+#                synerror(inputline, "Bad octal address");
+#            result |= atoo(field);
+#            break;
+#        case '1': case '2': case '3': case '4': case '5':
+#        case '6': case '7': case '8': case '9':        /* a decimal value */
+#            if (!isdecimal(field))
+#                synerror(inputline, "Bad decimal address");
+#            result |= atoi(field);
+#            break;
+#        case '.':        /* a relative value */
+#            ++field;
+#            if (!isoctal(field + 1) && !isdecimal(field + 1))
+#                synerror(inputline, "Badly formed address");
+#            switch (*field)
+#            {
+#                case '+':
+#                    if (isoctal(field + 1))
+#                        result |= dot + atoo(field + 1);
+#                    else
+#                        result |= dot + atoi(field + 1);
+#                    break;
+#                case '-':
+#                    if (isoctal(field + 1))
+#                        result |= dot - atoo(field + 1);
+#                    else
+#                        result |= dot - atoi(field + 1);
+#                    break;
+#                default:
+#                    synerror(inputline, "Badly formed address");
+#            }
+#            break;
+#        default:        /* probably a label */
+#            if (!islabel(field))
+#                synerror(inputline, "Illegal address");
+#            sym = lookup(field);
+#            if (sym == NULL)
+#                synerror(inputline, "Badly formed address");
+#            result |= sym->address;
+#            break;
+#    }
+#
+#    return result;
+#}
+#
+#
+#/******************************************************************************
+#       Name : hash()
+#Description : Generate a hash value for a name.
+# Parameters : name - name string to make hash value for
+#    Returns : The hash value in range [0,HASHTABSIZE).
+#   Comments :
+# ******************************************************************************/
+#static int
+#hash(char *name)
+#{
+#    int result = *name * strlen(name);
+#
+#    while (*++name)
+#        result = (result << 1) + *name;
+#
+#    return result / HASHTABSIZE;
+#}
+#
+#
+#/******************************************************************************
+#       Name : isdecimal()
+#Description : Function to decide if a string is purely a decimal number.
+# Parameters : str - string to look at
+#    Returns : True if 'str' is a decimal number, else False.
+#   Comments :
+# ******************************************************************************/
+#static BOOL
+#isdecimal(char *str)
+#{
+#    for (; *str; ++str)
+#        if (*str < '0' || *str > '9')
+#            return False;
+#
+#    return True;
+#}
+#
+#
+#/******************************************************************************
+#       Name : islabel()
+#Description : Function to decide if a string is a legal label.
+# Parameters : name - string to check
+#    Returns : True if 'name' is legal label string, else False.
+#   Comments :
+# ******************************************************************************/
+#static BOOL
+#islabel(char *name)
+#{
+#    if (!isalpha(*name))
+#        return False;
+#
+#    for (; *name; ++name)
+#        if (!isalpha(*name) && !isdigit(*name))
+#            return False;
+#
+#    return True;
+#}
+#
+#
+#/******************************************************************************
+#       Name : isoctal()
+#Description : Function to decide if a string is purely an octal number.
+# Parameters : str - string to look at
+#    Returns : True if 'str' is an octal number, else False.
+#   Comments : An octal number must start with a '0' and contain only octal
+#            : digits after that,
+# ******************************************************************************/
+#static BOOL
+#isoctal(char *str)
+#{
+#    if (*str != '0')
+#        return False;
+#
+#    for (; *str; ++str)
+#        if (*str < '0' || *str > '7')
+#            return False;
+#
+#    return True;
+#}
+#
+#
+#/******************************************************************************
+#       Name : lookup()
+#Description : Lookup a name in the symbol table.
+# Parameters : name - name string to look for
+#    Returns : Address of SYM for name 'name' if found, else NULL.
+#   Comments :
+# ******************************************************************************/
+#static SYM *
+#lookup(char *name)
+#{
+#    char *uname = CopyStr(name);
+#    SYM  *result;
+#
+#    strupper(uname);
+#    result = hashtab[hash(uname)];
+#
+#    while (result != NULL)
+#    {
+#        if (STREQ(result->name, name))
+#            return result;
+#
+#        result = result->next;
+#    }
+#
+#    return NULL;
+#}
+#
+#
+#/******************************************************************************
+#       Name : lookupopcode()
+#Description : Lookup an opcode in opcodes[] table.
+# Parameters : opcode - opcode to lookup
+#    Returns : Address of OPCODE struct if found, else NULL.
+#   Comments :
+# ******************************************************************************/
+#static OPCODE *
+#lookupopcode(char *opcode)
+#{
+#    int    i;
+#
+#    for (i = 0; i < NUMOPCODES; ++i)
+#        if (STREQ(opcodes[i].opcode, opcode))
+#            return &opcodes[i];
+#
+#    return NULL;
+#}
+#
+#
+#/******************************************************************************
+#       Name : newcodeblock()
+#Description : Prepare for a new block of code.
+# Parameters : org - start address of block
+#    Returns :
+#   Comments :
+# ******************************************************************************/
+#static void
+#newcodeblock(WORD org)
+#{
+#    codeblockstart = org;
+#    nextcodeword = 0;
+#}
+#
+#
+#/******************************************************************************
+#       Name : newSYM()
+#Description : Create a new SYM object.
+# Parameters : name - name string of new symbol
+#    Returns : Address of new SYM object.
+#   Comments :
+# ******************************************************************************/
+#static SYM *
+#newSYM(char *name)
+#{
+#    SYM *result = malloc(sizeof(SYM));
+#
+#    if (result == NULL)
+#        Error("Out of memory in file '%s', line %d", __FILE__, __LINE__);
+#
+#    result->next = NULL;
+#    strcpy(result->name, name);
+#    result->address = 0;
+#
+#    return result;
+#}
+#
+#
+#/******************************************************************************
+#       Name : numgenwords()
+#Description : Get the number of generated WORDs for an opcode (or pseudoopcode).
+# Parameters : opcode - pointer to opcode token (NULL if no opcode)
+#            : field  - address field for opcode
+#    Returns : The number of WORDs generated (0 or 1).
+#   Comments : Called in pass 1 only.
+# ******************************************************************************/
+#static int
+#numgenwords(char *opcode, char *field)
+#{
+#    int  result = 0;
+#
+#/******
+# * If there is an opcode, handle it.
+# ******/
+#
+#    if (opcode != NULL)
+#    {
+#        if (STREQ(opcode, "ORG"))
+#        {
+#            result = 0;
+#        }
+#        else if (STREQ(opcode, "END"))
+#        {
+#            result = 0;
+#        }
+#        else    /* we assume opcode is OK, check in pass 2 */
+#        {
+#            result = 1;
+#        }
+#    }
+#
+#/******
+# * Return # generated words.
+# ******/
+#
+#    return result;
+#}
+#
+#
+#/******************************************************************************
+#       Name : Pass1()
+#Description : Perform first pass on a file.
+# Parameters :
+#    Returns : True if no errors, else False.
+#   Comments : Just define labels.  Leave most errors for pass 2.
+# ******************************************************************************/
+#BOOL
+#Pass1(void)
+#{
+#    char buffer[BUFFERSIZE + 1];
+#    char *label;
+#    char *opcode;
+#    char *field;
+#    char *comment;
+#    int  i;
+#    int  genwords;
+#
+#/******
+# * Initialise the hash table, et al.
+# ******/
+#
+#    for (i = 0; i < HASHTABSIZE; ++i)
+#        hashtab[i] = NULL;
+#
+#    LineNumber = 0;
+#
+#    dot = -1L;
+#
+#/******
+# * Read and process the file.
+# * Just fill in the symbol table (labels) as we go.
+# ******/
+#
+#    while (fgets(buffer, sizeof(buffer), InFile) != NULL)
+#    {
+#        ++LineNumber;
+#
+#        strcpy(inputline, buffer);
+#
+#        /* point 'label', 'opcode' and 'field' to strings */
+#        delimfields(buffer, &label, &opcode, &field, &comment);
+#
+#        /* if there's something there, get # generated words */
+#        if (opcode != NULL)
+#        {
+#            if (STREQ(opcode, "END"))
+#                break;
+#
+#            if (STREQ(opcode, "ORG"))
+#            {
+#                if (field == NULL || !isoctal(field))
+#                {
+#                    synerror(inputline, "Bad ORG adress");
+#                    return False;
+#                }
+#
+#                dot = atoo(field);
+#            }
+#            else
+#            {
+#                genwords = numgenwords(opcode, field);
+#
+#                if (label != NULL)
+#                {
+#                    if (lookup(label))
+#                        synerror(inputline, "Label already defined");
+#                    deflabel(label, dot);
+#                }
+#
+#                dot += genwords;
+#            }
+#        }
+#    }
+#
+#    return True;
+#}
+#
+#
+#/******************************************************************************
+#       Name : Pass2()
+#Description : Perform second pass on a file.
+# Parameters :
+#    Returns :
+#   Comments :
+# ******************************************************************************/
+#BOOL
+#Pass2(void)
+#{
+#    char buffer[BUFFERSIZE + 1];
+#    char *label;
+#    char *opcode;
+#    char *field;
+#    char *comment;
+#
+#/******
+# * Initialize linenumber, et al.
+# ******/
+#
+#    LineNumber = 0;
+#    dot = -1L;
+#
+#/******
+# * Start the output - emit tape or tty block loader
+# ******/
+#
+#    emitloader();
+#
+#/******
+# * Read the file, generating code as we go.
+# ******/
+#
+#    while (fgets(buffer, sizeof(buffer), InFile) != NULL)
+#    {
+#        char *chptr;
+#
+#        ++LineNumber;
+#
+#        chptr = strrchr(buffer, '\r');
+#        if (chptr)
+#            strcpy(chptr, chptr + 1);
+#
+#        strcpy(inputline, buffer);
+#
+#        /* point 'label', 'opcode' and 'field' to strings */
+#        delimfields(buffer, &label, &opcode, &field, &comment);
+#
+#        /* if there's something there, generate code */
+#        if (gencode(label, opcode, field, comment) == False)
+#            break;        /* gencode() returns False on 'END' pseudoop */
+#    }
+#
+#/******
+# * Check there is nothing after END statement.
+# ******/
+#
+#    if (fgets(buffer, sizeof(buffer), InFile) != NULL)
+#    {
+#        ++LineNumber;
+#        synerror(buffer, "Something after END!?");
+#        return False;
+#    }
+#
+#/******
+# * Emit the  data.
+# ******/
+#
+#    emitblock();
+#    emitstart(WORDMASK);
+#
+#    return True;
+#}
+#
+#
+#/******************************************************************************
+#       Name : synerror()
+#Description : Generate a syntax error, then stop.
+# Parameters : inputline - line that had error
+#            : fmt       - start of printf() style params
+#    Returns : Doesn't!
+#   Comments :
+# ******************************************************************************/
+#static void
+#synerror(char *inputline, char *fmt, ...)
+#{
+#    va_list ap;
+#    char    msg[1024];
+#
+#    fprintf(stderr, "------------------------------------------------------\n");
+#    fprintf(stderr, "%s", inputline);
+#    fprintf(stderr, "------------------------------------------------------\n");
+#
+#    va_start(ap, fmt);
+#    fprintf(stderr, "File %s, line %d: ", InFileName, LineNumber);
+#    vsprintf(msg, fmt, ap);
+#    fprintf(stderr, "%s\n", msg);
+#    va_end(ap);
+#
+#    fflush(stderr);
+#
+#    exit(EXIT_FAILURE);
+#}
+#
+##ifdef JUNK
+#/******************************************************************************
+#       Name : synwarn()
+#Description : Generate a syntax error, and continue.
+# Parameters : fmt - start of printf() style params
+#    Returns :
+#   Comments :
+# ******************************************************************************/
+#static void
+#synwarn(char *fmt, ...)
+#{
+#    va_list ap;
+#    char    msg[1024];
+#
+#    va_start(ap, fmt);
+#    vsprintf(msg, fmt, ap);
+#    fprintf(stdout, "%s\n", msg);
+#    va_end(ap);
+#
+#    fflush(stdout);
+#}
+##endif
+#
+#
+#/******************************************************************************
+#       Name : strupper()
+#Description : Convert a string to uppercase, in situ.
+# Parameters : str - address of string to convert
+#    Returns :
+#   Comments :
+# ******************************************************************************/
+#static void
+#strupper(char *str)
+#{
+#    for (; *str; ++str)
+#        *str = toupper(*str);
+#}
+#
+#
+##ifdef JUNK
+#/******************************************************************************
+#       Name : xemitcode()
+#Description : Emit papertape code.
+# Parameters : fname - output filename (for error reporting)
+#            : out   - open FILE stream for output
+#    Returns :
+#   Comments :
+# ******************************************************************************/
+#static void
+#xemitcode(char *fname, FILE *out)
+#{
+#    BLOCK *bptr;
+#
+#    for (bptr = blocklist; bptr != NULL; bptr = bptr->next)
+#    {
+#        WORD checksum = (bptr->org + ((-bptr->nextword) & WORDMASK)) & WORDMASK;
+#        WORD i;
+#
+#        for (i = 0; i < bptr->nextword; ++i)
+#            checksum = (checksum + bptr->code[i]) & WORDMASK;
+#
+#        emitword(bptr->org);
+#        emitword(-bptr->nextword);
+#        emitword(checksum);
+#
+#        for (i = 0; i < bptr->nextword; ++i)
+#            emitword(bptr->code[i]);
+#
+#    }
+#}
+#
+##endif
+#
+#
