@@ -25,13 +25,13 @@ class TestPyasm(unittest.TestCase):
 
         # define tests: (test, dot, symtable, expected, undefined, raises)
         tests = (
-                 ('a', 0100, {'A': 1}, 1, None, False),
+                 ('A', 0100, {'A': 1}, 1, None, False),
                  ('.', 0100, {}, 0100, None, False),
-                 ('b', 0100, {}, None, 'B', True),
-                 ('a+1', 0100, {'A': 1}, 2, None, False),
-                 ('a+b', 0, {'A': 1, 'B': 2}, 3, None, False),
-                 ('a + b', 0, {'A': 1, 'B': 2}, 3, None, False),
-                 ('a / b', 0, {'A': 4, 'B': 2}, 2, None, False),
+                 ('B', 0100, {}, None, 'B', True),
+                 ('A+1', 0100, {'A': 1}, 2, None, False),
+                 ('A+B', 0, {'A': 1, 'B': 2}, 3, None, False),
+                 ('A + B', 0, {'A': 1, 'B': 2}, 3, None, False),
+                 ('A / B', 0, {'A': 4, 'B': 2}, 2, None, False),
                  ('. + 0100', 0100, {}, 0200, None, False),
                 )
 
@@ -39,12 +39,13 @@ class TestPyasm(unittest.TestCase):
         for (test, dot, symtable, expected, undefined, raises) in tests:
             pyasm.Undefined = None
             pyasm.SymTable = symtable
+            pyasm.Dot = dot
             if raises:
                 result = None
                 with self.assertRaises(NameError):
-                    result = pyasm.eval_expression(test, dot)
+                    result = pyasm.eval_expr(test)
             else:
-                result = pyasm.eval_expression(test, dot)
+                result = pyasm.eval_expr(test)
             msg = ("Expected eval_expression('%s', '%s') to return '%s', got '%s'"
                    % (test, str(dot), str(expected), str(result)))
             self.assertEqual(result, expected, msg)
@@ -56,29 +57,31 @@ class TestPyasm(unittest.TestCase):
         """Run lots of tests on split_fields()."""
 
         # define tests: (test, expected)
-        tests = (('label opcode value ;comment', ('LABEL', 'OPCODE', 'value')),
-                 ('',                            (None, None, None)),
-                 (';comment',                    (None, None, None)),
-                 ('; comment',                   (None, None, None)),
-                 (' ; comment',                  (None, None, None)),
-                 ('\t; comment',                 (None, None, None)),
-                 ('label',                       ('LABEL', None, None)),
-                 (' opcode',                     (None, 'OPCODE', None)),
-                 ('\topcode',                    (None, 'OPCODE', None)),
-                 ('label opcode',                ('LABEL', 'OPCODE', None)),
-                 ('label\topcode',               ('LABEL', 'OPCODE', None)),
-                 ('label opcode value',          ('LABEL', 'OPCODE', 'value')),
-                 ('label\topcode value',         ('LABEL', 'OPCODE', 'value')),
-                 ('label\topcode\tvalue',        ('LABEL', 'OPCODE', 'value')),
-                 ('label opcode a+b',            ('LABEL', 'OPCODE', 'a+b')),
-                 ('label opcode a + b',          ('LABEL', 'OPCODE', 'a + b')),
-                 ('      opcode a + b',          (None, 'OPCODE', 'a + b')),
-                 ('      opcode a + b ;comment', (None, 'OPCODE', 'a + b')),
-                 ('      opcode',                (None, 'OPCODE', None)),
+        tests = (('label opcode value ;comment', ('LABEL', 'OPCODE', False, 'VALUE')),
+                 ('',                            (None, None, False, None)),
+                 (';comment',                    (None, None, False, None)),
+                 ('; comment',                   (None, None, False, None)),
+                 (' ; comment',                  (None, None, False, None)),
+                 ('\t; comment',                 (None, None, False, None)),
+                 ('label',                       ('LABEL', None, False, None)),
+                 (' opcode',                     (None, 'OPCODE', False, None)),
+                 ('\topcode',                    (None, 'OPCODE', False, None)),
+                 ('label opcode',                ('LABEL', 'OPCODE', False, None)),
+                 ('label\topcode',               ('LABEL', 'OPCODE', False, None)),
+                 ('label opcode value',          ('LABEL', 'OPCODE', False, 'VALUE')),
+                 ('label\topcode value',         ('LABEL', 'OPCODE', False, 'VALUE')),
+                 ('label\topcode\tvalue',        ('LABEL', 'OPCODE', False, 'VALUE')),
+                 ('label opcode a+b',            ('LABEL', 'OPCODE', False, 'A+B')),
+                 ('label opcode a + b',          ('LABEL', 'OPCODE', False, 'A + B')),
+                 ('      opcode a + b',          (None, 'OPCODE', False, 'A + B')),
+                 ('      opcode a + b ;comment', (None, 'OPCODE', False, 'A + B')),
+                 ('      opcode',                (None, 'OPCODE', False, None)),
                 )
 
         # now run them
+        pyasm.CurrentLineNumber = 1
         for (test, expected) in tests:
+            pyasm.CurrentLine = test
             result = pyasm.split_fields(test)
             msg = ("Expected split_fields('%s') to return '%s', got '%s'"
                    % (test, str(expected), str(result)))
