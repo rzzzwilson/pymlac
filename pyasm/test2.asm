@@ -19,4 +19,4 @@ offset  data    start - 3
 tom     bss     4
 end     hlt
 
-        end     start2
+        end

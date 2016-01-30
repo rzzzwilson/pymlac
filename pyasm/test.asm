@@ -3,4 +3,4 @@
 
 start   hlt
 
-        end     start
+        end
