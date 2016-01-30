@@ -15,12 +15,11 @@ offset = 0
 
 def doblockloader(f, word):
     ldaddr = 0177700
-    numwords = 0100
+    numwords = 0100 - 1     # have already read one word in
     while numwords > 0:
         word = readword(f)
         numwords = numwords - 1
         ldaddr = ldaddr + 1
-
 
 def dobody(f, count):
     mymem = mem.Mem()
@@ -34,15 +33,16 @@ def dobody(f, count):
         while numwords > 0:
             word = readword(f)
             csum += word
-            if csum > 0xffff:
-                csum += 1
-            csum = csum & 0xffff
+#            if csum > 0xffff:
+#                csum += 1
+#            csum = csum & 0xffff
             mymem.add(ldaddr, word)
             (op, fld) = disasmdata.disasmdata(word)
             mymem.putOp(ldaddr, op)
             mymem.putFld(ldaddr, fld)
             ldaddr += 1
             numwords -= 1
+        csum &= 0xffff
         checksum = readword(f)
         if csum != checksum:
             print "Checksum error"

@@ -152,7 +152,7 @@ class MyPopupMenu(wx.Menu):
     def __init__(self, WinName):
         global grid
         rows = grid.GetSelectedRows()
-        
+
         wx.Menu.__init__(self)
         self.WinName = WinName
 
