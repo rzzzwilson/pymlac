@@ -37,21 +37,22 @@ class TestPyasm(unittest.TestCase):
 
         # now run them
         for (test, dot, symtable, expected, undefined, raises) in tests:
-            pyasm.Undefined = None
-            pyasm.SymTable = symtable
-            pyasm.Dot = dot
-            if raises:
-                result = None
-                with self.assertRaises(NameError):
+            with open('test_list_file', 'wb') as pyasm.ListFileHandle:
+                pyasm.Undefined = None
+                pyasm.SymTable = symtable
+                pyasm.Dot = dot
+                if raises:
+                    result = None
+                    with self.assertRaises(NameError):
+                        result = pyasm.eval_expr(test)
+                else:
                     result = pyasm.eval_expr(test)
-            else:
-                result = pyasm.eval_expr(test)
-            msg = ("Expected eval_expression('%s', '%s') to return '%s', got '%s'"
-                   % (test, str(dot), str(expected), str(result)))
-            self.assertEqual(result, expected, msg)
-            msg = ("Expected eval_expression('%s', '%s') to set Undefined to '%s', got '%s'"
-                   % (test, str(dot), str(undefined), str(pyasm.Undefined)))
-            self.assertEqual(undefined, pyasm.Undefined, msg)
+                msg = ("Expected eval_expression('%s', '%s') to return '%s', got '%s'"
+                       % (test, str(dot), str(expected), str(result)))
+                self.assertEqual(result, expected, msg)
+                msg = ("Expected eval_expression('%s', '%s') to set Undefined to '%s', got '%s'"
+                       % (test, str(dot), str(undefined), str(pyasm.Undefined)))
+                self.assertEqual(undefined, pyasm.Undefined, msg)
 
     def test_split_fields(self):
         """Run lots of tests on split_fields()."""
