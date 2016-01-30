@@ -661,13 +661,15 @@ def pass_2(lines):
                     error("BSS pseudo-op has bad value")
                     return False
                 value = eval_expr(addr)
+                if value is None:
+                    error("BSS pseudo-op has bad value: '%s'" % addr)
                 if label:
                     try:
-                        old_value = SymTable[label]
-                        if value != old_value:
-                            error("BSS value in has changed, "
+                        old_dot = SymTable[label]
+                        if Dot != old_dot:
+                            error("BSS dot value has changed, "
                                   "was %06o, is now %06o"
-                                  % (old_value, value))
+                                  % (old_dot, Dot))
                     except KeyError:
                         error("BSS label '%s' wasn't defined in first pass!?"
                               % label)

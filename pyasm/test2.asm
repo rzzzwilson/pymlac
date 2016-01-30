@@ -16,6 +16,7 @@ offset  data    start - 3
         ascii   'xxxxxxx'
         ascii   "xx"
         ascii   'x'
+tom     bss     4
 end     hlt
 
-        end     start
+        end     start2
