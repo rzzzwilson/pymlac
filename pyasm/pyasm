@@ -382,8 +382,7 @@ def write_leader(size=ZeroLeaderSize):
     """Write the papertape leader."""
 
     for _ in range(size):
-#        write_byte(0)
-        write_byte(0xFE)
+        write_byte(0)
 
 def write_block_loader():
     """Emit the block loader prefix code."""
@@ -402,7 +401,6 @@ def start_block(addr):
 
     BlockBuffer = []
     BlockBufferBase = addr
-    addr_str = ('%06o' % addr) if addr else str(addr)
 
 def emit_word(word):
     """Put a word into the code block buffer.
@@ -636,7 +634,8 @@ def pass_2(lines):
                 if not addr or eval_expr(addr) is None:
                     error("ORG pseudo-op has a bad address")
                     return False
-                write_block()        # write any code accumulated so far
+                if BlockBufferBase is not None:
+                    write_block()        # write any code accumulated so far
                 Dot = eval_expr(addr)
                 start_block(Dot)
                 write_list(None, Dot, lnum, line)
