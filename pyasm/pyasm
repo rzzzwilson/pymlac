@@ -71,12 +71,16 @@ CurrentLineNumber = None
 Undefined = None
 
 # buffer for blocked code
-BlockBuffer = []
+BlockMaxSize = 255
+BlockBuffer = bytearray()
 BlockBufferStart = None
 
 ######
 # Mostly constant stuff
 ######
+
+# mask for 16bit values
+WordMask = 0xFFFF
 
 # the output PTP filename extension
 PTPExtension = '.ptp'
@@ -88,7 +92,7 @@ ListFileExtension = '.lst'
 WordBits = 16
 
 # number of bytes in the 'zero' leader
-ZeroLeaderSize = 16
+ZeroLeaderSize = 32
 
 # address states, AYES = address required,
 #                 ANO  = address NOT required
@@ -341,79 +345,109 @@ def usage(msg=None):
 def error(msg):
     """Print a syntax error and abort."""
 
+    lnum = CurrentLineNumber if CurrentLineNumber else 1
+    line = CurrentLine if CurrentLine else ''
+
     print('-' * 80)
-    print("%04d: %s" % (CurrentLineNumber, CurrentLine))
+    print("%04d: %s" % (lnum, line))
     print(msg)
     print('-' * 80)
 
     sys.exit(10)
 
-def emit_byte(byte):
-    """Emit one byte to the output file.
+def write_byte(byte):
+    """Write one byte into the output code file.
 
     Write only the low 8 bits of 'byte'.
     """
 
+    print('write_byte: byte=%04o' % byte)
     OutputFileHandle.write(chr(byte & 0xFF))
 
-def emit_word(word):
+def write_word(word):
     """Emit a 16-bit word to the output file."""
 
-    emit_byte(word >> 8)
-    emit_byte(word)
+    write_byte(word >> 8)
+    write_byte(word)
 
-def emit_start(address):
-    """Emit the start block."""
+def write_start(address):
+    """Write the start block."""
 
-    emit_byte(1)        # one word block
-    emit_word(address)
+    write_block()        # emit any code accumulated
+    start_block(address)
+    write_block()
 
-def emit_loader():
+def write_leader():
+    """Write the papertape leader."""
+
+    for _ in range(ZeroLeaderSize):
+        write_byte(0)
+
+def write_block_loader():
     """Emit the block loader prefix code."""
 
-    for _ in range(ZeroLeaderSize):
-        emit_byte(0)
+    write_leader()
 
     for word in BlockLoader:
-        emit_word(word)
+        write_word(word)
 
-    for _ in range(ZeroLeaderSize):
-        emit_byte(0)
+    write_leader()
 
 def start_block(addr):
     """Prepare next block to start at 'addr'"""
 
-    BlockBufferStart = addr
+    global BlockBuffer, BlockBufferStart
 
-def emit_block():
-    """Emit the current code block and reset the buffer."""
+    BlockBuffer = []
+    BlockBufferStart = addr
+    print('start_block: BlockBufferStart set to %s' % str(BlockBufferStart))
+
+def emit_word(word):
+    """Put a word into the code block buffer.
+
+    Write buffer out if full.
+    """
+
+    code_block_size = len(BlockBuffer)
+    if code_block_size >= BlockMaxSize:
+        write_block()
+        start_block(Dot)
+
+    BlockBuffer.append(word)
+
+def write_block():
+    """Write the current code block and reset the buffer."""
 
     global BlockBuffer, BlockBufferStart
 
-    # emit the block size and load address
     code_block_size = len(BlockBuffer)
-    emit_byte(code_block_size)
-    for v in BlockBuffer:
-        emit_word(v)
+    print('write_block: code_block_size=%d, BlockBufferStart=%s'
+          % (code_block_size, str(BlockBufferStart)))
+    if code_block_size == 0:
+        # block buffer is empty, do nothing
+        return
 
-    # emit the block & calculate checksum as we go
+    # emit the block size and load address
+    write_byte(code_block_size)
+    write_word(BlockBufferStart)
+    for word in BlockBuffer:
+        write_word(word)
+
+    # calculate checksum
     checksum = 0
     for word in BlockBuffer:
         checksum += word
         if checksum and ~WordMask:
             ++checksum
         checksum &= WordMask
-        emit_word(word)
+        write_word(word)
 
     # emit the block checksum
-    emit_word(checksum)
+    write_word(checksum)
 
     # reset the code buffer
     BlockBuffer = []
-    if BlockBufferStart:
-        BlockBufferStart += code_block_size
-    else:
-        BlockBufferStart = None
+    BlockBufferStart = None
 
 def write_list(code, addr, lnum, line):
     """Generate one line of listing file.
@@ -441,8 +475,6 @@ def eval_expr(expr):
     Returns 'None' if there is no valid expression.
     """
 
-    print('eval_expr: expr=%s' % str(expr))
-
     global Undefined
 
     # if no expression, do nothing
@@ -457,15 +489,17 @@ def eval_expr(expr):
     # evaluate the expression
     try:
         result = eval(expr, globs)
-    except TypeError as e:
-        error("ORG pseudo-opcode expression contains unsatisfied references")
-        return None
-    except NameError as e:
+#    except TypeError as e:
+#        error("ORG pseudo-opcode expression contains unsatisfied references")
+#        return None
+    except (TypeError, NameError) as e:
         Undefined = e.message
         if 'is not defined' in e.message:
             Undefined = e.message[len("name '"):-len("' is not defined")]
-            error("ORG pseudo-opcode expression has '%s' undefined" % Undefined)
-        error("ORG pseudo-opcode expression has an error")
+            raise NameError("ORG pseudo-opcode expression has '%s' undefined" % Undefined)
+#            error("ORG pseudo-opcode expression has '%s' undefined" % Undefined)
+        raise NameError("ORG pseudo-opcode expression has an error")
+#        error("ORG pseudo-opcode expression has an error")
 
     return result
 
@@ -487,8 +521,9 @@ def pass_1(lines):
     Returns False if there was an error.
     """
 
-    global StartAddress
-    global Dot, CurrentLineNumber, CurrentLine, SymTable, SymTableLine
+    global Dot, StartAddress
+    global CurrentLineNumber, CurrentLine
+    global SymTable, SymTableLine
 
     # initialize things
     Dot = None
@@ -508,9 +543,11 @@ def pass_1(lines):
             # we have an opcode, so code might be generated
             if opcode == 'ORG':
                 if not addr or eval_expr(addr) is None:
-                    error("ORG pseudo-op has bad address")
+                    error("ORG pseudo-op has a bad address")
                     return False
                 Dot = eval_expr(addr)
+                if label:
+                    error("ORG pseudo-op must not have a label")
 
             elif opcode == 'EQU':
                 # no code, but we define a label
@@ -518,14 +555,14 @@ def pass_1(lines):
                     error("EQU pseudo-op must have a label")
                     return False
                 if not addr or eval_expr(addr) is None:
-                    error("EQU pseudo-op has bad value")
+                    error("EQU pseudo-op has a bad value")
                     return False
                 define_label(label, eval_expr(addr), lnum)
 
             elif opcode == 'BSS':
                 # no code, but Dot moves
                 if not addr or eval_expr(addr) is None:
-                    error("BSS pseudo-op has bad value")
+                    error("BSS pseudo-op has a bad value")
                     return False
                 if label:
                     define_label(label, Dot, lnum)
@@ -534,14 +571,16 @@ def pass_1(lines):
             elif opcode == 'DATA':
                 # a single data word
                 if not addr or eval_expr(addr) is None:
-                    error("BSS pseudo-op has bad value")
+                    error("BSS pseudo-op has a bad value")
                     return False
                 if label:
                     define_label(label, Dot, lnum)
                 Dot += 1
 
             elif opcode == 'ASCII':
-                # an ASCII string, packed two bytes/word
+                # ASCII string, pack two bytes/word, maybe zero byte fill at end
+                print('ASCII: addr=%' % str(addr))
+        # TODO worry if string has delimiting quotes
                 ascii_len = len(addr)
                 ascii_words = ascii_len / 2
                 if ascii_len % 2:
@@ -550,7 +589,12 @@ def pass_1(lines):
 
             elif opcode == 'END':
                 # get the (optional) start address
-                StartAddress = eval_expr(addr)
+                StartAddress = None
+                if addr:
+                    StartAddress = eval_expr(addr)
+                    if StartAddress is None:
+                        error("END pseudo-op has a bad address")
+                        return False
                 return True
 
             else:
@@ -569,12 +613,17 @@ def pass_1(lines):
     return True
 
 def pass_2(lines):
-    """Perform the second pass of the assembly."""
+    """Perform the second pass of the assembly.
 
-    global Dot, CurrentLineNumber, CurrentLine
+    Very similar to pass_1(), but we:
+        . don't define labels, that was done in pass_1()
+        . check that any pass_2 labels haven't changed value
+    """
+
+    global Dot, StartAddress, CurrentLineNumber, CurrentLine
 
     # punch the zero leader and ptr/tty loader
-    emit_loader()
+    write_block_loader()
 
     # for each line in the file
     Dot = None
@@ -585,45 +634,60 @@ def pass_2(lines):
 
         # get line fields
         (label, opcode, indirect, addr) = split_fields(line)
-        print('#####: label=%s, opcode=%s, indirect=%s, addr=%s'
+        print('pass_2: label=%s, opcode=%s, indirect=%s, addr=%s'
               % (str(label), str(opcode), str(indirect), str(addr)))
 
         if opcode:
             # we have an opcode, so code might be generated
             if opcode == 'ORG':
-                if not addr or eval_expr(addr) is None:
-                    error("ORG pseudo-op has bad address")
+                if label:
+                    error("ORG pseudo-op may not have a label")
                     return False
-                emit_block()        # punch any accumulated code
+                if not addr or eval_expr(addr) is None:
+                    error("ORG pseudo-op has a bad address")
+                    return False
+                write_block()        # write any code accumulated so far
                 Dot = eval_expr(addr)
+                print('ORG: Dot set to %06o' % Dot)
                 start_block(Dot)
 
             elif opcode == 'EQU':
-                # no code, but we define a label
+                # no code, but we must have a label
                 if not label:
                     error("EQU pseudo-op must have a label")
                     return False
                 if not addr or eval_expr(addr) is None:
-                    error("EQU pseudo-op has bad value")
+                    error("EQU pseudo-op has a bad value")
                     return False
+                value = eval_expr(addr)
                 # check EQU value unchanged
                 try:
                     old_value = SymTable[label]
-                    value = eval_expr(addr)
                     if value != old_value:
                         error("EQU value in '%s' has changed,\n"
                               "was %06o, is now %06o"
                               % (old_value, value))
                 except KeyError:
-                    error("EQU label '%s' not defined in second pass!?"
+                    error("EQU label '%s' wasn't defined in first pass!?"
                           % label)
             elif opcode == 'BSS':
                 # no code, but Dot moves
                 if not addr or eval_expr(addr) is None:
                     error("BSS pseudo-op has bad value")
                     return False
-                emit_block()        # punch any accumalated code
-                Dot += eval_expr(addr)
+                value = eval_expr(addr)
+                if label:
+                    try:
+                        old_value = SymTable[label]
+                        if value != old_value:
+                            error("BSS value in has changed, "
+                                  "was %06o, is now %06o"
+                                  % (old_value, value))
+                    except KeyError:
+                        error("BSS label '%s' wasn't defined in first pass!?"
+                              % label)
+                write_block()        # write any code accumulated so far
+                Dot += value
                 start_block(Dot)
 
             elif opcode == 'DATA':
@@ -631,7 +695,18 @@ def pass_2(lines):
                 if not addr or eval_expr(addr) is None:
                     error("BSS pseudo-op has bad value")
                     return False
-                emit_word(eval_expr(addr))
+                value = eval_expr(addr)
+                if label:
+                    try:
+                        old_value = SymTable[label]
+                        if value != old_value:
+                            error("BSS value has changed, "
+                                  "was %06o, is now %06o"
+                                  % (old_value, value))
+                    except KeyError:
+                        error("DATA label '%s' wasn't defined in first pass!?"
+                              % label)
+                emit_word(value)
                 Dot += 1
 
             elif opcode == 'ASCII':
@@ -645,27 +720,27 @@ def pass_2(lines):
 
             elif opcode == 'END':
                 # get optional start address
-                global StartAddress
-
-                start_address = eval_expr(addr)
-                if start_address != StartAddress:
-                    print('start_address=%s, StartAddress=%s' % (str(start_address), str(StartAddress)))
-                    error("Pass 2 start address is different from pass 1, was %06o but now %06o"
-                          % (StartAddress, start_address))
-                StartAddress = start_address
-                return True
-
+                StartAddress = None
+                if addr:
+                    # we have the optional start address
+                    start_address = eval_expr(addr)
+                    if start_address != StartAddress:
+                        error("Pass 2 start address is different from pass 1, "
+                              "was %06o but now %06o"
+                              % (StartAddress, start_address))
+                    StartAddress = start_address
+                break       # end of pass
             else:
                 # actual machine instruction!
                 # if label, check value unchanged
                 if label:
                     if not label in SymTable:
-                        error("Label '%s' not defined in pass 2!?" % label)
+                        error("Label '%s' not defined in pass 1!?" % label)
                     old_dot = SymTable[label]
                     if old_dot != Dot:
-                        error("Label '%s' has different value in pass 2.\n"
+                        error("Start address has different value in pass 2.\n"
                               "Was %06o, now %06o"
-                              % (label. old_dot, Dot))
+                              % (old_dot, Dot))
                 gen_code(lnum, line, label, label, opcode, indirect, addr)
                 Dot += 1
 
@@ -674,13 +749,15 @@ def pass_2(lines):
             if label in SymTable:
                 dot = SymTable[label]
                 if dot != Dot:
-                    error("Second pass, line '%s'\n"
-                          "Label '%s' has value %06o, was %06o in first pass"
-                          % (line, label, Dot, dor))
+                    error("Label '%s' has value %06o, was %06o in first pass"
+                          % (label, Dot, dot))
 
-    # punch the final block of code and optional start address
-    emit_block()
-    emit_start()
+    # write the final block of code and optional start address
+    write_block()
+    if StartAddress is not None:
+        print('write_start(%06o)' % StartAddress)
+        write_start(StartAddress)
+    write_leader()
 
     # check nothing after END
     if lnum - 1 > len(lines):
@@ -862,8 +939,9 @@ def assemble_file():
     print('asm_lines=\n%s' % '\n'.join(asm_lines))
 
     if pass_1(asm_lines):
-        print('SymTable=%s' % str(SymTable))
+        print('After pass_1(), SymTable=%s' % str(SymTable))
         pass_2(asm_lines)
+        print('After pass_2(), SymTable=%s' % str(SymTable))
 
 def main():
     """The assembler."""
@@ -921,6 +999,7 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
 #/******************************************************************************
 #       Name : emitblock()
