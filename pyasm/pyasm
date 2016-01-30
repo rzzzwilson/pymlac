@@ -82,7 +82,7 @@ PTPExtension = '.ptp'
 ListFileExtension = '.lst'
 
 # number of bytes in the 'zero' leader
-ZeroLeaderSize = 32
+ZeroLeaderSize = 16
 
 ######
 # dict mapping opcode to generated word, address opts, address mask & indirect allowed
@@ -344,6 +344,12 @@ def error(msg):
     print(msg)
     print('-' * 80)
 
+    ListFileHandle.write('-' * 80 + '\n')
+    ListFileHandle.write("%04d: %s\n" % (lnum, line))
+    ListFileHandle.write(msg + '\n')
+    ListFileHandle.write('-' * 80 + '\n')
+    ListFileHandle.flush()
+
     sys.exit(10)
 
 def write_byte(byte):
@@ -467,16 +473,11 @@ def eval_expr(expr):
     # evaluate the expression
     try:
         result = eval(expr, globs)
-#    except TypeError as e:
-#        error("ORG pseudo-opcode expression contains unsatisfied references")
-#        return None
     except (TypeError, NameError) as e:
         Undefined = e.message
         if 'is not defined' in e.message:
             Undefined = e.message[len("name '"):-len("' is not defined")]
-#            raise NameError("ORG pseudo-opcode expression has '%s' undefined" % Undefined)
             error("ORG pseudo-opcode expression has '%s' undefined" % Undefined)
-#        raise NameError("ORG pseudo-opcode expression has an error")
         error("ORG pseudo-opcode expression has an error")
 
     return result
@@ -486,6 +487,7 @@ def num_gen_words(opcode, addr):
 
     if opcode:
         # we assume opcode will return 1
+        # TODO has to changed when macros are implemented
         return 1
 
     return 0
@@ -968,216 +970,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-
-#/******************************************************************************
-#       Name : emitblock()
-#Description : Emit the code for the current block.
-# Parameters :
-#    Returns :
-#   Comments :
-# *****************************************************************************/
-#static void
-#emitblock(void)
-#{
-#    if (nextcodeword > 0)
-#    {
-#        WORD checksum;
-#        int  i;
-#
-#    /******
-#     * Emit block header stuff.
-#     ******/
-#
-#        emitbyte(nextcodeword);
-#        emitword(codeblockstart);
-#
-#    /******
-#     * Calculate the checksum while we emit code.
-#     ******/
-#
-#        checksum = 0;
-#
-#        for (i = 0; i < nextcodeword; ++i)
-#        {
-#            checksum = checksum + codeblock[i];
-#            if (checksum & ~WORDMASK)
-#                ++checksum;
-#            checksum &= WORDMASK;
-#            emitword(codeblock[i]);
-#        }
-#
-#    /******
-#     * Emit bchecksum.
-#     ******/
-#
-#        emitword(checksum);
-#    }
-#}
-#
-#
-#/******************************************************************************
-#       Name : emitcode()
-#Description : Generate code for one word.
-# Parameters : code - the WORD to put into current code block
-#    Returns :
-#   Comments : If the block buffer is full, spill to the output file first.
-# ******************************************************************************/
-#static void
-#emitcode(WORD code)
-#{
-#    if (dot == -1L)
-#        synerror(inputline, "Expected ORG pseudo-op");
-#
-#    /* if current block is full, emit and reset */
-#    if (nextcodeword >= MAXBLOCKSIZE)
-#    {
-#        emitblock();
-#
-#        codeblockstart = dot;
-#        nextcodeword = 0;
-#    }
-#
-#    codeblock[nextcodeword++] = code;
-#}
-#
-#
-#/******************************************************************************
-#       Name : geninc()
-#Description : Generate code for one word of INC code.
-# Parameters : field  - INC field to generate code for
-#    Returns : The code word generated.
-#   Comments :
-# ******************************************************************************/
-#static WORD
-#geninc(char *field)
-#{
-#    char *endfld;
-#    WORD highbyte;
-#    WORD lowbyte;
-#
-#    if (field == NULL)
-#        synerror(inputline, "Data field required on INC statement");
-#
-#    endfld = strchr(field, ',');
-#    if (endfld == NULL)
-#        synerror(inputline, "Bad data field on INC statement");
-#    *endfld = '\0';
-#    ++endfld;
-#
-#    highbyte = genincbyte(field);
-#    lowbyte = genincbyte(endfld);
-#
-#    return (highbyte << 8) | lowbyte;
-#}
-#
-#
-#/******************************************************************************
-#       Name : genincbyte()
-#Description : Generate code for one byte of INC code.
-# Parameters : infile - input filename (error reporting)
-#            : lnum   - input line number (error reporting)
-#            : field  - INC byte field to generate code for
-#    Returns :
-#   Comments :
-# ******************************************************************************/
-#static WORD
-#genincbyte(char *field)
-#{
-#    static int  beam = 1;
-#
-#    int  x;
-#    int  y;
-#    int  xneg = 0;
-#    int  yneg = 0;
-#
-#    switch (toupper(*field))
-#    {
-#        case 'A':    /* make byte */
-#            ++field;
-#            if (isoctal(field))
-#                return atoo(field);
-#            else if (isdecimal(field))
-#                return atoi(field);
-#            else
-#                synerror(inputline, "Bad INC 'A' field");
-#            break;
-#        case 'B':        /* beam on */
-#            beam = 1;
-#            ++field;
-#            break;
-#        case 'D':        /* beam off */
-#            beam = 0;
-#            ++field;
-#            break;
-#        case 'E':        /* enter INC mode */
-#/*            beam = 1; UNUSED */
-#            return 0060;
-#            break;
-#        case 'F':        /* escape INC mode */
-#            return 0171;
-#            break;
-#        case 'N':
-#            return 0111;
-#            break;
-#        case 'P':        /* pause (filler) */
-#            return 0200;
-#            break;
-#        case 'R':
-#            return 0151;
-#            break;
-#        case 'X':
-#            return 0010;
-#            break;
-#        case 'Y':
-#            return 0001;
-#            break;
-#        case '+': case '-': case '0': case '1': case '2': case '3':
-#            break;
-#        default:
-#            synerror(inputline, "Bad INC field");
-#            break;
-#    }
-#
-#    if (*field == '+')
-#    {
-#        xneg = 0;
-#        ++field;
-#    }
-#    else if (*field == '-')
-#    {
-#        xneg = 1;
-#        ++field;
-#    }
-#
-#    if (strchr("0123", *field) == NULL)
-#        synerror(inputline, "Bad INC field");
-#
-#    x = *field - '0';
-#    ++field;
-#
-#    if (*field == '+')
-#    {
-#        yneg = 0;
-#        ++field;
-#    }
-#    else if (*field == '-')
-#    {
-#        yneg = 1;
-#        ++field;
-#    }
-#
-#    if (strchr("0123", *field) == NULL)
-#        synerror(inputline, "Bad INC field");
-#
-#    y = *field - '0';
-#    ++field;
-#
-#    if (strlen(field) != 0)
-#        synerror(inputline, "Bad INC field");
-#
-#    return 0200 | (beam << 6) | (xneg << 5) | (x << 3) | (yneg << 2) | y;
-#}
-#
-#
-#
