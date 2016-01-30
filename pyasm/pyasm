@@ -366,6 +366,12 @@ def write_word(word):
     write_byte(word >> 8)
     write_byte(word)
 
+def write_endload():
+    """Write the special 'end of load' block."""
+
+    write_byte(1)
+    write_word(0xffff)
+
 def write_start(address):
     """Write the start block."""
 
@@ -376,7 +382,8 @@ def write_leader(size=ZeroLeaderSize):
     """Write the papertape leader."""
 
     for _ in range(size):
-        write_byte(0)
+#        write_byte(0)
+        write_byte(0xFE)
 
 def write_block_loader():
     """Emit the block loader prefix code."""
@@ -737,7 +744,7 @@ def pass_2(lines):
                               "was %06o but now %06o"
                               % (StartAddress, start_address))
                     StartAddress = start_address
-                write_list(None, start_address, lnum, line)
+                write_list(None, StartAddress, lnum, line)
                 break       # end of pass
             else:
                 # actual machine instruction!
@@ -767,8 +774,9 @@ def pass_2(lines):
 
     # write the final block of code and optional start address
     write_block()
-    if StartAddress is not None:
-        write_start(StartAddress)
+#    if StartAddress is not None:
+#        write_start(StartAddress)
+    write_endload()
     write_leader()
 
     # check nothing after END
