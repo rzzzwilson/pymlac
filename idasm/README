@@ -1,1 +1,8 @@
-This program is a smart, interactive disassembler for IMLAC binary files.
+This program is a smart, interactive disassembler for IMLAC binary files,
+papertape or TTY.
+
+It is designed to allow the user to read in a *.ptp or *.tty file, which
+may then be interacted with:
+. change MAIN to DISPLAY instruction set and vice versa
+. add labels where appropriate
+. change DATA to ASCII pseudo-ops and vice versa
