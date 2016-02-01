@@ -236,12 +236,13 @@ BlockLoader = [
               #        ; word which follows the data words.  The checksum is calculated with 16bit
               #        ; integers, incrementing the sum whenever the 16bit value overflows.
               #        ;
-              #        ; The end of the load is signalled by a block with a negative starting address.
+              #        ; The end of the load is signalled by a block with a
+              #        ; starting address 0177777.
               #        ;
               #        ; Disassembled from the 40tp_simpleDisplay.ptp image file.
               #        ;
               #                org     003700  ;
-              #        cksum   equ     .-1     ;checksum stored here (before loader)
+              #        cksum   equ     .-1     ;checksum stored here (at 003677)
      0001032, # 003700         rcf             ;
      0013740, # 003701         jmp     patch   ;go decide TTY or PTR, clear AC
      0023677, # 003702 ndpatch dac     cksum   ;zero checksum, AC is zero (from patch)
@@ -254,7 +255,7 @@ BlockLoader = [
      0023776, # 003711         dac     ldaddr  ;
      0077730, # 003712         sam     neg1    ;
      0013715, # 003713         jmp     rdblock ;
-     0000000, # 003714         hlt             ;if load address is -1, halt - finished
+     0000000, # 003714         hlt             ;if load address is -1, finished
      0037750, # 003715 rdblock jms     rdword  ;now read block to load address
      0123776, # 003716         dac     *ldaddr ;
      0037731, # 003717         jms     dosum   ;
@@ -271,11 +272,11 @@ BlockLoader = [
               #        ;Compute checksum.  Word to sum in AC.
               #        ;------------------------
      0017720, # 003731 dosum   bss     1       ;
-     0100010, # 003732         cll             ;
-     0067677, # 003733         add     cksum   ;
-     0002004, # 003734         lsz             ;
-     0100004, # 003735         iac             ;
-     0023677, # 003736         dac     cksum   ;
+     0100010, # 003732         cll             ; clear link
+     0067677, # 003733         add     cksum   ; add AC to checksum
+     0002004, # 003734         lsz             ; if overflow:
+     0100004, # 003735         iac             ;     increment new checksum
+     0023677, # 003736         dac     cksum   ; save new checksum
      0113731, # 003737         jmp     *dosum  ;
               #        ;------------------------
               #        ;Decide what input device we are using, PTR or TTY.
