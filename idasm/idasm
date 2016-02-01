@@ -457,30 +457,31 @@ class MyFrame(wx.Frame):
             filename = dlg.GetPaths()[0]
             self.grid.ClearGrid()
             mem = binimport.ptpimport(filename)
-            addrlist = mem.keys()
-            addrlist.sort()
-            importrows = len(addrlist)
-            currentrows = self.grid.GetNumberRows()
-            if currentrows > importrows:
-                self.grid.DeleteRows(0, (currentrows - importrows))
-            elif importrows > currentrows:
-                self.grid.AppendRows(importrows - currentrows)
-            i = 0
-            for addr in addrlist:
-                (code, op, fld, labcount, ref, type, cycle) = mem.getMem(int(addr, 8))
-                self.grid.SetCellValue(i, 1, op)
-                self.grid.SetCellValue(i, 2, fld)
-                self.grid.SetCellValue(i, 3, addr)
-                self.grid.SetCellValue(i, 4, "%06o" % code)
-                i += 1
-            self.grid.ForceRefresh()
-            projectName = os.path.basename(filename)
-            if projectName.endswith(DEFPTPSUFFIX):
-                projectName = projectName[:-len(DEFPTPSUFFIX)]
+            if mem is not None:
+                addrlist = mem.keys()
+                addrlist.sort()
+                importrows = len(addrlist)
+                currentrows = self.grid.GetNumberRows()
+                if currentrows > importrows:
+                    self.grid.DeleteRows(0, (currentrows - importrows))
+                elif importrows > currentrows:
+                    self.grid.AppendRows(importrows - currentrows)
+                i = 0
+                for addr in addrlist:
+                    (code, op, fld, labcount, ref, type, cycle) = mem.getMem(int(addr, 8))
+                    self.grid.SetCellValue(i, 1, op)
+                    self.grid.SetCellValue(i, 2, fld)
+                    self.grid.SetCellValue(i, 3, addr)
+                    self.grid.SetCellValue(i, 4, "%06o" % code)
+                    i += 1
+                self.grid.ForceRefresh()
+                projectName = os.path.basename(filename)
+                if projectName.endswith(DEFPTPSUFFIX):
+                    projectName = projectName[:-len(DEFPTPSUFFIX)]
+                self.enableSaveWrite(True)
+                mem.clearUndo()
+                self.enableUndo(False)
         dlg.Destroy()
-        self.enableSaveWrite(True)
-        mem.clearUndo()
-        self.enableUndo(False)
 
 
     def Menu104(self, event):
