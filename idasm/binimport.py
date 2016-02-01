@@ -8,6 +8,7 @@ Import an imlac binary file.
 import sys
 import getopt
 import struct
+import wx
 import mem
 import disasmdata
 
@@ -46,6 +47,23 @@ def doblockloader(f, word, mymem):
 
     print('doblockloader: mymem.memory=%s' % str(mymem.memory))
 
+def calc_checksum(csum, word):
+    """Calculate new checksum from word value.
+
+    csum    old checksum value
+    word  new word to include in checksum
+
+    Returns the new checksum value.
+    """
+
+    csum += word
+#    if csum & 0xffff:
+#        # add got overflow
+#        csum = (csum & 0xffff) + 1
+
+    return csum & 0xffff
+
+
 def dobody(f, mymem):
     """Read all of file after block loader.
 
@@ -57,8 +75,11 @@ def dobody(f, mymem):
 
     numwords = skipzeros(f)
     while True:
+        print('BLOCK: number of words=%03o' % numwords)
+
         # negative load address is end-of-file
         ldaddr = readword(f)
+        print('Load address=%06o' % ldaddr)
         if ldaddr & 0x8000:
             break
 
@@ -75,11 +96,13 @@ def dobody(f, mymem):
             mymem.putFld(ldaddr, fld)
             ldaddr += 1
             numwords -= 1
-        #csum &= 0xffff
+        csum &= 0xffff
+        print('After block, csum=%06o' % csum)
         checksum = readword(f)
-#        if csum != checksum:
-#            print "Checksum error"
-#            return None
+        print('Checksum read=%06o' % checksum)
+        if csum != checksum:
+            wx.MessageBox('Checksum error', 'Warning', wx.OK | wx.ICON_ERROR)
+            return None
         numwords = skipzeros(f)
 
     return mymem
