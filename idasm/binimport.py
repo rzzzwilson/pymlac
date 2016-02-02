@@ -40,12 +40,9 @@ def doblockloader(f, word, mymem):
     mymem.add(ldaddr, word)
     while numwords > 0:
         word = readword(f)
-        print('doblockloader: top of loop, numwords=%d, word=%06o' % (numwords, word))
         mymem.add(ldaddr, word)
         ldaddr += 1
         numwords = numwords - 1
-
-    print('doblockloader: mymem.memory=%s' % str(mymem.memory))
 
 def calc_checksum(csum, word):
     """Calculate new checksum from word value.
@@ -75,11 +72,8 @@ def dobody(f, mymem):
 
     numwords = skipzeros(f)
     while True:
-        print('BLOCK: number of words=%03o' % numwords)
-
         # negative load address is end-of-file
         ldaddr = readword(f)
-        print('Load address=%06o' % ldaddr)
         if ldaddr & 0x8000:
             break
 
@@ -97,12 +91,11 @@ def dobody(f, mymem):
             ldaddr += 1
             numwords -= 1
         csum &= 0xffff
-        print('After block, csum=%06o' % csum)
         checksum = readword(f)
-        print('Checksum read=%06o' % checksum)
         if csum != checksum:
-            wx.MessageBox('Checksum error', 'Warning', wx.OK | wx.ICON_ERROR)
-            return None
+            #wx.MessageBox('Checksum error', 'Error', wx.OK | wx.ICON_ERROR)
+            wx.MessageBox('Checksum error', 'Warning', wx.OK | wx.ICON_WARNING)
+#            return None
         numwords = skipzeros(f)
 
     return mymem
@@ -118,8 +111,6 @@ def ptpimport(file):
 
     # create Mem() object to store data
     mymem = mem.Mem()
-
-    print('str(dir(mymem))=%s' % str(dir(mymem)))
 
     Dot = 0
 
