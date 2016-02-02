@@ -22,7 +22,7 @@ import mem
 
 
 PROGRAMNAME = "idasm"
-PROGRAMVERSION = "0.2"
+PROGRAMVERSION = "0.3"
 
 objwildcard = "Papertape files (*.ptp)|*.ptp|All files (*.*)|*.*"
 projwildcard = "Project files (*.idasm)|*.idasm|All files (*.*)|*.*"
@@ -31,6 +31,8 @@ grid = None
 mem = None
 frame = None
 projectName = ""
+
+(ColumnCode, ColumnAddress, ColumnLabel, ColumnOpcode, ColumnField) = range(5)
 
 DEFPROJSUFFIX = ".idasm"
 DEFASMSUFFIX = ".asm"
@@ -118,10 +120,23 @@ def fillGrid(grid, mem):
     importrows = len(addrlist)
     currentrows = grid.GetNumberRows()
 
-    if currentrows > importrows:
-        grid.DeleteRows(0, (currentrows - importrows))
+    # get number of 'gaps' in the memory map
+    num_gaps = 0
+    gap_addr = []     # list of addresses after which there is a gap
+    last_addr = None
+    for addr in addrlist:
+        addr = int(addr, 8)
+        if last_addr is not None and addr != last_addr + 1:
+            num_gaps += 1
+            gap_addr.append(last_addr)
+        last_addr = addr
+
+    # figure out changes in number of rows
+    new_rows = importrows + num_gaps
+    if currentrows > new_rows:
+        grid.DeleteRows(0, (currentrows - new_rows))
     elif importrows > currentrows:
-        grid.AppendRows(importrows - currentrows)
+        grid.AppendRows(new_rows - currentrows)
 
     i = 0
     for address in addrlist:
@@ -139,12 +154,21 @@ def fillGrid(grid, mem):
                 field = "*L%s" % field[1:]
             else:
                 field = "L%s" % field
-        grid.SetCellValue(i, 0, label)
-        grid.SetCellValue(i, 1, opcode)
-        grid.SetCellValue(i, 2, field)
-        grid.SetCellValue(i, 3, address)
-        grid.SetCellValue(i, 4, "%06o" % code)
+        grid.SetCellValue(i, ColumnCode, "%06o" % code)
+        grid.SetCellValue(i, ColumnAddress, address)
+        grid.SetCellValue(i, ColumnLabel, label)
+        grid.SetCellValue(i, ColumnOpcode, opcode)
+        grid.SetCellValue(i, ColumnField, field)
         i += 1
+
+        # add gap if one is next
+        if addr in gap_addr:
+            grid.SetCellValue(i, ColumnCode, '')
+            grid.SetCellValue(i, ColumnAddress, '')
+            grid.SetCellValue(i, ColumnLabel, '')
+            grid.SetCellValue(i, ColumnOpcode, '')
+            grid.SetCellValue(i, ColumnField, '')
+            i += 1
     grid.ForceRefresh()
 
 
@@ -193,7 +217,8 @@ class MyPopupMenu(wx.Menu):
         rows = grid.GetSelectedRows()
         addrlist = []
         for row in rows:
-            addrlist.append(int(grid.GetCellValue(row, 3), 8))
+            if grid.GetCellValue(row, ColumnCode):
+                addrlist.append(int(grid.GetCellValue(row, ColumnAddress), 8))
         thiscycle = newcycle.next()
         mem.setUndo()
         processmain.process(mem, addrlist, thiscycle)
@@ -206,7 +231,8 @@ class MyPopupMenu(wx.Menu):
         rows = grid.GetSelectedRows()
         addrlist = []
         for row in rows:
-            addrlist.append(int(grid.GetCellValue(row, 3), 8))
+            if grid.GetCellValue(row, ColumnCode):
+                addrlist.append(int(grid.GetCellValue(row, ColumnAddress), 8))
         thiscycle = newcycle.next()
         mem.setUndo()
         processdisplay.process(mem, addrlist, thiscycle)
@@ -219,8 +245,9 @@ class MyPopupMenu(wx.Menu):
         thiscycle = newcycle.next()
         mem.setUndo()
         for row in grid.GetSelectedRows():
-            addr = int(grid.GetCellValue(row, 3), 8)
-            processdata.process(mem, addr, thiscycle)
+            if grid.GetCellValue(row, ColumnCode):
+                addr = int(grid.GetCellValue(row, ColumnAddress), 8)
+                processdata.process(mem, addr, thiscycle)
         fillGrid(grid, mem)
         grid.ClearSelection()
         frame.enableUndo(True)
@@ -228,56 +255,59 @@ class MyPopupMenu(wx.Menu):
     def popupSetRef(self, event):
         global grid, mem
         row = grid.GetSelectedRows()[0]
-        addrstr = grid.GetCellValue(row, 3)
-        addr = int(addrstr, 8)
-        ref = mem.getRef(addr)
-        memref = int(mem.getFld(addr), 8)
-        mem.setUndo()
-        if ref:
-            mem.decLab(memref)
-        mem.incLab(memref)
-        mem.setRef(addr)
-        fillGrid(grid, mem)
+        if grid.GetCellValue(row, ColumnCode):
+            addrstr = grid.GetCellValue(row, ColumnAddress)
+            addr = int(addrstr, 8)
+            ref = mem.getRef(addr)
+            memref = int(mem.getFld(addr), 8)
+            mem.setUndo()
+            if ref:
+                mem.decLab(memref)
+            mem.incLab(memref)
+            mem.setRef(addr)
+            fillGrid(grid, mem)
+            frame.enableUndo(True)
         grid.ClearSelection()
-        frame.enableUndo(True)
 
     def popupClearRef(self, event):
         global grid, mem
         row = grid.GetSelectedRows()[0]
-        addrstr = grid.GetCellValue(row, 3)
-        addr = int(addrstr, 8)
-        ref = mem.getRef(addr)
-        memref = int(mem.getFld(addr), 8)
-        if ref:
-            mem.setUndo()
-            mem.decLab(memref)
-            mem.clearRef(addr)
-            fillGrid(grid, mem)
-            grid.ClearSelection()
-            frame.enableUndo(True)
+        if grid.GetCellValue(row, ColumnCode):
+            addrstr = grid.GetCellValue(row, ColumnAddress)
+            addr = int(addrstr, 8)
+            ref = mem.getRef(addr)
+            memref = int(mem.getFld(addr), 8)
+            if ref:
+                mem.setUndo()
+                mem.decLab(memref)
+                mem.clearRef(addr)
+                fillGrid(grid, mem)
+                frame.enableUndo(True)
+        grid.ClearSelection()
 
     def popupDoType(self, event):
         global grid, mem
         for row in grid.GetSelectedRows():
-            addrstr = grid.GetCellValue(row, 3)
-            addr = int(addrstr, 8)
-            word = mem.getCode(addr)
-            cycle = mem.getCycle(addr)
-            type = mem.getType(addr)
-            lab = mem.getLabcount(addr)
-            ref = mem.getRef(addr)
-            print "row %d, addr=%s, code=%05o, cycle=%d, type=%s, lab=%s, ref=%s" % \
-                        (row, addrstr, word, cycle, type, lab, ref)
+            if grid.GetCellValue(row, ColumnCode):
+                addrstr = grid.GetCellValue(row, ColumnAddress)
+                addr = int(addrstr, 8)
+                word = mem.getCode(addr)
+                cycle = mem.getCycle(addr)
+                type = mem.getType(addr)
+                lab = mem.getLabcount(addr)
+                ref = mem.getRef(addr)
+                print "row %d, addr=%s, code=%05o, cycle=%d, type=%s, lab=%s, ref=%s" % \
+                            (row+1, addrstr, word, cycle, type, lab, ref)
 
 
 
 class MyFrame(wx.Frame):
     def __init__(self, *args, **kwds):
         global grid
-#        kwds["style"] = wx.MINIMIZE_BOX | wx.SYSTEM_MENU | \
-#                            wx.CLOSE_BOX | wx.CAPTION
+        kwds["style"] = (wx.MINIMIZE_BOX | wx.SYSTEM_MENU |
+                            wx.CLOSE_BOX | wx.CAPTION)
         wx.Frame.__init__(self, *args, **kwds)
-        self.grid = wx.grid.Grid(self, -1, size=(353, 800))
+        self.grid = wx.grid.Grid(self, -1, size=(400, 800))
         grid = self.grid
         self.__set_properties()
         self.__do_layout()
@@ -360,15 +390,15 @@ class MyFrame(wx.Frame):
         self.grid.SetRowLabelSize(37)
         self.grid.SetColLabelSize(20)
         self.grid.SetDefaultCellAlignment(wx.ALIGN_LEFT, wx.ALIGN_CENTER)
-        self.grid.SetColLabelValue(0, "Label")
+        self.grid.SetColLabelValue(0, "Code")
         self.grid.SetColSize(0, 65)
-        self.grid.SetColLabelValue(1, "Op")
+        self.grid.SetColLabelValue(1, "Address")
         self.grid.SetColSize(1, 65)
-        self.grid.SetColLabelValue(2, "Field")
+        self.grid.SetColLabelValue(2, "Label")
         self.grid.SetColSize(2, 65)
-        self.grid.SetColLabelValue(3, "Address")
+        self.grid.SetColLabelValue(3, "Opcode")
         self.grid.SetColSize(3, 65)
-        self.grid.SetColLabelValue(4, "Code")
+        self.grid.SetColLabelValue(4, "Field")
         self.grid.SetColSize(4, 65)
         self.grid.DisableDragColSize()
         self.grid.DisableDragRowSize()
@@ -387,6 +417,7 @@ class MyFrame(wx.Frame):
 
     def onGridCellRightClick(self, event):
         if self.grid.GetSelectedRows():
+
             self.PopupMenu(MyPopupMenu("test"), event.GetPosition())
         else:
             self.grid.ClearSelection()
@@ -447,7 +478,7 @@ class MyFrame(wx.Frame):
         dlg.Destroy()
 
     def Menu103(self, event):
-        global mem, projectName
+        global grid, mem, projectName
         filename = None
         dlg = wx.FileDialog(self, message="Choose an IMLAC object file to load",
                             defaultDir=os.getcwd(), defaultFile="",
@@ -458,23 +489,7 @@ class MyFrame(wx.Frame):
             self.grid.ClearGrid()
             mem = binimport.ptpimport(filename)
             if mem is not None:
-                addrlist = mem.keys()
-                addrlist.sort()
-                importrows = len(addrlist)
-                currentrows = self.grid.GetNumberRows()
-                if currentrows > importrows:
-                    self.grid.DeleteRows(0, (currentrows - importrows))
-                elif importrows > currentrows:
-                    self.grid.AppendRows(importrows - currentrows)
-                i = 0
-                for addr in addrlist:
-                    (code, op, fld, labcount, ref, type, cycle) = mem.getMem(int(addr, 8))
-                    self.grid.SetCellValue(i, 1, op)
-                    self.grid.SetCellValue(i, 2, fld)
-                    self.grid.SetCellValue(i, 3, addr)
-                    self.grid.SetCellValue(i, 4, "%06o" % code)
-                    i += 1
-                self.grid.ForceRefresh()
+                fillGrid(grid, mem)
                 projectName = os.path.basename(filename)
                 if projectName.endswith(DEFPTPSUFFIX):
                     projectName = projectName[:-len(DEFPTPSUFFIX)]
@@ -494,6 +509,7 @@ class MyFrame(wx.Frame):
                             wildcard=objwildcard,
                             style=wx.SAVE | wx.CHANGE_DIR)
         if dlg.ShowModal() == wx.ID_OK:
+            print('dlg.GetPaths()=%s' % str(dlg.GetPaths()))
             filename = dlg.GetPaths()[0]
             writeASM(filename)
             projectName = os.path.basename(filename)
