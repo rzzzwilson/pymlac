@@ -487,8 +487,9 @@ class MyFrame(wx.Frame):
         if dlg.ShowModal() == wx.ID_OK:
             filename = dlg.GetPaths()[0]
             self.grid.ClearGrid()
-            mem = binimport.ptpimport(filename)
-            if mem is not None:
+            result = binimport.ptpimport(filename)
+            if result is not None:
+                (mem, start, ac) = result
                 fillGrid(grid, mem)
                 projectName = os.path.basename(filename)
                 if projectName.endswith(DEFPTPSUFFIX):
@@ -496,6 +497,9 @@ class MyFrame(wx.Frame):
                 self.enableSaveWrite(True)
                 mem.clearUndo()
                 self.enableUndo(False)
+                if start is not None:
+                    # mark start address as MAIN instructions
+                    self.do_main_start(start)
         dlg.Destroy()
 
 
@@ -541,12 +545,16 @@ class MyFrame(wx.Frame):
         mem.undoX()
         fillGrid(grid, mem)
 
+    def do_main_start(self, start):
+        """Mark start address as MAIN opcodes."""
+
+        print('do_main_start: start=%06o' % start)
 
 
 class MyApp(wx.App):
     def OnInit(self):
         global frame
-        wx.InitAllImageHandlers()
+        #wx.InitAllImageHandlers()
         frame = MyFrame(None, -1, "")
         self.SetTopWindow(frame)
         frame.Show()

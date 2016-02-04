@@ -67,38 +67,56 @@ def dobody(f, mymem):
     f      input file handle
     mymem  the mem.Mem() dict to store data in
 
-    Returns an updated mem.Mem() object containing the input code.
+    Returns an updated mem.Mem() object containing the input code
+    and a start address:
+        (mem, start, ac)
+    If a start address is not specified, 'start' and 'ac' are both None.
+
+    If there was a checksum error, just return None.
     """
 
-    numwords = skipzeros(f)
+    start_address = None
+
     while True:
         # negative load address is end-of-file
         ldaddr = readword(f)
+        print('read: ldaddr=%06o' % ldaddr)
         if ldaddr & 0x8000:
+            print('End load: ldaddr=%06o' % ldaddr)
             break
 
         # read data block, calculating checksum
-        csum = 0
-        #csum = ldaddr
-        while numwords > 0:
+        csum = ldaddr                           # start checksum with base address
+        print('BLOCK: ldaddr=%06o, csum=%06o' % (ldaddr, csum))
+        neg_count = readword(f)
+        csum = (csum + neg_count) & 0xffff      # add neg word count
+        print('       neg_count=%06o (%d), csum=%06o' % (neg_count, -neg_count, csum))
+        csum_word = readword(f)
+        csum = (csum + csum_word) & 0xffff    # add checksum word
+        print('       csum_word=%06o, csum=%06o' % (csum_word, csum))
+        while neg_count < 0:
             word = readword(f)
-            csum += word
-            csum &= 0xffff
+            csum = (csum + word) & 0xffff
+            print('       word=%06o, csum=%06o' % (word, csum))
             mymem.add(ldaddr, word)
             (op, fld) = disasmdata.disasmdata(word)
             mymem.putOp(ldaddr, op)
             mymem.putFld(ldaddr, fld)
             ldaddr += 1
-            numwords -= 1
+            numwords += 1
         csum &= 0xffff
-        checksum = readword(f)
-        if csum != checksum:
+        if csum != 0:
             #wx.MessageBox('Checksum error', 'Error', wx.OK | wx.ICON_ERROR)
-            wx.MessageBox('Checksum error', 'Warning', wx.OK | wx.ICON_WARNING)
-#            return None
-        numwords = skipzeros(f)
+            print('Checksum error, csum=%06o, expected 0' % csum)
+            wx.MessageBox('Checksum error, got %06o, expected 0' % csum, 'Warning', wx.OK | wx.ICON_WARNING)
 
-    return mymem
+    # check for real start address
+    if ldaddr != 0177777:
+        # actual start address
+        ac = readword(f)
+        return (mymem, ldaddr & 0x7ffff, ac)
+
+    return (mymem, None, None)
 
 def ptpimport(file):
     global Dot
@@ -120,9 +138,11 @@ def ptpimport(file):
     doblockloader(f, word, mymem)
 
     # now read all the data blocks
-    mymem = dobody(f, mymem)
+    result = dobody(f, mymem)
+    if result is None:
+        return (mymem, None, None)
 
-    return mymem
+    return result
 
 def readbyte(f):
     global Dot
@@ -142,8 +162,17 @@ def readbyte(f):
     else:
         return 0
 
-def readword(f):
-    return (readbyte(f) << 8) + readbyte(f)
+def readword(f, first_byte=None):
+    """Return the next word from the input file.
+
+    f           handle of the input file
+    first_byte  value of first byte of word
+    """
+
+    if first_byte is None:
+        return (readbyte(f) << 8) + readbyte(f)
+
+    return (first_byte << 8) + readbyte(f)
 
 def skipzeros(f):
     while True:
@@ -153,11 +182,17 @@ def skipzeros(f):
 
 
 if __name__ == "__main__":
-    themem = ptpimport('40tp_simpleDisplay.ptp')
-    if themem is None:
+    result = ptpimport('40tp_simpleDisplay.ptp')
+    if result is None:
         print('Error reading input file.')
         sys.exit(10)
+
+    (themem, start, ac) = result
     print('str(dir(themem))=%s' % str(dir(themem)))
+    if start is not None:
+        print('start=%06o, ac=%06o' % (start, ac))
+    else:
+        print('start=None, ac=None')
 
     addrlist = themem.keys()
     addrlist.sort()
