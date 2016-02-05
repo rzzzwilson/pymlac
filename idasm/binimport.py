@@ -61,6 +61,18 @@ def calc_checksum(csum, word):
     return csum & 0xffff
 
 
+def pyword(word):
+    """Convert a 16bit value to a real python integer.
+
+    That is, convert 0xFFFF to -1.
+    """
+
+    byte = (word >> 8) & 0xff
+    byte2 = word & 0xff
+    bstr = chr(byte) + chr(byte2)
+    return struct.unpack(">h", bstr)[0]
+
+
 def dobody(f, mymem):
     """Read all of file after block loader.
 
@@ -81,6 +93,7 @@ def dobody(f, mymem):
         # negative load address is end-of-file
         ldaddr = readword(f)
         print('read: ldaddr=%06o' % ldaddr)
+        print('ldaddr=%s' % str(ldaddr))
         if ldaddr & 0x8000:
             print('End load: ldaddr=%06o' % ldaddr)
             break
@@ -88,11 +101,12 @@ def dobody(f, mymem):
         # read data block, calculating checksum
         csum = ldaddr                           # start checksum with base address
         print('BLOCK: ldaddr=%06o, csum=%06o' % (ldaddr, csum))
-        neg_count = readword(f)
-        csum = (csum + neg_count) & 0xffff      # add neg word count
-        print('       neg_count=%06o (%d), csum=%06o' % (neg_count, -neg_count, csum))
+        count = pyword(readword(f))
+        neg_count = pyword(count)
+        csum = (csum + count) & 0xffff          # add neg word count
+        print('       neg_count=%06o, csum=%06o' % (neg_count&0xffff, csum))
         csum_word = readword(f)
-        csum = (csum + csum_word) & 0xffff    # add checksum word
+        csum = (csum + csum_word) & 0xffff      # add checksum word
         print('       csum_word=%06o, csum=%06o' % (csum_word, csum))
         while neg_count < 0:
             word = readword(f)
@@ -103,7 +117,7 @@ def dobody(f, mymem):
             mymem.putOp(ldaddr, op)
             mymem.putFld(ldaddr, fld)
             ldaddr += 1
-            numwords += 1
+            neg_count += 1
         csum &= 0xffff
         if csum != 0:
             #wx.MessageBox('Checksum error', 'Error', wx.OK | wx.ICON_ERROR)
@@ -167,10 +181,12 @@ def readword(f, first_byte=None):
 
     f           handle of the input file
     first_byte  value of first byte of word
+
+    Convert 16bit values to python integers
     """
 
     if first_byte is None:
-        return (readbyte(f) << 8) + readbyte(f)
+        first_byte = readbyte(f)
 
     return (first_byte << 8) + readbyte(f)
 
