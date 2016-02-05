@@ -370,18 +370,22 @@ def write_word(word):
     write_byte(word >> 8)
     write_byte(word)
 
-def write_start(address, ac=None):
+def write_start(address=None, ac=None):
     """Write the start block.
 
-    Add the AC contents word if passed.
+    address  the desired start address, if specified
+    ac       initial contents of the AC, if specified
     """
 
     if ac is None:
         ac = 0
 
-    write_word(address + HighBit)
-    if address != 0 and ac is not None:
-        write_word(ac & WordMask)
+    if address is None:
+        write_word(0xffff)
+    else:
+        write_word(address + HighBit)
+        if address != 0 and ac is not None:
+            write_word(ac & WordMask)
 
 def write_leader(size=ZeroLeaderSize):
     """Write the papertape leader."""
@@ -429,11 +433,12 @@ def write_block():
         return
 
     # emit the block size and data word count (negated)
+    neg_size = (~code_block_size+1) & WordMask
     write_word(BlockBufferBase)
-    write_word((~code_block_size+1) & WordMask)
+    write_word(neg_size)
 
     # calculate and write the checksum
-    checksum = (BlockBufferBase + ((~code_block_size+1) & WordMask) + sum(BlockBuffer))
+    checksum = BlockBufferBase + neg_size + sum(BlockBuffer)
     write_word((~checksum+1) & WordMask)
 
     # finally, write out data words
@@ -780,6 +785,8 @@ def pass_2(lines):
     write_block()
     if StartAddress is not None:
         write_start(StartAddress, ac=0177777)
+    else:
+        write_start()
     write_leader()
 
     # check nothing after END
