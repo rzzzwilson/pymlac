@@ -431,7 +431,7 @@ class MyFrame(wx.Frame):
                             wildcard=projwildcard,
                             style=wx.OPEN | wx.CHANGE_DIR)
         if dlg.ShowModal() == wx.ID_OK:
-            filename = dlg.GetPaths()[0]
+            filename = dlg.GetPath()
             self.grid.ClearGrid()
             mem = loadProject(filename)
             fillGrid(self.grid, mem)
@@ -453,7 +453,7 @@ class MyFrame(wx.Frame):
                                 wildcard=projwildcard,
                                 style=wx.SAVE | wx.CHANGE_DIR)
             if dlg.ShowModal() == wx.ID_OK:
-                filename = dlg.GetPaths()[0]
+                filename = dlg.GetPath()
                 if not filename.endswith(DEFPROJSUFFIX):
                     filename = filename + DEFPROJSUFFIX
                     projectName = os.path.basename(filename)
@@ -464,13 +464,14 @@ class MyFrame(wx.Frame):
 
     def Menu102(self, event):
         global mem, projectName
+
         dlg = wx.FileDialog(self,
-                            message="Choose a project file to save as",
-                            defaultDir=os.getcwd(), defaultFile="",
+                            message='Choose a project file to save as',
+                            defaultDir='.', defaultFile='',
                             wildcard=projwildcard,
                             style=wx.SAVE | wx.CHANGE_DIR)
         if dlg.ShowModal() == wx.ID_OK:
-            filename = dlg.GetPaths()[0]
+            filename = dlg.GetPath()
             saveProject(filename)
             projectName = os.path.basename(filename)
             if projectName.endswith(DEFPROJSUFFIX):
@@ -479,13 +480,14 @@ class MyFrame(wx.Frame):
 
     def Menu103(self, event):
         global grid, mem, projectName
+
         filename = None
         dlg = wx.FileDialog(self, message="Choose an IMLAC object file to load",
                             defaultDir=os.getcwd(), defaultFile="",
                             wildcard=objwildcard,
                             style=wx.OPEN | wx.CHANGE_DIR)
         if dlg.ShowModal() == wx.ID_OK:
-            filename = dlg.GetPaths()[0]
+            filename = dlg.GetPath()
             self.grid.ClearGrid()
             result = binimport.ptpimport(filename)
             if result is not None:
@@ -497,9 +499,9 @@ class MyFrame(wx.Frame):
                 self.enableSaveWrite(True)
                 mem.clearUndo()
                 self.enableUndo(False)
-                if start is not None:
+                if start:
                     # mark start address as MAIN instructions
-                    self.do_main_start(start)
+                    self.do_main_start(start & 077777)
         dlg.Destroy()
 
 
@@ -512,9 +514,10 @@ class MyFrame(wx.Frame):
                             defaultFile=projectName + DEFASMSUFFIX,
                             wildcard=objwildcard,
                             style=wx.SAVE | wx.CHANGE_DIR)
+
+
         if dlg.ShowModal() == wx.ID_OK:
-            print('dlg.GetPaths()=%s' % str(dlg.GetPaths()))
-            filename = dlg.GetPaths()[0]
+            filename = dlg.GetPath()
             writeASM(filename)
             projectName = os.path.basename(filename)
             if projectName.endswith(DEFASMSUFFIX):

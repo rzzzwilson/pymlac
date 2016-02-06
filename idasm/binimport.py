@@ -40,7 +40,8 @@ def doblockloader(f, word, mymem):
     mymem.add(ldaddr, word)
     while numwords > 0:
         word = readword(f)
-        mymem.add(ldaddr, word)
+#JUST SKIP OVER, DON'T PUT INTO MEMORY
+#        mymem.add(ldaddr, word)
         ldaddr += 1
         numwords = numwords - 1
 
@@ -92,26 +93,19 @@ def dobody(f, mymem):
     while True:
         # negative load address is end-of-file
         ldaddr = readword(f)
-        print('read: ldaddr=%06o' % ldaddr)
-        print('ldaddr=%s' % str(ldaddr))
         if ldaddr & 0x8000:
-            print('End load: ldaddr=%06o' % ldaddr)
             break
 
         # read data block, calculating checksum
         csum = ldaddr                           # start checksum with base address
-        print('BLOCK: ldaddr=%06o, csum=%06o' % (ldaddr, csum))
         count = pyword(readword(f))
         neg_count = pyword(count)
         csum = (csum + count) & 0xffff          # add neg word count
-        print('       neg_count=%06o, csum=%06o' % (neg_count&0xffff, csum))
         csum_word = readword(f)
         csum = (csum + csum_word) & 0xffff      # add checksum word
-        print('       csum_word=%06o, csum=%06o' % (csum_word, csum))
         while neg_count < 0:
             word = readword(f)
             csum = (csum + word) & 0xffff
-            print('       word=%06o, csum=%06o' % (word, csum))
             mymem.add(ldaddr, word)
             (op, fld) = disasmdata.disasmdata(word)
             mymem.putOp(ldaddr, op)
@@ -120,8 +114,6 @@ def dobody(f, mymem):
             neg_count += 1
         csum &= 0xffff
         if csum != 0:
-            #wx.MessageBox('Checksum error', 'Error', wx.OK | wx.ICON_ERROR)
-            print('Checksum error, csum=%06o, expected 0' % csum)
             wx.MessageBox('Checksum error, got %06o, expected 0' % csum, 'Warning', wx.OK | wx.ICON_WARNING)
 
     # check for real start address

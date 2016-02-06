@@ -1,7 +1,7 @@
 ; a test comment on the first line
         org     0100
 
-start   law     10
+start   law     fred
         lac     *start2     ; comment
         lac     .-2
         hlt
@@ -19,4 +19,4 @@ offset  data    start - 3
 tom     bss     4
 end     hlt
 
-        end
+        end     start
