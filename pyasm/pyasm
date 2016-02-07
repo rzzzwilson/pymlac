@@ -28,6 +28,7 @@ import os
 import copy
 import string
 import getopt
+import traceback
 
 ######
 # Globals
@@ -66,7 +67,11 @@ Undefined = None
 # buffer for blocked code
 BlockMaxSize = 255          # maximum size of buffer (words)
 BlockBuffer = bytearray()   # actual buffered words
-BlockBufferBase = None     # base address of the block
+BlockBufferBase = None      # base address of the block
+
+# DEIM state
+ShortVectorMode = False     # True if within a DEIM/INC instruction
+BeamState = 0               # 1 if beam is ON, 0 if OFF
 
 ######
 # Mostly constant stuff
@@ -347,6 +352,8 @@ def error(msg):
     print("%04d: %s" % (lnum, line))
     print(msg)
     print('-' * 80)
+#    traceback.print_stack()
+#    print('SymTable=%s' % str(SymTable))
 
     ListFileHandle.write('-' * 80 + '\n')
     ListFileHandle.write("%04d: %s\n" % (lnum, line))
@@ -589,6 +596,14 @@ def pass_1(lines):
                     ascii_words += 1
                 Dot += ascii_words
 
+            elif opcode == 'INC':
+                # start of short vector mode
+                if not addr:
+                    error("INC pseudo-op must have a data field")
+                if label:
+                    define_label(label, Dot, lnum)
+                Dot += 1
+
             elif opcode == 'END':
                 # get the (optional) start address
                 if addr:
@@ -743,6 +758,31 @@ def pass_2(lines):
                     write_list(word_value, Dot, list_lnum, list_line)
                     Dot += 1
 
+            elif opcode == 'INC':
+                if not addr:
+                    error("INC pseudo-op must have a data field")
+                if label:
+                    try:
+                        old_dot = SymTable[label]
+                        if Dot != old_dot:
+                            error("INC dot value has changed, "
+                                  "was %06o, is now %06o"
+                                  % (old_dot, Dot))
+                    except KeyError:
+                        error("INC label '%s' wasn't defined in first pass!?"
+                              % label)
+
+                inc_fields = addr.split(',')
+                if len(inc_fields) != 2:
+                    error("INC pseudo-op must have a two-part field")
+                (first_code, second_code) = inc_fields
+                high_byte = geninc(first_code)
+                low_byte = geninc(second_code)
+                word_value = (high_byte << 8) + low_byte
+                emit_word(word_value)
+                write_list(word_value, Dot, lnum, line)
+                Dot += 1
+
             elif opcode == 'END':
                 # get optional start address
                 if addr:
@@ -792,6 +832,106 @@ def pass_2(lines):
     # check nothing after END
     if lnum - 1 > len(lines):
         error("Something after the 'END' pseudo-op!?")
+
+def genincfield(code):
+    """Generate code value of INC sub-field.
+
+    The sub-field code may contain:
+        [+|-] n [+|-] n
+    """
+
+    xneg = yneg = 0
+
+    # handle possible X +/- operation
+    if code[0] in '+-':
+        code = code[1:]
+        if code[0] == '+':
+            xneg = 0
+        elif code[0] == '-':
+            xneg = 1
+
+    # handle X numeric field
+    if code[0] not in '0123':
+        error('INC numeric X value must be 0, 1, 2 or 3')
+    x = int(code[0])
+    code = code[1:]
+
+    # handle possible Y +/- operation
+    if code[0] in '+-':
+        code = code[1:]
+        if code[0] == '+':
+            yneg = 0
+        elif code[0] == '-':
+            yneg = 1
+
+    # handle Y numeric field
+    if code[0] not in '0123':
+        error('INC numeric Y value must be 0, 1, 2 or 3')
+    y = int(code[0])
+    code = code[1:]
+
+    if len(code) > 0:
+        error('INC value has trailing characters')
+
+    return 0200 | (BeamState << 6) | (xneg << 5) | (x << 3) | (yneg << 2) | y
+
+def geninc(code):
+    """Generate the byte value for an INC code.
+
+    Two code fields follow and INC opcode, separated by ','.
+    Each field may contain:
+        E | F | [B|D] [+|-] n [+|-] n
+
+    Where 'E' may only be the firstcode in an INC chain, and 'n' must be one
+    of 0, 1, 2 or 3.
+    """
+
+    global ShortVectorMode, BeamState
+
+    if code[0] == 'A':      # make a byte
+        code = code[1:]
+        ShortVectorMode = False
+        return int(code)
+    elif code[0] == 'B':    # beam on
+        BeamState = 1
+        return genincfield(code[1:])
+    elif code[0] == 'D':    # beam off
+        BeamState = 0
+        return genincfield(code[1:])
+    elif code[0] == 'E':    # enter INC mode
+        if ShortVectorMode:
+            error('Already in INC mode!?')
+        ShortVectorMode = True
+        BeamState = 1
+        return 0060
+    elif code[0] == 'F':    # exit INC mode
+        ShortVectorMode = False
+        BeamState = 0
+        return 0171
+    elif code[0] == 'N':    # ???
+        if not ShortVectorMode:
+            error('Not in INC mode!?')
+        return 0111
+    elif code[0] == 'P':    # pause (filler)
+        if not ShortVectorMode:
+            error('Not in INC mode!?')
+        return 0200
+    elif code[0] == 'R':    # ???
+        if not ShortVectorMode:
+            error('Not in INC mode!?')
+        return 0151
+    elif code[0] == 'X':    # ???
+        if not ShortVectorMode:
+            error('Not in INC mode!?')
+        return 0010
+    elif code[0] == 'Y':    # ???
+        if not ShortVectorMode:
+            error('Not in INC mode!?')
+        return 0001
+    elif code[0] in '0123+-':
+        return genincfield(code)
+    else:
+        error("Unrecognized INC code: '%s' (code=%s)" % (code[0], code))
 
 def gen_code(lnum, line, dot, label, opcode, indirect, addr):
     """Assemble one line of code.
