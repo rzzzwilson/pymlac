@@ -1,0 +1,7 @@
+; test file
+        org     0100
+        hlt
+        end
+; 0100 000000
+;\t$ xxxxxx
+; .\tyyyyyy
