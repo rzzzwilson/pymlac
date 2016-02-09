@@ -1,0 +1,61 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+"""
+A test harness for code to test 'pyasm'.
+
+Usage: test.py [ -h ] [ -p <prefix> ]
+
+Where <prefix> is the test filename prefix of files to test.  If <prefix>
+is not specified run tests on *all* files in the 'tests' subdirectory.
+"""
+
+
+import sys
+import os
+import getopt
+
+
+def run_tests(prefix):
+    """Run all appropriate test cases.
+
+    prefix  filename prefix of tests to run (may be None).
+    """
+
+    pass
+
+def usage(msg=None):
+    """Print usage and optional error message."""
+
+    if msg is not None:
+        print('*'*60)
+        print(msg)
+        print('*'*60)
+    print(__doc__)
+
+def main():
+    """The test harness."""
+
+    # handle the options
+    try:
+        (opts, args) = getopt.gnu_getopt(sys.argv, "hp:", ["help", "prefix="])
+    except getopt.GetoptError:
+        usage()
+        sys.exit(10)
+
+    prefix = None
+
+    for opt, arg in opts:
+        if opt in ('-h', '--help'):
+            usage()
+            sys.exit(0)
+        elif opt in ('-p', '--prefix'):
+            if not arg:
+                usage('-p option requires a prefix string')
+                sys.exit(10)
+            prefix = arg
+
+    run_tests(prefix)
+
+if __name__ == '__main__':
+    main()
