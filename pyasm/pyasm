@@ -1074,6 +1074,9 @@ def assemble_file():
         asm_lines = fd.readlines()
     asm_lines = [line.rstrip() for line in asm_lines]
 
+    if len(asm_lines) == 0:
+        error("File '%s' is empty" % AsmFile)
+
     if pass_1(asm_lines):
         pass_2(asm_lines)
 
