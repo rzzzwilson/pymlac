@@ -464,12 +464,12 @@ def write_list(code, addr, lnum, line):
     line  complete text of the line of assembler
     """
 
-    code_str = '%06o' % code if code is not None else ''
-    addr_str = '%04o' % addr if addr is not None else ''
+    code_str = '%07o' % code if code is not None else ''
+    addr_str = '%05o' % addr if addr is not None else ''
     lnum_str = '%04d:' % lnum if lnum else ''
     line_str = '%s' % line if line else ''
 
-    ListFileHandle.write('%6s %4s %s %s\n'
+    ListFileHandle.write('%7s   %5s   %s %s\n'
                          % (code_str, addr_str, lnum_str, line_str))
     ListFileHandle.flush()
 
