@@ -13,6 +13,7 @@ Test File Layout
 
 A test file is just an Imlac assembler source file with special comments that
 define tests to be performed.  For example:
+
 ```
 ; test file
         org     0100
@@ -25,6 +26,7 @@ define tests to be performed.  For example:
 
 The special test comments have **';!** in column 1.  Normal comments may also
 exist in the file.  Here the test comments are:
+
 ```
 ;! 0100 004001
 ;! 0101 000000
