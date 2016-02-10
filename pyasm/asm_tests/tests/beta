@@ -1,0 +1,12 @@
+; test file with two ORG blocks
+        org     0100
+        law     1
+        hlt
+        org     0200
+        law     2
+        hlt
+        end
+;! 0100 004001
+;! 0101 000000
+;! 0200 004002
+;! 0201 000000
