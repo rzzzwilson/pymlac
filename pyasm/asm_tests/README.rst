@@ -24,7 +24,7 @@ define tests to be performed.  For example:
     ;! 0100 004001
     ;! 0101 000000
 
-The special test comments have **';!** in column 1.  Normal comments may also
+The special test comments have **';!'** in column 1.  Normal comments may also
 exist in the file.  Here the test comments are:
 
 ::
@@ -58,4 +58,4 @@ The future
 ==========
 
 The test coments will change to be much more flexible.  Follow the design
-discussion in issue #7.
+discussion in `issue #7 <https://github.com/rzzzwilson/pymlac/issues/7>`_.
