@@ -1,3 +1,8 @@
-; test file - smoke test for test_harness
-    end
-; 
+; test file
+        org     0100
+        law     1
+        hlt
+        end
+;! 0100 004002
+;! 0101 000000
+;! 0102 000000

@@ -1,7 +1,7 @@
 ; test file
         org     0100
+        law     1
         hlt
         end
-; 0100 000000
-;\t$ xxxxxx
-; .\tyyyyyy
+;! 0100 004001
+;! 0101 000000
