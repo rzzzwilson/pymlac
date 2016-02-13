@@ -35,6 +35,34 @@ BlockloaderSize = 8 * 16        # 8 lines of 16 bytes
 HighBitMask = 0100000
 
 
+def eval_expr(dot, expr):
+    """Evaluate an expression that may contain '.'.
+
+    dot   the current value of 'dot'
+    expr  the expression string to avaluate
+
+    Returns the value of the expression.
+    Raises ArithmeticError if something is wrong.
+    """
+
+    # replace any "." value with "dot" defined in the symbol table
+    expr = string.replace(expr, '.', 'DOT')
+
+    # evaluate the expression
+    globs = {'DOT': dot}        # passed environment contains 'DOT'
+    try:
+        result = eval(expr, globs)
+    except (TypeError, NameError) as e:
+        Undefined = e.message
+        if 'is not defined' in e.message:
+            Undefined = e.message[len("name '"):-len("' is not defined")]
+            msg = "Test expression has '%s' undefined" % Undefined
+            raise ArithmeticError(msg)
+        msg = "Test expression has an error"
+        raise ArithmeticError(msg)
+
+    return result
+
 def oct_dec_int(s):
     """Convert string 's' to binary integer."""
 
@@ -187,7 +215,7 @@ def test_file(filename):
         else:
             # have label, $n or octal/decimal?
             # set 'dot' either way
-            (label, value) = test.split()
+            (label, value) = test.split(' ', 1)
             if label[0] == '$':
                 org_num = int(label[1:])
                 try:
@@ -200,7 +228,9 @@ def test_file(filename):
             else:
                 address = oct_dec_int(label)
                 dot = address
-        value = oct_dec_int(value)
+
+        # evaluate the value field
+        value = eval_expr(dot, value)
 
         if address is None:
             warn("File '%s' has label '%s' with bad ORG number"
@@ -223,9 +253,6 @@ def test_file(filename):
                      % (filename, lnum, test, address, value, mem_value))
 
         dot += 1
-
-#    if errors:
-#        print("File '%s' had errors" % filename)
 
 def warn(msg):
     """Print error message and continue."""

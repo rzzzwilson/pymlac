@@ -1,4 +1,4 @@
-; test file
+; test file, old syntax tests
         org     0100
         law     1
         hlt

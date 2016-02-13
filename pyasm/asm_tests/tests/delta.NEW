@@ -4,5 +4,5 @@
         hlt
         end
 
-;|$2   004001       ; bad ORG number
+;|$3   004001       ; bad ORG number
 ;|     000000
