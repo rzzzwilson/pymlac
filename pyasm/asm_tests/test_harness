@@ -71,13 +71,16 @@ def get_word(handle):
 def read_block(handle, memory):
     """Read data blocks from file, update memory dict.
 
-    Returns False if the end block was read.
+    Returns None if the end block was read otherwise returns a tuple
+    (org, length) where 'org' is the start address of the block and 'length'
+    is the number of words in the block.
     """
 
     # read load address, num data words and checksum
     base_address = get_word(handle)
     if base_address & HighBitMask:
-        return False
+        return None
+    dot = base_address
 
     neg_size = get_word(handle)
     data_size = -pyword(neg_size)
@@ -87,10 +90,10 @@ def read_block(handle, memory):
     # read data words, placing into dictionary
     for _ in range(data_size):
         data_word = get_word(handle)
-        memory[base_address] = data_word
-        base_address += 1
+        memory[dot] = data_word
+        dot += 1
 
-    return True
+    return (base_address, data_size)
 
 def get_memory(ptp):
     """Read a PTP file, return memory contents as a dictionary.
@@ -98,9 +101,17 @@ def get_memory(ptp):
     Do not return the blockloader contents.
 
     We don't check the checksum.
+
+    Returns a tuple (orgs, memory) where:
+        'orgs' is a list of ORG block addresses like [0100, 0200]
+        'memory' is a dictionary of memory contents: {addr: contents}
     """
 
+    orgs = []
     memory = {}
+    last_org = None
+    last_length = 0
+
     with open(ptp, 'rb') as handle:
         # skip leading zeros
         while get_byte(handle) == 0:
@@ -110,10 +121,21 @@ def get_memory(ptp):
             get_byte(handle)
 
         # now read blocks until finished
-        while read_block(handle, memory):
-            pass
+        while True:
+            result = read_block(handle, memory)
+            if result is None:
+                break
+            (org, length) = result
 
-    return memory
+            # this block may continue the last
+            if last_org and last_org + last_length == org:
+                last_length += length
+            else:
+                orgs.append(org)
+                last_org = org
+                last_length = length
+
+    return (orgs, memory)
 
 def test_file(filename):
     """Test one ASM test file."""
@@ -125,7 +147,7 @@ def test_file(filename):
            % (ptp_file, lst_file, filename))
     status = os.system(cmd)
     if status:
-        print("Error assembling file '%s'" % filename)
+        warn("Error assembling file '%s'" % filename)
         return
     os.remove(lst_file)
 
@@ -141,10 +163,6 @@ def test_file(filename):
             if ';' in test:
                 ndx = test.index(';')
                 test = test[:ndx].rstrip()
-            if len(test.split()) < 2:
-                warn("%d: %s\nbad test comment in file '%s'"
-                     % (lnum+1, line, filename))
-                return          # finished with this file
             tests.append((lnum+1, test))
 
     # make sure we have some tests
@@ -152,16 +170,43 @@ def test_file(filename):
         print("No tests found in file '%s'" % filename)
         return
 
-    # get the generated code from the PTP file
-    # put memory locations into a dictionary
-    memory = get_memory(ptp_file)
+    # get the generated code and ORG block info from the PTP file
+    # memory locations are in a dictionary: {addr: contents, ...}
+    (orgs, memory) = get_memory(ptp_file)
 
     # interpret the test instructions and check generated code
     errors = False
+    dot = None
     for (lnum, test) in tests:
-        (address, value) = test.split()
-        address = oct_dec_int(address)
+        # check for a label
+        if test[0] == ' ':
+            # no label
+            label = None
+            address = dot
+            value = test
+        else:
+            # have label, $n or octal/decimal?
+            # set 'dot' either way
+            (label, value) = test.split()
+            if label[0] == '$':
+                org_num = int(label[1:])
+                try:
+                    dot = orgs[org_num-1]
+                except IndexError:
+                    warn("File '%s' has label '%s' with bad ORG number"
+                         % (filename, label))
+                    return
+                address = dot
+            else:
+                address = oct_dec_int(label)
+                dot = address
         value = oct_dec_int(value)
+
+        if address is None:
+            warn("File '%s' has label '%s' with bad ORG number"
+                 % (filename, label))
+            return
+
         try:
             mem_value = memory[address]
         except KeyError:
@@ -176,13 +221,16 @@ def test_file(filename):
                      "%2d: %s\n"
                      "Memory at address %04o should be %06o, got %06o"
                      % (filename, lnum, test, address, value, mem_value))
-    if errors:
-        print("File '%s' had errors" % filename)
+
+        dot += 1
+
+#    if errors:
+#        print("File '%s' had errors" % filename)
 
 def warn(msg):
     """Print error message and continue."""
 
-    print('---------------------------------\n'
+    print('=================================\n'
           '%s\n'
           '---------------------------------' % msg)
 

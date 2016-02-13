@@ -1,0 +1,7 @@
+; test file
+        org     0100
+        law     1
+        hlt
+        end
+;|$1   004001
+;|     000000

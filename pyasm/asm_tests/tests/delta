@@ -1,0 +1,8 @@
+; deliberate errors at lines 7 and 9
+        org     0100
+        law     1
+        hlt
+        end
+
+;|$2   004001       ; bad ORG number
+;|     000000

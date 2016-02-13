@@ -1,0 +1,14 @@
+; test file with two adjacent ORG blocks
+        org     0100
+        law     1
+        hlt
+
+        org     0102
+        law     2
+        hlt
+        end
+
+;|0100 004001
+;|0101 000000
+;|0102 004002
+;|0103 000000
