@@ -135,14 +135,22 @@ def test_file(filename):
     lines = [line.rstrip() for line in lines]
     tests = []
     for (lnum, line) in enumerate(lines):
-        if line.startswith(';!'):
-            test = line[2:].strip()
+        if line.startswith(';|'):
+            test = line[2:]
             test = test.replace('\t', ' ')
+            if ';' in test:
+                ndx = test.index(';')
+                test = test[:ndx].rstrip()
             if len(test.split()) < 2:
                 warn("%d: %s\nbad test comment in file '%s'"
                      % (lnum+1, line, filename))
                 return          # finished with this file
             tests.append((lnum+1, test))
+
+    # make sure we have some tests
+    if not tests:
+        print("No tests found in file '%s'" % filename)
+        return
 
     # get the generated code from the PTP file
     # put memory locations into a dictionary
