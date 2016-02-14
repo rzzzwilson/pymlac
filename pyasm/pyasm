@@ -594,6 +594,8 @@ def pass_1(lines):
                 ascii_words = ascii_len / 2
                 if ascii_len % 2:
                     ascii_words += 1
+                if label:
+                    define_label(label, Dot, lnum)
                 Dot += ascii_words
 
             elif opcode == 'INC':
