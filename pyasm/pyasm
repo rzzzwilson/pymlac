@@ -804,6 +804,11 @@ def pass_2(lines):
                     emit_word(word_value)
                     write_list(word_value, Dot, list_lnum, list_line)
                     Dot += 1
+                else:
+                    word_value = 0
+                    emit_word(word_value)
+                    write_list(word_value, Dot, list_lnum, list_line)
+                    Dot += 1
 
             elif opcode == 'INC':
                 if not addr:
