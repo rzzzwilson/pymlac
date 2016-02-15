@@ -573,7 +573,7 @@ def pass_1(lines):
             elif opcode == 'DATA':
                 # a single data word
                 if not addr or eval_expr(addr) is None:
-                    error("BSS pseudo-op has a bad value")
+                    error("DATA pseudo-op has a bad value")
                     return False
                 if label:
                     define_label(label, Dot, lnum)
@@ -591,6 +591,25 @@ def pass_1(lines):
                 addr = addr[1:-1]
 
                 ascii_len = len(addr)
+                ascii_words = ascii_len / 2
+                if ascii_len % 2:
+                    ascii_words += 1
+                if label:
+                    define_label(label, Dot, lnum)
+                Dot += ascii_words
+
+            elif opcode == 'ASCIIZ':
+                # ASCII string, pack two bytes/word, ensure zero byte fill at end
+                if not addr:
+                    error("ASCIIZ pseudo-op must have a data field")
+                if addr[0] not in "'\"":
+                    error("ASCIIZ pseudo-op must data field must be a delimited string")
+                delim = addr[0]
+                if addr[-1] != delim:
+                    error("ASCIIZ pseudo-op has a badly delimited delimited string")
+                addr = addr[1:-1]
+
+                ascii_len = len(addr) + 1
                 ascii_words = ascii_len / 2
                 if ascii_len % 2:
                     ascii_words += 1
@@ -743,6 +762,32 @@ def pass_2(lines):
                 delim = addr[0]
                 if addr[-1] != delim:
                     error("ASCII pseudo-op has a badly delimited delimited string")
+                addr = addr[1:-1]
+                len_addr = len(addr)
+                list_lnum = lnum
+                list_line = line
+                for i in range(0, len_addr-1, 2):
+                    word_value = (ord(addr[i]) << 8) + ord(addr[i+1])
+                    emit_word(word_value)
+                    write_list(word_value, Dot, list_lnum, list_line)
+                    list_lnum = ''
+                    list_line = ''
+                    Dot += 1
+                if len_addr % 2:
+                    word_value = (ord(addr[-1]) << 8)
+                    emit_word(word_value)
+                    write_list(word_value, Dot, list_lnum, list_line)
+                    Dot += 1
+
+            elif opcode == 'ASCIIZ':
+                # 'addr' must exist and be a quote-delimited string
+                if not addr:
+                    error("ASCIIZ pseudo-op must have a data field")
+                if addr[0] not in "'\"":
+                    error("ASCIIZ pseudo-op must data field must be a delimited string")
+                delim = addr[0]
+                if addr[-1] != delim:
+                    error("ASCIIZ pseudo-op has a badly delimited delimited string")
                 addr = addr[1:-1]
                 len_addr = len(addr)
                 list_lnum = lnum

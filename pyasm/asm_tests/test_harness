@@ -168,6 +168,9 @@ def get_memory(ptp):
 def test_file(filename):
     """Test one ASM test file."""
 
+    # counter for number of errors
+    errors = 0
+
     # assemble file into known listing file and PTP file
     lst_file = '%s.lst' % TempPrefix
     ptp_file = '%s.ptp' % TempPrefix
@@ -175,8 +178,9 @@ def test_file(filename):
            % (ptp_file, lst_file, filename))
     status = os.system(cmd)
     if status:
+        errors += 1
         warn("Error assembling file '%s'" % filename)
-        return
+        return errors       # must end testing
     os.remove(lst_file)
 
     # get the test instructions from the ASM file
@@ -185,27 +189,29 @@ def test_file(filename):
     lines = [line.rstrip() for line in lines]
     tests = []
     for (lnum, line) in enumerate(lines):
-        if line.startswith(';|'):
+        if line.startswith(';|') or line.startswith(';!'):
+            test_pass = line.startswith(';|')
+
             test = line[2:]
             test = test.replace('\t', ' ')
             if ';' in test:
                 ndx = test.index(';')
                 test = test[:ndx].rstrip()
-            tests.append((lnum+1, test))
+            tests.append((lnum+1, test_pass, test))
 
     # make sure we have some tests
     if not tests:
+        errors += 1
         print("No tests found in file '%s'" % filename)
-        return
+        return errors       # must end testing
 
     # get the generated code and ORG block info from the PTP file
     # memory locations are in a dictionary: {addr: contents, ...}
     (orgs, memory) = get_memory(ptp_file)
 
     # interpret the test instructions and check generated code
-    errors = False
     dot = None
-    for (lnum, test) in tests:
+    for (lnum, must_pass, test) in tests:
         # check for a label
         if test[0] == ' ':
             # no label
@@ -221,9 +227,11 @@ def test_file(filename):
                 try:
                     dot = orgs[org_num-1]
                 except IndexError:
-                    warn("File '%s' has label '%s' with bad ORG number"
-                         % (filename, label))
-                    return
+                    if must_pass:
+                        errors += 1
+                        warn("File '%s' has label '%s' with bad ORG number: %s"
+                             % (filename, label, test))
+                    return errors       # must end testing
                 address = dot
             else:
                 address = oct_dec_int(label)
@@ -233,26 +241,33 @@ def test_file(filename):
         value = eval_expr(dot, value)
 
         if address is None:
-            warn("File '%s' has label '%s' with bad ORG number"
-                 % (filename, label))
-            return
+            if must_pass:
+                errors += 1
+                warn("File '%s' has label '%s' with bad ORG number: %s"
+                     % (filename, label, test))
+                return errors       # must end testing
 
         try:
             mem_value = memory[address]
         except KeyError:
-            warn("%s\n"
-                 "%2d: %s\n"
-                 "Test comment has check for address %04o which isn't in block"
-                 % (filename, lnum, test, address))
-        else:
-            if mem_value != value:
-                errors = True
+            if must_pass:
+                errors += 1
                 warn("%s\n"
                      "%2d: %s\n"
-                     "Memory at address %04o should be %06o, got %06o"
-                     % (filename, lnum, test, address, value, mem_value))
+                     "Test comment has check for address %04o which isn't in block"
+                     % (filename, lnum, test, address))
+        else:
+            if mem_value != value:
+                if must_pass:
+                    errors += 1
+                    warn("%s\n"
+                         "%2d: %s\n"
+                         "Memory at address %04o should be %06o, got %06o"
+                         % (filename, lnum, test, address, value, mem_value))
 
         dot += 1
+
+    return errors
 
 def warn(msg):
     """Print error message and continue."""
@@ -288,9 +303,16 @@ def run_tests(directory, prefix):
             error("No test files found in directory '%s'" % directory)
 
     # test each found file
+    errors = 0
     files.sort()
     for filename in files:
-        test_file(filename)
+        errors += test_file(filename)
+
+    if errors:
+        if errors == 1:
+            warn('There was %d error!' % errors)
+        else:
+            warn('There were %d errors!' % errors)
 
     # remove temporary files
     for f in glob.glob('%s.*' % TempPrefix):
