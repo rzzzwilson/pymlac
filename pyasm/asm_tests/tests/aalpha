@@ -1,7 +1,7 @@
-; test file, old syntax tests
+; test file, new syntax
         org     0100
         law     1
         hlt
         end
-;|0100 004001
-;|0101 000000
+;|$1   004000 + 1
+;|     000000

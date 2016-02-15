@@ -4,6 +4,6 @@
         hlt
         end
 
-;!0100 004002       ; is actually 004001
-;|0101 000000
-;!0102 000001       ; address outside block
+;!$1   004000 + 2   ; is actually 004001
+;|     000000
+;!     000001       ; address outside block
