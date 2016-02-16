@@ -187,7 +187,7 @@ OpcodeData = {
               'IOT': ( 0001000, AYES, mask(9),  False),
               'IOF': ( 0001161, ANO,  0,        False),
               'ION': ( 0001162, ANO,  0,        False),
-              'PUN': ( 0001171, ANO,  0,        False),
+              'PUN': ( 0001271, ANO,  0,        False),
               'PSF': ( 0001274, ANO,  0,        False),
               'PPC': ( 0001271, ANO,  0,        False),
 
