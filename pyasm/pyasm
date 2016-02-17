@@ -892,14 +892,17 @@ def genincfield(code):
         [+|-] n [+|-] n
     """
 
+    print('genincfield: code=%s' % code)
+
     xneg = yneg = 0
 
     # handle possible X +/- operation
     if code[0] in '+-':
+        s = code[0]
         code = code[1:]
-        if code[0] == '+':
+        if s == '+':
             xneg = 0
-        elif code[0] == '-':
+        elif s == '-':
             xneg = 1
 
     # handle X numeric field
@@ -910,10 +913,11 @@ def genincfield(code):
 
     # handle possible Y +/- operation
     if code[0] in '+-':
+        s = code[0]
         code = code[1:]
-        if code[0] == '+':
+        if s == '+':
             yneg = 0
-        elif code[0] == '-':
+        elif s == '-':
             yneg = 1
 
     # handle Y numeric field
@@ -939,6 +943,8 @@ def geninc(code):
     """
 
     global ShortVectorMode, BeamState
+
+    print('geninc: code=%s' % code)
 
     if code[0] == 'A':      # make a byte
         code = code[1:]
