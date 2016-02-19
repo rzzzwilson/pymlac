@@ -13,7 +13,8 @@ If <directory> is specified run tests in that directory.  If not specified
 the test directory is assumed to be './tests'.
 
 If <prefix> is specified, run tests on files in the test subdirectory with
-a filename of <prefix>* .  If <prefix> is not specified all files are tested.
+a filename of <prefix>*.asm.  If <prefix> is not specified all files with
+filename like *.asm are tested.
 """
 
 
@@ -301,7 +302,7 @@ def run_tests(directory, prefix):
         prefix = ''
 
     # get list of all test cases we are going to run
-    files = glob.glob('%s/%s*' % (directory, prefix))
+    files = glob.glob('%s/%s*.asm' % (directory, prefix))
     if not files:
         if prefix:
             error("No test files found in directory '%s' with prefix '%s'"
