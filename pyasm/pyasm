@@ -936,17 +936,15 @@ def geninc(code):
 
     Two code fields follow and INC opcode, separated by ','.
     Each field may contain:
-        E | F | [B|D] [+|-] n [+|-] n
+        E | F | N | R | Axxx | (B|D) (+|-) n (+|-) n
 
     Where 'E' may only be the firstcode in an INC chain, and 'n' must be one
-    of 0, 1, 2 or 3.
+    of 0, 1, 2 or 3.  xxx is any 8-bit value.
     """
 
     global ShortVectorMode, BeamState
 
-    print('geninc: code=%s' % code)
-
-    if code[0] == 'A':      # make a byte
+    if code[0] == 'A':      # make an SVM byte
         code = code[1:]
         ShortVectorMode = False
         return int(code)
@@ -956,17 +954,17 @@ def geninc(code):
     elif code[0] == 'D':    # beam off
         BeamState = 0
         return genincfield(code[1:])
-    elif code[0] == 'E':    # enter INC mode
+    elif code[0] == 'E':    # enter SVM mode
         if ShortVectorMode:
             error('Already in INC mode!?')
         ShortVectorMode = True
         BeamState = 1
         return 0060
-    elif code[0] == 'F':    # exit INC mode
+    elif code[0] == 'F':    # exit SVM, DRJM, ++Xmsb, X&Ylsb<-0
         ShortVectorMode = False
         BeamState = 0
         return 0171
-    elif code[0] == 'N':    # ???
+    elif code[0] == 'N':    # X&Ylsb<-0
         if not ShortVectorMode:
             error('Not in INC mode!?')
         return 0111
@@ -974,15 +972,15 @@ def geninc(code):
         if not ShortVectorMode:
             error('Not in INC mode!?')
         return 0200
-    elif code[0] == 'R':    # ???
+    elif code[0] == 'R':    # exit SVM, DRJM, X&Ylsb<-0
         if not ShortVectorMode:
             error('Not in INC mode!?')
         return 0151
-    elif code[0] == 'X':    # ???
+    elif code[0] == 'X':    # Xlsb <- 0
         if not ShortVectorMode:
             error('Not in INC mode!?')
         return 0010
-    elif code[0] == 'Y':    # ???
+    elif code[0] == 'Y':    # Ylsb <- 0
         if not ShortVectorMode:
             error('Not in INC mode!?')
         return 0001
