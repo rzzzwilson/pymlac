@@ -190,14 +190,15 @@ def test_file(filename):
     tests = []
     for (lnum, line) in enumerate(lines):
         if line.startswith(';|') or line.startswith(';!'):
-            test_pass = line.startswith(';|')
+            prefix = line[:2]
+            must_pass = line.startswith(';|')
 
             test = line[2:]
             test = test.replace('\t', ' ')
             if ';' in test:
                 ndx = test.index(';')
                 test = test[:ndx].rstrip()
-            tests.append((lnum+1, test_pass, test))
+            tests.append((lnum+1, must_pass, prefix, test))
 
     # make sure we have some tests
     if not tests:
@@ -211,7 +212,7 @@ def test_file(filename):
 
     # interpret the test instructions and check generated code
     dot = None
-    for (lnum, must_pass, test) in tests:
+    for (lnum, must_pass, prefix, test) in tests:
         # check for a label
         if test[0] == ' ':
             # no label
@@ -229,8 +230,8 @@ def test_file(filename):
                 except IndexError:
                     if must_pass:
                         errors += 1
-                        warn("File '%s' has label '%s' with bad ORG number: %s"
-                             % (filename, label, test))
+                        warn("File '%s' has label '%s' with bad ORG number: %s%s"
+                             % (filename, label, prefix, test))
                     return errors       # must end testing
                 address = dot
             else:
@@ -246,7 +247,6 @@ def test_file(filename):
                 warn("File '%s' has label '%s' with bad ORG number: %s"
                      % (filename, label, test))
                 return errors       # must end testing
-
         try:
             mem_value = memory[address]
         except KeyError:
@@ -264,6 +264,13 @@ def test_file(filename):
                          "%2d: %s\n"
                          "Memory at address %04o should be %06o, got %06o"
                          % (filename, lnum, test, address, value, mem_value))
+            else:
+                if not must_pass:
+                    errors += 1
+                    warn("%s\n"
+                         "%2d: %s\n"
+                         "Memory contents check should fail but didn't?"
+                         % (filename, lnum, test))
 
         dot += 1
 
