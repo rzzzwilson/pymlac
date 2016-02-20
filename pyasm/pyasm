@@ -892,8 +892,6 @@ def genincfield(code):
         [+|-] n [+|-] n
     """
 
-    print('genincfield: code=%s' % code)
-
     xneg = yneg = 0
 
     # handle possible X +/- operation
@@ -908,7 +906,7 @@ def genincfield(code):
     # handle X numeric field
     if code[0] not in '0123':
         error('INC numeric X value must be 0, 1, 2 or 3')
-    x = int(code[0])
+    x = int(code[0], base=8)
     code = code[1:]
 
     # handle possible Y +/- operation
@@ -923,7 +921,7 @@ def genincfield(code):
     # handle Y numeric field
     if code[0] not in '0123':
         error('INC numeric Y value must be 0, 1, 2 or 3')
-    y = int(code[0])
+    y = int(code[0], base=8)
     code = code[1:]
 
     if len(code) > 0:
@@ -946,12 +944,20 @@ def geninc(code):
 
     if code[0] == 'A':      # make an SVM byte
         code = code[1:]
-        ShortVectorMode = False
-        return int(code)
+        byte = int(code, base=8)
+        if byte & (~0377):
+            error('Overflow in INC A field')
+        if byte & 0100:
+            ShortVectorMode = False
+        return byte
     elif code[0] == 'B':    # beam on
+        if not ShortVectorMode:
+            error('Not in INC mode!?')
         BeamState = 1
         return genincfield(code[1:])
     elif code[0] == 'D':    # beam off
+        if not ShortVectorMode:
+            error('Not in INC mode!?')
         BeamState = 0
         return genincfield(code[1:])
     elif code[0] == 'E':    # enter SVM mode
@@ -967,6 +973,7 @@ def geninc(code):
     elif code[0] == 'N':    # X&Ylsb<-0
         if not ShortVectorMode:
             error('Not in INC mode!?')
+        ShortVectorMode = False
         return 0111
     elif code[0] == 'P':    # pause (filler)
         if not ShortVectorMode:
@@ -975,6 +982,7 @@ def geninc(code):
     elif code[0] == 'R':    # exit SVM, DRJM, X&Ylsb<-0
         if not ShortVectorMode:
             error('Not in INC mode!?')
+        ShortVectorMode = False
         return 0151
     elif code[0] == 'X':    # Xlsb <- 0
         if not ShortVectorMode:
@@ -985,7 +993,8 @@ def geninc(code):
             error('Not in INC mode!?')
         return 0001
     elif code[0] in '0123+-':
-        return genincfield(code)
+        byte = genincfield(code)
+        return byte
     else:
         error("Unrecognized INC code: '%s' (code=%s)" % (code[0], code))
 
