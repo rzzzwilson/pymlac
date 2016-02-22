@@ -51,6 +51,8 @@ def get_byte(ptp_data, index):
     except IndexError:
         return None
 
+#    print('get_byte: %03o' % result)
+
     return (result, index+1)
 
 def get_word(ptp_data, index):
@@ -76,7 +78,10 @@ def get_word(ptp_data, index):
         return None
     (second_byte, index) = result
 
-    return ((first_byte << 8) + second_byte, index)
+
+    word = (first_byte << 8) + second_byte
+#    print('get_word: %06o' % word)
+    return (word, index)
 
 def skipzeros(ptp_data, index):
     """Skip leading zeros in tape data.
@@ -120,7 +125,7 @@ def read_blockloader(ptp_data, index, memory):
 
     return index
 
-def c8lds_loader(ptp_data, memory):
+def c8lds_handler(ptp_data, memory):
     """Load blocks according to the "Loading the PDS-1" document.
 
     ptp_data  array of PTP data
@@ -168,6 +173,7 @@ def c8lds_loader(ptp_data, memory):
         index = skipzeros(ptp_data, index)
         if index is None:
             break
+        print('start of data block at %05o' % index)
 
         # get data word count
         result = get_byte(ptp_data, index)
@@ -175,6 +181,7 @@ def c8lds_loader(ptp_data, memory):
             # premature end of tape?
             return None
         (count, index) = result
+        print('word count=%d (%03o)' % (count, count))
 
         # get block load address
         result = get_word(ptp_data, index)
@@ -182,6 +189,7 @@ def c8lds_loader(ptp_data, memory):
             # premature end of tape?
             return None
         (address, index) = result
+        print('block load address=%05o' % address)
 
         # read data words, store in memory and calculate checksum
         checksum = 0
@@ -191,20 +199,24 @@ def c8lds_loader(ptp_data, memory):
                 # premature end of tape?
                 return None
             (data, index) = result
+            print('data word: %06o at address %05o' % (data, address))
 
             memory[address] = data
             address += 1
-            checksum += data
+            checksum = (checksum + data) & 0177777
 
         # check block checksum
-        checksum = checksum & 0177777
+#        checksum = checksum & 0177777
         result = get_word(ptp_data, index)
         if result is None:
             # premature end of tape?
+            print('EOT')
             return None
         (ptp_checksum, index) = result
+        print('ptp_checksum=%06o, checksum=%06o' % (ptp_checksum, checksum))
         if ptp_checksum != checksum:
             # bad checksum
+            print('bad checksum')
             return None
 
     # no auto-start mechanism, so
@@ -234,6 +246,8 @@ def lc16sd_handler(ptp_data, memory):
     Returns None if there was nothing to load.
     """
 
+#    print('lc16sd_handler:')
+
     index = 0
 
     # skip initial zero leader
@@ -249,12 +263,13 @@ def lc16sd_handler(ptp_data, memory):
 
     # now read data blocks
     while True:
-        # skip leading zeros, if any
-        index = skipzeros(ptp_data, index)
-        if index is None:
-            break
+#        # skip leading zeros, if any
+#        index = skipzeros(ptp_data, index)
+#        if index is None:
+#            break
 
         # get this block load address
+#        print('block load address')
         result = get_word(ptp_data, index)
         if result is None:
             return None     # premature end of tape?
@@ -273,6 +288,7 @@ def lc16sd_handler(ptp_data, memory):
                 return (None, None)
 
         # read data block, calculating checksum
+#        print('block word count')
         csum = address                      # start checksum with base address
         result = get_word(ptp_data, index)
         if result is None:
@@ -281,12 +297,16 @@ def lc16sd_handler(ptp_data, memory):
         count = pyword(count)
         neg_count = pyword(count)
         csum = (csum + count) & 0xffff          # add neg word count
+
+#        print('block checksum')
         result = get_word(ptp_data, index)
         if result is None:
             return None         # premature end of tape?
         (csum_word, index) = result
         csum = (csum + csum_word) & 0xffff      # add checksum word
+
         while neg_count < 0:
+#            print('data word')
             result = get_word(ptp_data, index)
             if result is None:
                 return None     # premature end of tape?
@@ -307,7 +327,7 @@ def load3_handler(ptp_data, memory):
 
 # list of recognized loaders and handlers
 Loaders = [
-           ('c8lds', c8lds_loader),
+           ('c8lds', c8lds_handler),
            ('lc16sd', lc16sd_handler),
            ('loader 3', load3_handler),
           ]
@@ -340,37 +360,33 @@ def load(filename, memory=None):
         print("File '%s' is empty" % filename)
         return None
 
-# DEBUG
-#    count = 0
-#    for i in range(len(data)):
-#        if count == 0:
-#            print "%04o:" % i,
-#        print '%03o' % ord(data[i]),
-#        count += 1
-#        if count >= 16:
-#            print
-#            count = 0
-#    print
-
     # convert to array of integers
     ptp_data = [ord(x) for x in data]
-#    print(str(ptp_data))
 
     # try loaders in order
     for (name, loader) in Loaders:
-        print('Trying loader: %s' % name)
         result = loader(ptp_data, memory)
-        print('name: %s, result=%s' % (name, str(result)))
         if result is not None:
-            # success!
-            print('%s successful!' % name)
+            print('%s: %s successful!' % (filename, name))
             return result
 
     # if we get here, no loader was successful
     return None
 
 if __name__ == '__main__':
-    print('test.ptp')
-    load('test.ptp')
-    print('testx.ptp')
-    load('testx.ptp')
+    import sys
+
+    def usage(msg=None):
+        """Print usage and optional error message."""
+
+        if msg:
+            print('*'*60)
+            print(msg)
+            print('*'*60)
+        print('Usage: loadptp <filename>')
+        sys.exit(10)
+
+    if len(sys.argv) != 2:
+        usage()
+    filename = sys.argv[1]
+    load(filename)
