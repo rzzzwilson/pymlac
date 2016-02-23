@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
+# coding: utf-8
 
 """
 Import an imlac binary file.
@@ -14,6 +14,7 @@ Usage:
     (loader, memory) = result
 """
 
+from __future__ import (absolute_import, division, print_function, unicode_literals)
 import struct
 
 
