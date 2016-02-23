@@ -362,13 +362,16 @@ def load(filename, memory=None):
 
     # try loaders in order
     for (name, loader) in Loaders:
-        result = loader(ptp_data, memory)
+        try:
+            result = loader(ptp_data, memory)
+        except IndexError:
+            result = None
         if result is not None:
-            print('%s: %s successful!' % (filename, name))
+            print('%14s: %s' % (name, filename))
             return result
 
     # if we get here, no loader was successful
-    print('%s: not recognized!' % filename)
+    print('NOT RECOGNIZED: %s' % filename)
     return None
 
 if __name__ == '__main__':
