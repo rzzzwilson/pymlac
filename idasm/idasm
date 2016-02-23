@@ -338,9 +338,14 @@ class MyFrame(wx.Frame):
         self.saveAsMenuitem = fileMenu.Append(102, "Save Project As ...", \
                                 "Save disassembly project to new file")
         fileMenu.AppendSeparator()
-        fileMenu.Append(103, "Import Binary File", \
-                                "Import an Imlac binary file")
-        self.writeASMMenuitem = fileMenu.Append(104, "Write Assembler", \
+        fileMenu.Append(103, "Import PTP File", 
+                                "Import all of an Imlac PTP file")
+        fileMenu.Append(104, "Import only code of PTP File",
+                                "Import only code of an Imlac PTP file")
+        fileMenu.Append(105, "Import only blockloader of PTP File",
+                                "Import only blockloader of an Imlac binary file")
+        fileMenu.AppendSeparator()
+        self.writeASMMenuitem = fileMenu.Append(109, "Write Assembler",
                                 "Write an assembler source file")
         fileMenu.AppendSeparator()
         fileMenu.Append(199, "Exit", "Exit the program")
@@ -364,6 +369,8 @@ class MyFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.Menu102, id=102)
         self.Bind(wx.EVT_MENU, self.Menu103, id=103)
         self.Bind(wx.EVT_MENU, self.Menu104, id=104)
+        self.Bind(wx.EVT_MENU, self.Menu105, id=105)
+        self.Bind(wx.EVT_MENU, self.Menu109, id=109)
         self.Bind(wx.EVT_MENU, self.Menu199, id=199)
 
         self.Bind(wx.EVT_MENU, self.Menu202, id=202)
@@ -479,6 +486,8 @@ class MyFrame(wx.Frame):
         dlg.Destroy()
 
     def Menu103(self, event):
+        """Choose PTP file to load blockloader and code from."""
+
         global grid, mem, projectName
 
         filename = None
@@ -489,7 +498,7 @@ class MyFrame(wx.Frame):
         if dlg.ShowModal() == wx.ID_OK:
             filename = dlg.GetPath()
             self.grid.ClearGrid()
-            result = binimport.ptpimport(filename)
+            result = binimport.ptpimport(filename, blockloader=True, code=True)
             if result is not None:
                 (mem, start, ac) = result
                 fillGrid(grid, mem)
@@ -506,6 +515,64 @@ class MyFrame(wx.Frame):
 
 
     def Menu104(self, event):
+        """Choose PTP file to load code from."""
+
+        global grid, mem, projectName
+
+        filename = None
+        dlg = wx.FileDialog(self, message="Choose an IMLAC object file to load",
+                            defaultDir=os.getcwd(), defaultFile="",
+                            wildcard=objwildcard,
+                            style=wx.OPEN | wx.CHANGE_DIR)
+        if dlg.ShowModal() == wx.ID_OK:
+            filename = dlg.GetPath()
+            self.grid.ClearGrid()
+            result = binimport.ptpimport(filename, blockloader=False, code=True)
+            if result is not None:
+                (mem, start, ac) = result
+                fillGrid(grid, mem)
+                projectName = os.path.basename(filename)
+                if projectName.endswith(DEFPTPSUFFIX):
+                    projectName = projectName[:-len(DEFPTPSUFFIX)]
+                self.enableSaveWrite(True)
+                mem.clearUndo()
+                self.enableUndo(False)
+                if start:
+                    # mark start address as MAIN instructions
+                    self.do_main_start(start & 077777)
+        dlg.Destroy()
+
+
+    def Menu105(self, event):
+        """Choose PTP file to load blockloader from."""
+
+        global grid, mem, projectName
+
+        filename = None
+        dlg = wx.FileDialog(self, message="Choose an IMLAC object file to load",
+                            defaultDir=os.getcwd(), defaultFile="",
+                            wildcard=objwildcard,
+                            style=wx.OPEN | wx.CHANGE_DIR)
+        if dlg.ShowModal() == wx.ID_OK:
+            filename = dlg.GetPath()
+            self.grid.ClearGrid()
+            result = binimport.ptpimport(filename, blockloader=True, code=False)
+            if result is not None:
+                (mem, start, ac) = result
+                fillGrid(grid, mem)
+                projectName = os.path.basename(filename)
+                if projectName.endswith(DEFPTPSUFFIX):
+                    projectName = projectName[:-len(DEFPTPSUFFIX)]
+                self.enableSaveWrite(True)
+                mem.clearUndo()
+                self.enableUndo(False)
+                if start:
+                    # mark start address as MAIN instructions
+                    self.do_main_start(start & 077777)
+        dlg.Destroy()
+
+
+    def Menu109(self, event):
         global mem, grid, projectName
         filename = None
         dlg = wx.FileDialog(self,

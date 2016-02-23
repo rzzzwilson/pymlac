@@ -27,21 +27,28 @@ MemSize = 04000
 LoaderSize = 0100
 
 
-def doblockloader(f, word, mymem):
+def doblockloader(f, word, mymem, save):
     """Read block loader into high memory.
 
     f      file handle to read from
     word   the word we have already read
     mymem  Mem() object to store loader in
+    save   True if blockloader is to be stored in 'mymem'
+
+    'mymem' is updated.
     """
 
     ldaddr = MemSize - LoaderSize
+    print('doblockloader: word=%06o' % word)
+    mymem.add(ldaddr, word)
+    ldaddr += 1
     numwords = LoaderSize - 1     # have already read one word in
     mymem.add(ldaddr, word)
     while numwords > 0:
         word = readword(f)
-#JUST SKIP OVER, DON'T PUT INTO MEMORY
-#        mymem.add(ldaddr, word)
+        print('doblockloader: word=%06o' % word)
+        if save:
+            mymem.add(ldaddr, word)
         ldaddr += 1
         numwords = numwords - 1
 
@@ -74,19 +81,22 @@ def pyword(word):
     return struct.unpack(">h", bstr)[0]
 
 
-def dobody(f, mymem):
+def dobody(f, mymem, save):
     """Read all of file after block loader.
 
     f      input file handle
     mymem  the mem.Mem() dict to store data in
+    save   True if body code is to be saved in 'mymem'
 
     Returns an updated mem.Mem() object containing the input code
-    and a start address:
-        (mem, start, ac)
+    and a start address: (mem, start, ac).
     If a start address is not specified, 'start' and 'ac' are both None.
 
     If there was a checksum error, just return None.
     """
+
+    if not save:
+        return (mymem, None, None)
 
     start_address = None
 
@@ -124,11 +134,21 @@ def dobody(f, mymem):
 
     return (mymem, None, None)
 
-def ptpimport(file):
+def ptpimport(filename, blockloader, code):
+    """Import data from PTP file into memory.
+
+    filename     the PTP file to read
+    blockloader  True if blockloader is returned
+    code         True if body code is returned
+
+    Returns a memory object containing blockloader data or body code
+    data, or both.
+    """
+
     global Dot
 
     try:
-        f = open(file, "rb")
+        f = open(filename, "rb")
     except IOError as e:
         print e
         return 3
@@ -141,10 +161,10 @@ def ptpimport(file):
     # find and read the block loader
     byte = skipzeros(f)
     word = (byte << 8) + readbyte(f)
-    doblockloader(f, word, mymem)
+    doblockloader(f, word, mymem, save=blockloader)
 
     # now read all the data blocks
-    result = dobody(f, mymem)
+    result = dobody(f, mymem, save=code)
     if result is None:
         return (mymem, None, None)
 
