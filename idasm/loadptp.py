@@ -159,13 +159,13 @@ def c8lds_handler(ptp_data, memory):
     index = skipzeros(ptp_data, index)
     if index is None:
         # empty tape
-        print('empty tape')
+#        print('empty tape')
         return None
 
     index = read_blockloader(ptp_data, index, memory)
     if index is None:
         # short block loader?
-        print('short blockloader?')
+#        print('short blockloader?')
         return None
 
     # now read data blocks
@@ -179,7 +179,7 @@ def c8lds_handler(ptp_data, memory):
         result = get_byte(ptp_data, index)
         if result is None:
             # premature end of tape?
-            print('EOT in block getting count?')
+#            print('EOT in block getting count?')
             return None
         (count, index) = result
 
@@ -187,7 +187,7 @@ def c8lds_handler(ptp_data, memory):
         result = get_word(ptp_data, index)
         if result is None:
             # premature end of tape?
-            print('EOT in block getting load address?')
+#            print('EOT in block getting load address?')
             return None
         (address, index) = result
         if address == 0177777:
@@ -199,7 +199,7 @@ def c8lds_handler(ptp_data, memory):
             result = get_word(ptp_data, index)
             if result is None:
                 # premature end of tape?
-                print('EOT in block getting data word?')
+#                print('EOT in block getting data word?')
                 return None
             (data, index) = result
 
@@ -213,13 +213,13 @@ def c8lds_handler(ptp_data, memory):
         result = get_word(ptp_data, index)
         if result is None:
             # premature end of tape?
-            print('EOT in block getting checksum?')
+#            print('EOT in block getting checksum?')
             return None
         (ptp_checksum, index) = result
         if ptp_checksum != checksum:
             # bad checksum
-            print('bad checksum, PTP checksum is %06o, expected %06o'
-                 % (ptp_checksum, checksum))
+#            print('bad checksum, PTP checksum is %06o, expected %06o'
+#                  % (ptp_checksum, checksum))
             return None
 
     # no auto-start mechanism, so
@@ -367,9 +367,8 @@ def load(filename, memory=None):
             print('%s: %s successful!' % (filename, name))
             return result
 
-    print('%s: not recognized!' % filename)
-
     # if we get here, no loader was successful
+    print('%s: not recognized!' % filename)
     return None
 
 if __name__ == '__main__':
