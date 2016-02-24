@@ -19,6 +19,7 @@ import time
 
 import sys
 import os
+import json
 
 from Globals import *
 import MainCPU
@@ -144,6 +145,7 @@ class TestCPU(object):
 #   mount <device> <filename>
 #   dismount <device>
 #   checkfile <file1> <file2>
+#   dumpmem file begin,end
 
     def setreg(self, name, value):
         """Set register to a value.
@@ -406,6 +408,39 @@ class TestCPU(object):
         if res:
             return 'Files %s and %s are different' % (file1, file2)
 
+    def dumpmem(self, filename, addresses):
+        """Dump memory to a file.
+
+        filename   path to the file to create
+        addresses  string containing "begin,end" addresses
+        """
+
+        # get address limits
+        if addresses is None:
+            begin = 0
+            end = 0x3fff
+        else:
+            s = addresses.split(',')
+            if len(s) != 2:
+                return "dumpmem: dump limits are bad: %s" % addresses
+            (begin, end) = s
+            begin = str2int(begin)
+            end = str2int(end)
+            if begin is None or end is None:
+                return "dumpmem: dump limits are bad: %s" % addresses
+
+        print('dumpmem: filename=%s, begin=%06o, end=%06o'
+              % (filename, begin, end))
+
+        # create dict containing memory contents: {addr: contents, ...}
+        mem = {}
+        for addr in range(begin, end+1):
+            mem[addr] = self.memory.fetch(addr, False)
+
+        # dump to JSON file
+        with open(filename, 'wb') as handle:
+            json.dump(mem, handle)
+
 # end of DSL primitives
 
     def check_all_mem(self):
@@ -560,6 +595,8 @@ class TestCPU(object):
             elif opcode == 'dismount':
                 r = self.dismount(fld1, fld2)
             elif opcode == 'checkfile':
+                r = self.checkfile(fld1, fld2)
+            elif opcode == 'dumpmem':
                 r = self.checkfile(fld1, fld2)
             else:
                 print("Unrecognized opcode '%s' in: %s" % (opcode, test))
