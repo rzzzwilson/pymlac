@@ -102,10 +102,11 @@ required.  The options are:
     
     -s <setfile>                  sets memory adress values from <setfile>
     
-    -t (<addr1> [,<addr2>] | off) controls the execution trace:
-                                      -t 0100     trace from address 0100 (octal)
-                                      -t 0100,200 trace from 0100 octal to 200 decimal
-                                      -t off      turns trace off
+    -t (<range>[:<range2>[:...]] | off) controls the execution trace:
+                                      -t 0100                trace from address 0100 (octal)
+                                      -t 0100,0200           trace from 0100 octal to 200 decimal
+                                      -y 0100,0200:0210,0300 trace 0100 to 0200 and 0210 to 0300
+                                      -t off                 turns trace off
     
     -ttyin <file>                 loads a file on to the teletype reader device
     
