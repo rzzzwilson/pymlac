@@ -12,6 +12,7 @@ Based on the 'borg' recipe from [http://code.activestate.com/recipes/66531/].
 """
 
 import os
+import collections
 
 from Globals import *
 
@@ -43,6 +44,13 @@ class Trace(object):
 
         self.cpu = maincpu
         self.dcpu = displaycpu
+
+        self.trace_map = collections.defaultdict(bool)
+
+    def set_trace_map(self, trace_map):
+        """Set the trace address dict mapping."""
+
+        self.trace_map = trace_map
 
     def add_maincpu(self, maincpu):
         """Add the main CPU object."""
@@ -91,16 +99,24 @@ class Trace(object):
 
         opcode   the main CPU opcode
         indirect  True if instruction was indirect
-        adress    address for the instruction (if any)
+        address   address for the instruction (if any)
+
+        Returns True if tracing, else False.
         """
 
-        if self.tracing:
+#        print('itrace: self.cpu.PC=%06o, self.trace_map[self.cpu.PC]=%s'
+#              % (self.cpu.PC-1, str(self.trace_map[self.cpu.PC-1])))
+
+        if self.tracing and self.trace_map[self.cpu.PC-1]:
             char = '*' if indirect else ''
             if address is None:
                 self.tracefile.write('%s\t%s\t' % (opcode, char))
             else:
                 self.tracefile.write('%s\t%s%5.5o\t' % (opcode, char, address))
             self.tracefile.flush()
+            return True
+
+        return False
 
     def itraceend(self, dispon):
         """Trace at the end of one execution cycle.

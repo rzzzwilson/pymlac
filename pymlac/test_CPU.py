@@ -12,6 +12,7 @@ where <filename> is a file of test instructions and
 """
 
 import time
+import collections
 
 # We implement a small interpreter to test the CPU.
 # The DSL is documented here: [github.com/rzzzwilson/pymlac].
@@ -146,6 +147,7 @@ class TestCPU(object):
 #   dismount <device>
 #   checkfile <file1> <file2>
 #   dumpmem file begin,end
+#   cmpmem file
 
     def setreg(self, name, value):
         """Set register to a value.
@@ -387,7 +389,7 @@ class TestCPU(object):
         else:
             return 'mount: bad device: %s' % device
 
-    def dismount(self, device):
+    def dismount(self, device, ignore):
         """Dismount a file from a device.
 
         device    name of device
@@ -440,6 +442,9 @@ class TestCPU(object):
         # dump to JSON file
         with open(filename, 'wb') as handle:
             json.dump(mem, handle)
+
+    def cmpmem(self, filename, ignore):
+        pass
 
 # end of DSL primitives
 
@@ -597,7 +602,9 @@ class TestCPU(object):
             elif opcode == 'checkfile':
                 r = self.checkfile(fld1, fld2)
             elif opcode == 'dumpmem':
-                r = self.checkfile(fld1, fld2)
+                r = self.dumpmem(fld1, fld2)
+            elif opcode == 'cmpmem':
+                r = self.cmpmem(fld1, fld2)
             else:
                 print("Unrecognized opcode '%s' in: %s" % (opcode, test))
                 raise Exception("Unrecognized opcode '%s' in: %s" % (opcode, test))

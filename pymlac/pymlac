@@ -22,10 +22,10 @@ required. The options are:
     -ptr <file>                   loads a file on to the papertape reader device
     -r (<address> | pc)           executes from <address> or the current PC contents
     -s <setfile>                  sets memory adress values from <setfile>
-    -t (<addr1> [,<addr2>] | off) controls the execution trace:
-                                      -t 0100     trace from address 0100 (octal)
-                                      -t 0100,200 trace from 0100 octal to 200 decimal
-                                      -t off      turns trace off
+    -t (<range>[:<range>] | off) controls the execution trace:
+                                      -t 0100,0200            trace from 0100 octal to 200 decimal
+                                      -t 0100,0200:0210,0300  trace from 0100 to 0200 and 0210 to 0300
+                                      -t off                  turns trace off
     -ttyin <file>                 loads a file on to the teletype reader device
     -ttyout <file>                loads a file on to the teletype writer device
     -v <viewfile>                 views contents of memory addresses from file
@@ -36,10 +36,21 @@ required. The options are:
 
 import sys
 import getopt
+import collections
+
+from Globals import *
+import MainCPU
+import Memory
+import PtrPtp
+import TtyIn
+import TtyOut
+import Trace
+
+trace = Trace.Trace(TRACE_FILENAME)
 
 
 def str2int(s):
-    """Convert a strinf to an integer value.
+    """Convert a string to an integer value.
 
     s  the string to convert
 
@@ -47,8 +58,16 @@ def str2int(s):
     None is returned if the string cannot be converted.
     """
 
-    return None
+    base = 10
+    if s[0] == '0':
+        base = 8
 
+    try:
+        value = int(s, base=base)
+    except:
+        return None
+
+    return value
 
 def usage(msg=None):
     if msg:
@@ -58,13 +77,40 @@ def usage(msg=None):
     print(__doc__)
 
 
+def start_running(cpu, memory, ptrptp):
+    """Run the Imlac machine until it stops."""
+
+    cpu.running = True
+    while cpu.running:
+        (cycles, traced) = cpu.execute_one_instruction()
+        if traced:
+            trace.itraceend(False)
+        ptrptp.ptr_tick(cycles)
+        ptrptp.ptp_tick(cycles)
+
 def main():
     """Main function of the simulator.  Mostly interpret CLI args."""
 
+    # prepare the Imlac machine
+    imlac_memory = Memory.Memory()
+    imlac_ptrptp = PtrPtp.PtrPtp()
+    imlac_ttyin = TtyIn.TtyIn()
+    imlac_ttyout = TtyOut.TtyOut()
+    imlac_cpu = MainCPU.MainCPU(imlac_memory, None, None,
+                                None, imlac_ttyin, imlac_ttyout, imlac_ptrptp)
+    imlac_cpu.running = True
+    imlac_display_state = False
+
+    # prepare the trace
+    trace.add_maincpu(imlac_cpu)
+
     print('sys.argv=%s' % str(sys.argv))
 
-    len_sys_argv = len(sys.argv)
+    # trace_map defines addresses we are tracing at
+    # initially, no tracing
+    trace_map = collections.defaultdict(bool)
 
+    len_sys_argv = len(sys.argv)
     ndx = 1
     while ndx < len_sys_argv:
         opt = sys.argv[ndx]
@@ -80,23 +126,28 @@ def main():
             dev = sys.argv[ndx].lower()
             ndx += 1
             if dev  == 'ptr':
-                set_bootrom('PTR')
+#                set_bootrom('PTR')
+                imlac_memory.set_ROM('ptr')
             elif dev  == 'tty':
-                set_bootrom('TTYIN')
+#                set_bootrom('TTYIN')
+                imlac_memory.set_ROM('tty')
             elif dev  == 'none':
-                set_bootrom(None)
+#                set_bootrom(None)
+                imlac_memory.set_ROM(None)
             else:
                 usage("-b option must be followed by 'ptr', 'tty' or 'none'")
                 sys.exit(10)
         elif opt == '-c':
-            clear_core()
+#            clear_core()
+            imlac_memory.clear_core()
         elif opt == '-cf':
             if ndx >= len_sys_argv:
                 usage("'-cf' option needs a following filename")
                 sys.exit(10)
             filename = sys.argv[ndx]
             ndx += 1
-            set_core_file(filename)
+#            set_core_file(filename)
+            imlac_memory.set_corefile(filename)
         elif opt == '-d':
             if ndx >= len_sys_argv:
                 usage("'-d' option needs a following data switch value")
@@ -106,7 +157,8 @@ def main():
             if value is None:
                 usage("The '-d' option must be followed by a decimal or octal value")
                 sys.exit(10)
-            set_data_switch(value)
+#            set_data_switch(value)
+            imlac_cpu.DS = value
         elif opt == '-h':
             usage()
             sys.exit(0)
@@ -116,14 +168,16 @@ def main():
                 sys.exit(10)
             filename = sys.argv[ndx]
             ndx += 1
-            set_ptp_filename(filename)
+#            set_ptp_filename(filename)
+            imlac_ptrptp.ptp_mount(filename)
         elif opt == '-ptr':
             if ndx >= len_sys_argv:
                 usage("'-ptr' option needs a following PTR filename")
                 sys.exit(10)
             filename = sys.argv[ndx]
             ndx += 1
-            set_ptr_filename(filename)
+#            set_ptr_filename(filename)
+            imlac_ptrptp.ptr_mount(filename)
         elif opt == '-r':
             if ndx >= len_sys_argv:
                 usage("'-r' option needs a following address or 'pc'")
@@ -135,8 +189,10 @@ def main():
                 if addr_value is None:
                     usage("'-r' option needs a following address or 'pc'")
                     sys.exit(10)
-                set_pc(addr_value)
-            start_running()
+#                set_pc(addr_value)
+                imlac_cpu.PC = addr_value
+            trace.set_trace_map(trace_map)
+            start_running(imlac_cpu, imlac_memory, imlac_ptrptp)
         elif opt == '-s':
             if ndx >= len_sys_argv:
                 usage("'-s' option needs a following data filename")
@@ -146,39 +202,44 @@ def main():
             set_mem_from_file(filename)
         elif opt == '-t':
             if ndx >= len_sys_argv:
-                usage("'-t' option needs a following address range or 'off'")
+                usage("'-t' option needs following address ranges or 'off'")
                 sys.exit(10)
             r = sys.argv[ndx]
             ndx += 1
             if r == 'off':
-                set_trace_off()
+                trace_map = collections.defaultdict(bool)
             else:
-                if ',' in r:
-                    rr = r.split(',')
-                    if len(rr) != 2:
-                        usage("'-r' option may be followed by only two addresses")
+                trace_map = collections.defaultdict(bool)
+                print('r=%s' % r)
+                for rng in r.split(':'):
+                    print('rng=%s' % rng)
+                    be = rng.split(',')
+                    print('be=%s' % str(be))
+                    if len(be) != 2:
+                        usage("'-r' ranges must have form 'begin,end'")
                         sys.exit(10)
-                    (start, stop) = rr
-                    start_addr = str2int(start)
-                    stop_addr = str2int(stop)
-                else:
-                    start_addr = str2int(r)
-                    stop_addr = None
-                set_trace_on(star_addr, stop_addr)
+                    (begin, end) = be
+                    begin = str2int(begin)
+                    end = str2int(end)
+                    print('begin=%s, end=%s' % (str(begin), str(end)))
+                    for addr in range(begin, end+1):
+                        trace_map[addr] = True
         elif opt == '-ttyin':
             if ndx >= len_sys_argv:
                 usage("'-ttyin' option needs a following data filename")
                 sys.exit(10)
             filename = sys.argv[ndx]
             ndx += 1
-            set_tty_in(filename)
+#            set_tty_in(filename)
+            imlac_ttyin.mount(filename)
         elif opt == '-ttyout':
             if ndx >= len_sys_argv:
                 usage("'-ttyout' option needs a following data filename")
                 sys.exit(10)
             filename = sys.argv[ndx]
             ndx += 1
-            set_tty_out(filename)
+#            set_tty_out(filename)
+            imlac_ttyout.mount(filename)
         elif opt == '-v':
             if ndx >= len_sys_argv:
                 usage("'-v' option needs a following address filename")
@@ -199,7 +260,8 @@ def main():
             else:
                 usage("'-v' option needs a following 'on' or 'off'")
                 sys.exit(10)
-            set_rom_write(state)
+#            set_rom_write(state)
+            imlac_memory.set_ROM_writable(state)
 
 
 if __name__ == '__main__':

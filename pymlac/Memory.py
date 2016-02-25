@@ -263,6 +263,7 @@ class Memory(object):
 
         try:
             self.memory[address] = MASK_16(value)
+            print('Memory: setting address %06o to %06o' % (address, MASK_16(value)))
         except IndexError:
             raise RuntimeError('Bad address: %06o (max mem=%06o, ADDRMASK=%06o)'
                                % (address, len(self.memory), ADDRMASK))
