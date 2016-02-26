@@ -220,14 +220,14 @@ class MainCPU(object):
         return (1, tracestr)
 
     def i_JMP(self, indirect, address, instruction):
-        address = self.memory.eff_address(address, indirect)
-        self.PC = address & PCMASK
+        new_address = self.memory.eff_address(address, indirect)
+        self.PC = new_address & PCMASK
         tracestr = trace.itrace(self.dot, 'JMP', indirect, address)
         return (3, tracestr) if indirect else (2, tracestr)
 
     def i_DAC(self, indirect, address, instruction):
-        address = self.memory.eff_address(address, indirect)
-        self.memory.put(self.AC, address, False)
+        new_address = self.memory.eff_address(address, indirect)
+        self.memory.put(self.AC, new_address, False)
         tracestr = trace.itrace(self.dot, 'DAC', indirect, address)
         return (3, tracestr) if indirect else (2, tracestr)
 
