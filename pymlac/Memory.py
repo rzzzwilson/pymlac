@@ -20,7 +20,7 @@ class Memory(object):
     # this PTR bootstrap from "Loading The PDS-1" (loading.pdf)
     PTR_ROM_IMAGE = [ 0060077, # start  lac    base  ;40 get load address
                       0020010, #        dac    10    ;41 put into auto-inc reg
-                      0104100, #        lwc    0100  ;42 -0100 into AC
+                      0104076, #        lwc    076   ;42 -0100+1 into AC
                       0020020, #        dac    20    ;43 put into memory
                       0001061, #        hon          ;44 start PTR
                       0100011, # wait   cal          ;45 clear AC+LINK
