@@ -80,62 +80,65 @@ class Trace(object):
             self.tracefile.write('%s\t%s\t' % (opcode, code))
             self.tracefile.flush()
 
-    def dtrace(self, opcode, address=None):
+    def dtrace(self, ddot, opcode, address=None):
         """Trace the display CPU.
 
+        ddot     address of instruction being traced
         opcode   display opcode
         address  address for the opcode
+
+        Returns the trace string or None if not tracing.
         """
+
+        result = None
 
         if self.tracing:
             if address is None:
-                self.tracefile.write('%s\t\t' % opcode)
+                result = '%04o: %s\t' % (ddot, opcode)
             else:
-                self.tracefile.write('%s\t%5.5o\t' % (opcode, address))
-            self.tracefile.flush()
+                result = '%04o: %s\t%5.5o' % (ddot, opcode, address)
 
-    def itrace(self, opcode, indirect=False, address=None):
+        return result
+
+    def itrace(self, dot, opcode, indirect=False, address=None):
         """Main CPU trace.
 
-        opcode   the main CPU opcode
+        dot       address of instruction being traced
+        opcode    the main CPU opcode
         indirect  True if instruction was indirect
         address   address for the instruction (if any)
 
-        Returns True if tracing, else False.
+        Returns the trace string or None if not tracing.
         """
 
-#        print('itrace: self.cpu.PC=%06o, self.trace_map[self.cpu.PC]=%s'
-#              % (self.cpu.PC-1, str(self.trace_map[self.cpu.PC-1])))
-
-        if self.tracing and self.trace_map[self.cpu.PC-1]:
+        result = None
+        if self.tracing and self.trace_map[dot]:
             char = '*' if indirect else ''
             if address is None:
-                self.tracefile.write('%s\t%s\t' % (opcode, char))
+                result = '%04o\t%s\t%s' % (dot, opcode, char)
             else:
-                self.tracefile.write('%s\t%s%5.5o\t' % (opcode, char, address))
-            self.tracefile.flush()
-            return True
+                result = '%04o\t%s\t%s%5.5o' % (dot, opcode, char, address)
 
-        return False
+        return result
 
     def itraceend(self, dispon):
         """Trace at the end of one execution cycle.
 
         dispon  True if the display was on
+
+        Returns the trace string.
         """
 
-        self.tracefile.write('L=%1.1o AC=%6.6o PC=%6.6o'
-                             % (self.cpu.L, self.cpu.AC, self.cpu.PC))
+        result = ('L=%1.1o AC=%6.6o PC=%6.6o'
+                  % (self.cpu.L, self.cpu.AC, self.cpu.PC))
 
         if dispon:
-            self.tracefile.write(' DX=%5.5o DY=%6.6o'
-                                 % (self.dcpu.DX, self.dcpu.DY))
-        self.tracefile.write('\n')
+            result += ' DX=%5.5o DY=%5.5o' % (self.dcpu.DX, self.dcpu.DY)
 
-        self.tracefile.flush()
+        return result
 
     def comment(self, msg):
-        """Add a comment to the trace."""
+        """Write a line to the trace file."""
 
         self.tracefile.write(msg+'\n')
         self.tracefile.flush()

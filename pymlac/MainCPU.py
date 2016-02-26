@@ -169,13 +169,14 @@ class MainCPU(object):
         return self.BlockBase | address
 
     def execute_one_instruction(self):
-        """Execute one MAIN instruction, return # cycles used and if traced."""
+        """Execute one MAIN instruction, return # cycles and a trace string."""
 
         if not self.running:
-            return 0
+            return (0, None)
 
         # get instruction word to execute, advance PC
-        instruction = self.memory.fetch(self.PC, False)
+        self.dot = self.PC
+        instruction = self.memory.fetch(self.dot, False)
         self.BlockBase = self.PC & ADDRHIGHMASK
         self.PC = MASK_MEM(self.PC + 1)
 
@@ -209,34 +210,34 @@ class MainCPU(object):
                                                                   instruction)
 
     def i_LAW_LWC(self, indirect, address, instruction):
-        traced = False
+        tracestr = None
         if indirect:
             self.AC = ~address & WORDMASK
-            traced = trace.itrace('LWC', False, address)
+            tracestr = trace.itrace(self.dot, 'LWC', False, address)
         else:
             self.AC = address
-            traced = trace.itrace('LAW', False, address)
-        return (1, traced)
+            tracestr = trace.itrace(self.dot, 'LAW', False, address)
+        return (1, tracestr)
 
     def i_JMP(self, indirect, address, instruction):
         address = self.memory.eff_address(address, indirect)
         self.PC = address & PCMASK
-        traced = trace.itrace('JMP', indirect, address)
-        return (3, traced) if indirect else (2, traced)
+        tracestr = trace.itrace(self.dot, 'JMP', indirect, address)
+        return (3, tracestr) if indirect else (2, tracestr)
 
     def i_DAC(self, indirect, address, instruction):
         address = self.memory.eff_address(address, indirect)
         self.memory.put(self.AC, address, False)
-        traced = trace.itrace('DAC', indirect, address)
-        return (3, traced) if indirect else (2, traced)
+        tracestr = trace.itrace(self.dot, 'DAC', indirect, address)
+        return (3, tracestr) if indirect else (2, tracestr)
 
     def i_XAM(self, indirect, address, instruction):
         address = self.memory.eff_address(address, indirect)
         tmp = self.memory.fetch(address, False)
         self.memory.put(self.AC, address, False)
         self.AC = tmp
-        traced = trace.itrace('XAM', indirect, address)
-        return (3, traced) if indirect else (2, traced)
+        tracestr = trace.itrace(self.dot, 'XAM', indirect, address)
+        return (3, tracestr) if indirect else (2, tracestr)
 
     def i_ISZ(self, indirect, address, instruction):
         address = self.memory.eff_address(address, indirect)
@@ -244,43 +245,43 @@ class MainCPU(object):
         self.memory.put(value, address, False)
         if value == 0:
             self.PC = (self.PC + 1) & WORDMASK
-        traced = trace.itrace('ISZ', indirect, address)
-        return (3, traced) if indirect else (2, traced)
+        tracestr = trace.itrace(self.dot, 'ISZ', indirect, address)
+        return (3, tracestr) if indirect else (2, tracestr)
 
     def i_JMS(self, indirect, address, instruction):
         address = self.memory.eff_address(address, indirect)
         self.memory.put(self.PC, address, False)
         self.PC = (address + 1) & PCMASK
-        traced = trace.itrace('JMS', indirect, address)
-        return (3, traced) if indirect else (2, traced)
+        tracestr = trace.itrace(self.dot, 'JMS', indirect, address)
+        return (3, tracestr) if indirect else (2, tracestr)
 
     def i_AND(self, indirect, address, instruction):
         self.AC &= self.memory.fetch(address, indirect)
-        traced = trace.itrace('AND', indirect, address)
-        return (3, traced) if indirect else (2, traced)
+        tracestr = trace.itrace(self.dot, 'AND', indirect, address)
+        return (3, tracestr) if indirect else (2, tracestr)
 
     def i_IOR(self, indirect, address, instruction):
         self.AC |= self.memory.fetch(address, indirect)
-        traced = trace.itrace('IOR', indirect, address)
-        return (3, traced) if indirect else (2, traced)
+        tracestr = trace.itrace(self.dot, 'IOR', indirect, address)
+        return (3, tracestr) if indirect else (2, tracestr)
 
     def i_XOR(self, indirect, address, instruction):
         self.AC ^= self.memory.fetch(address, indirect)
-        traced = trace.itrace('XOR', indirect, address)
-        return (3, traced) if indirect else (2, traced)
+        tracestr = trace.itrace(self.dot, 'XOR', indirect, address)
+        return (3, tracestr) if indirect else (2, tracestr)
 
     def i_LAC(self, indirect, address, instruction):
         self.AC = self.memory.fetch(address, indirect)
-        traced = trace.itrace('LAC', indirect, address)
-        return (3, traced) if indirect else (2, traced)
+        tracestr = trace.itrace(self.dot, 'LAC', indirect, address)
+        return (3, tracestr) if indirect else (2, tracestr)
 
     def i_ADD(self, indirect, address, instruction):
         self.AC += self.memory.fetch(self.BLOCKADDR(address), indirect)
         if self.AC & OVERFLOWMASK:
             self.L = (~self.L) & 01
         self.AC &= WORDMASK
-        traced = trace.itrace('ADD', indirect, address)
-        return (3, traced) if indirect else (2, traced)
+        tracestr = trace.itrace(self.dot, 'ADD', indirect, address)
+        return (3, tracestr) if indirect else (2, tracestr)
 
     def i_SUB(self, indirect, address, instruction):
         addit = self.memory.fetch(self.BLOCKADDR(address), indirect)
@@ -289,15 +290,15 @@ class MainCPU(object):
         if self.AC & OVERFLOWMASK:
             self.L = ~self.L
         self.AC &= WORDMASK
-        traced = trace.itrace('SUB', indirect, address)
-        return (3, traced) if indirect else (2, traced)
+        tracestr = trace.itrace(self.dot, 'SUB', indirect, address)
+        return (3, tracestr) if indirect else (2, tracestr)
 
     def i_SAM(self, indirect, address, instruction):
         samaddr = self.BLOCKADDR(address)
         if self.AC == self.memory.fetch(samaddr, indirect):
             self.PC = (self.PC + 1) & PCMASK
-        traced = trace.itrace('SAM', indirect, address)
-        return (3, traced) if indirect else (2, traced)
+        tracestr = trace.itrace(self.dot, 'SAM', indirect, address)
+        return (3, tracestr) if indirect else (2, tracestr)
 
     def microcode(self, instruction):
         # T1
@@ -338,149 +339,149 @@ class MainCPU(object):
                     if instruction & k:
                         combine.append(op)
 
-        traced = trace.itrace('+'.join(combine), False)
-        return (1, traced)
+        tracestr = trace.itrace(self.dot, '+'.join(combine), False)
+        return (1, tracestr)
 
     def i_DLA(self, indirect, address, instruction):
         self.displaycpu.DPC = self.AC
-        traced = trace.itrace('DLA')
-        return (1, traced)
+        tracestr = trace.itrace(self.dot, 'DLA')
+        return (1, tracestr)
 
     def i_CTB(self, indirect, address, instruction):
-        traced = trace.itrace('CTB')
-        return (1, traced)
+        tracestr = trace.itrace(self.dot, 'CTB')
+        return (1, tracestr)
 
     def i_DOF(self, indirect, address, instruction):
         self.displaycpu.stop()
-        traced = trace.itrace('DOF')
-        return (1, traced)
+        tracestr = trace.itrace(self.dot, 'DOF')
+        return (1, tracestr)
 
     def i_KRB(self, indirect, address, instruction):
         self.AC |= self.kbd.read()
-        traced = trace.itrace('KRB')
-        return (1, traced)
+        tracestr = trace.itrace(self.dot, 'KRB')
+        return (1, tracestr)
 
     def i_KCF(self, indirect, address, instruction):
         self.kbd.clear()
-        traced = trace.itrace('KCF')
-        return (1, traced)
+        tracestr = trace.itrace(self.dot, 'KCF')
+        return (1, tracestr)
 
     def i_KRC(self, indirect, address, instruction):
         self.AC |= self.kbd.read()
         self.kbd.clear()
-        traced = trace.itrace('KRC')
-        return (1, traced)
+        tracestr = trace.itrace(self.dot, 'KRC')
+        return (1, tracestr)
 
     def i_RRB(self, indirect, address, instruction):
         self.AC |= self.ttyin.read()
-        traced = trace.itrace('RRB')
-        return (1, traced)
+        tracestr = trace.itrace(self.dot, 'RRB')
+        return (1, tracestr)
 
     def i_RCF(self, indirect, address, instruction):
         self.ttyin.clear()
-        traced = trace.itrace('RCF')
-        return (1, traced)
+        tracestr = trace.itrace(self.dot, 'RCF')
+        return (1, tracestr)
 
     def i_RRC(self, indirect, address, instruction):
         self.AC |= self.ttyin.read()
         self.ttyin.clear()
-        traced = trace.itrace('RRC')
-        return (1, traced)
+        tracestr = trace.itrace(self.dot, 'RRC')
+        return (1, tracestr)
 
     def i_TPR(self, indirect, address, instruction):
         self.ttyout.write(self.AC & 0xff)
-        traced = trace.itrace('TPR')
-        return (1, traced)
+        tracestr = trace.itrace(self.dot, 'TPR')
+        return (1, tracestr)
 
     def i_TCF(self, indirect, address, instruction):
         self.ttyout.clear()
-        traced = trace.itrace('TCF')
-        return (1, traced)
+        tracestr = trace.itrace(self.dot, 'TCF')
+        return (1, tracestr)
 
     def i_TPC(self, indirect, address, instruction):
         self.ttyout.write(self.AC & 0xff)
         self.ttyout.clear()
-        traced = trace.itrace('TPC')
-        return (1, traced)
+        tracestr = trace.itrace(self.dot, 'TPC')
+        return (1, tracestr)
 
     def i_HRB(self, indirect, address, instruction):
         self.AC |= self.ptrptp.read()
-        traced = trace.itrace('HRB')
-        return (1, traced)
+        tracestr = trace.itrace(self.dot, 'HRB')
+        return (1, tracestr)
 
     def i_HOF(self, indirect, address, instruction):
         self.ptrptp.stop()
-        traced = trace.itrace('HOF')
-        return (1, traced)
+        tracestr = trace.itrace(self.dot, 'HOF')
+        return (1, tracestr)
 
     def i_HON(self, indirect, address, instruction):
         self.ptrptp.start()
-        traced = trace.itrace('HON')
-        return (1, traced)
+        tracestr = trace.itrace(self.dot, 'HON')
+        return (1, tracestr)
 
     def i_STB(self, indirect, address, instruction):
-        traced = trace.itrace('STB')
-        return (1, traced)
+        tracestr = trace.itrace(self.dot, 'STB')
+        return (1, tracestr)
 
     def i_SCF(self, indirect, address, instruction):
         self.Sync40Hz = 0
-        traced = trace.itrace('SCF')
-        return (1, traced)
+        tracestr = trace.itrace(self.dot, 'SCF')
+        return (1, tracestr)
 
     def i_IOS(self, indirect, address, instruction):
-        traced = trace.itrace('IOS')
-        return (1, traced)
+        tracestr = trace.itrace(self.dot, 'IOS')
+        return (1, tracestr)
 
     def i_IOT101(self, indirect, address, instruction):
-        traced = trace.itrace('IOT101')
-        return (1, traced)
+        tracestr = trace.itrace(self.dot, 'IOT101')
+        return (1, tracestr)
 
     def i_IOT111(self, indirect, address, instruction):
-        traced = trace.itrace('IOT111')
-        return (1, traced)
+        tracestr = trace.itrace(self.dot, 'IOT111')
+        return (1, tracestr)
 
     def i_IOT131(self, indirect, address, instruction):
-        traced = trace.itrace('IOT131')
-        return (1, traced)
+        tracestr = trace.itrace(self.dot, 'IOT131')
+        return (1, tracestr)
 
     def i_IOT132(self, indirect, address, instruction):
-        traced = trace.itrace('IOT132')
-        return (1, traced)
+        tracestr = trace.itrace(self.dot, 'IOT132')
+        return (1, tracestr)
 
     def i_IOT134(self, indirect, address, instruction):
-        traced = trace.itrace('IOT134')
-        return (1, traced)
+        tracestr = trace.itrace(self.dot, 'IOT134')
+        return (1, tracestr)
 
     def i_IOT141(self, indirect, address, instruction):
-        traced = trace.itrace('IOT141')
-        return (1, traced)
+        tracestr = trace.itrace(self.dot, 'IOT141')
+        return (1, tracestr)
 
     def i_IOF(self, indirect, address, instruction):
-        traced = trace.itrace('IOF')
-        return (1, traced)
+        tracestr = trace.itrace(self.dot, 'IOF')
+        return (1, tracestr)
 
     def i_ION(self, indirect, address, instruction):
-        traced = trace.itrace('ION')
-        return (1, traced)
+        tracestr = trace.itrace(self.dot, 'ION')
+        return (1, tracestr)
 
     def i_PPC(self, indirect, address, instruction):
         self.ptrptp.punch(self.AC & 0xff)
-        traced = trace.itrace('PPC')
-        return (1, traced)
+        tracestr = trace.itrace(self.dot, 'PPC')
+        return (1, tracestr)
 
     def i_PSF(self, indirect, address, instruction):
         if self.ptrptp.ready():
             self.PC = (self.PC + 1) & WORDMASK
-        traced = trace.itrace('PSF')
-        return (1, traced)
+        tracestr = trace.itrace(self.dot, 'PSF')
+        return (1, tracestr)
 
     def i_RAL1(self, indirect, address, instruction):
         newl = self.AC >> 15
         newac = (self.AC << 1) | self.L
         self.L = newl
         self.AC = newac & WORDMASK
-        traced = trace.itrace('RAL', False, 1)
-        return (1, traced)
+        tracestr = trace.itrace(self.dot, 'RAL', False, 1)
+        return (1, tracestr)
 
     def i_RAL2(self, indirect, address, instruction):
         newl = self.AC >> 15
@@ -491,8 +492,8 @@ class MainCPU(object):
         newac = (self.AC << 1) | self.L
         self.L = newl
         self.AC = newac & WORDMASK
-        traced = trace.itrace('RAL', False, 2)
-        return (1, traced)
+        tracestr = trace.itrace(self.dot, 'RAL', False, 2)
+        return (1, tracestr)
 
     def i_RAL3(self, indirect, address, instruction):
         newl = self.AC >> 15
@@ -507,16 +508,16 @@ class MainCPU(object):
         newac = (self.AC << 1) | self.L
         self.L = newl
         self.AC = newac & WORDMASK
-        traced = trace.itrace('RAL', False, 3)
-        return (1, traced)
+        tracestr = trace.itrace(self.dot, 'RAL', False, 3)
+        return (1, tracestr)
 
     def i_RAR1(self, indirect, address, instruction):
         newl = self.AC & 1
         newac = (self.AC >> 1) | (self.L << 15)
         self.L = newl
         self.AC = newac & WORDMASK
-        traced = trace.itrace('RAR', False, 1)
-        return (1, traced)
+        tracestr = trace.itrace(self.dot, 'RAR', False, 1)
+        return (1, tracestr)
 
     def i_RAR2(self, indirect, address, instruction):
         newl = self.AC & 1
@@ -527,8 +528,8 @@ class MainCPU(object):
         newac = (self.AC >> 1) | (self.L << 15)
         self.L = newl
         self.AC = newac & WORDMASK
-        traced = trace.itrace('RAR', False, 2)
-        return (1, traced)
+        tracestr = trace.itrace(self.dot, 'RAR', False, 2)
+        return (1, tracestr)
 
     def i_RAR3(self, indirect, address, instruction):
         newl = self.AC & 1
@@ -543,162 +544,162 @@ class MainCPU(object):
         newac = (self.AC >> 1) | (self.L << 15)
         self.L = newl
         self.AC = newac & WORDMASK
-        traced = trace.itrace('RAR', False, 3)
-        return (1, traced)
+        tracestr = trace.itrace(self.dot, 'RAR', False, 3)
+        return (1, tracestr)
 
     def i_SAL1(self, indirect, address, instruction):
         high_bit = self.AC & HIGHBITMASK
         value = self.AC & 037777
         self.AC = (value << 1) | high_bit
-        traced = trace.itrace('SAL', False, 1)
-        return (1, traced)
+        tracestr = trace.itrace(self.dot, 'SAL', False, 1)
+        return (1, tracestr)
 
     def i_SAL2(self, indirect, address, instruction):
         high_bit = self.AC & HIGHBITMASK
         value = self.AC & 017777
         self.AC = (value << 2) | high_bit
-        traced = trace.itrace('SAL', False, 2)
-        return (1, traced)
+        tracestr = trace.itrace(self.dot, 'SAL', False, 2)
+        return (1, tracestr)
 
     def i_SAL3(self, indirect, address, instruction):
         high_bit = self.AC & HIGHBITMASK
         value = self.AC & 007777
         self.AC = (value << 3) | high_bit
-        traced = trace.itrace('SAL', False, 3)
-        return (1, traced)
+        tracestr = trace.itrace(self.dot, 'SAL', False, 3)
+        return (1, tracestr)
 
     def i_SAR1(self, indirect, address, instruction):
         high_bit = self.AC & HIGHBITMASK
         self.AC = (self.AC >> 1) | high_bit
-        traced = trace.itrace('SAR', False, 1)
-        return (1, traced)
+        tracestr = trace.itrace(self.dot, 'SAR', False, 1)
+        return (1, tracestr)
 
     def i_SAR2(self, indirect, address, instruction):
         high_bit = self.AC & HIGHBITMASK
         self.AC = (self.AC >> 1) | high_bit
         self.AC = (self.AC >> 1) | high_bit
-        traced = trace.itrace('SAR', False, 2)
-        return (1, traced)
+        tracestr = trace.itrace(self.dot, 'SAR', False, 2)
+        return (1, tracestr)
 
     def i_SAR3(self, indirect, address, instruction):
         high_bit = self.AC & HIGHBITMASK
         self.AC = (self.AC >> 1) | high_bit
         self.AC = (self.AC >> 1) | high_bit
         self.AC = (self.AC >> 1) | high_bit
-        traced = trace.itrace('SAR', False, 3)
-        return (1, traced)
+        tracestr = trace.itrace(self.dot, 'SAR', False, 3)
+        return (1, tracestr)
 
     def i_DON(self, indirect, address, instruction):
         self.displaycpu.DRSindex = 0
         self.displaycpu.start()
-        traced = trace.itrace('DON')
-        return (1, traced)
+        tracestr = trace.itrace(self.dot, 'DON')
+        return (1, tracestr)
 
     def i_ASZ(self):
         if self.AC == 0:
             self.PC = (self.PC + 1) & WORDMASK
-        traced = trace.itrace('ASZ')
-        return (1, traced)
+        tracestr = trace.itrace(self.dot, 'ASZ')
+        return (1, tracestr)
 
     def i_ASN(self):
         if self.AC != 0:
             self.PC = (self.PC + 1) & WORDMASK
-        traced = trace.itrace('ASN')
-        return (1, traced)
+        tracestr = trace.itrace(self.dot, 'ASN')
+        return (1, tracestr)
 
     def i_ASP(self):
         if not (self.AC & HIGHBITMASK):
             self.PC = (self.PC + 1) & WORDMASK
-        traced = trace.itrace('ASP')
-        return (1, traced)
+        tracestr = trace.itrace(self.dot, 'ASP')
+        return (1, tracestr)
 
     def i_ASM(self):
         if (self.AC & HIGHBITMASK):
             self.PC = (self.PC + 1) & WORDMASK
-        traced = trace.itrace('ASM')
-        return (1, traced)
+        tracestr = trace.itrace(self.dot, 'ASM')
+        return (1, tracestr)
 
     def i_LSZ(self):
         if self.L == 0:
             self.PC = (self.PC + 1) & WORDMASK
-        traced = trace.itrace('LSZ')
-        return (1, traced)
+        tracestr = trace.itrace(self.dot, 'LSZ')
+        return (1, tracestr)
 
     def i_LSN(self):
         if self.L != 0:
             self.PC = (self.PC + 1) & WORDMASK
-        traced = trace.itrace('LSN')
-        return (1, traced)
+        tracestr = trace.itrace(self.dot, 'LSN')
+        return (1, tracestr)
 
     def i_DSF(self):
         if self.displaycpu.ison():
             self.PC = (self.PC + 1) & WORDMASK
-        traced = trace.itrace('DSF')
-        return (1, traced)
+        tracestr = trace.itrace(self.dot, 'DSF')
+        return (1, tracestr)
 
     def i_DSN(self):
         if not self.displaycpu.ison():
             self.PC = (self.PC + 1) & WORDMASK
-        traced = trace.itrace('DSN')
-        return (1, traced)
+        tracestr = trace.itrace(self.dot, 'DSN')
+        return (1, tracestr)
 
     def i_KSF(self):
         if self.kbd.ready():
             self.PC = (self.PC + 1) & WORDMASK
-        traced = trace.itrace('KSF')
-        return (1, traced)
+        tracestr = trace.itrace(self.dot, 'KSF')
+        return (1, tracestr)
 
     def i_KSN(self):
         if not self.kbd.ready():
             self.PC = (self.PC + 1) & WORDMASK
-        traced = trace.itrace('KSN')
-        return (1, traced)
+        tracestr = trace.itrace(self.dot, 'KSN')
+        return (1, tracestr)
 
     def i_RSF(self):
         if self.ttyin.ready():
             self.PC = (self.PC + 1) & WORDMASK
-        traced = trace.itrace('RSF')
-        return (1, traced)
+        tracestr = trace.itrace(self.dot, 'RSF')
+        return (1, tracestr)
 
     def i_RSN(self):
         if not self.ttyin.ready():
             self.PC = (self.PC + 1) & WORDMASK
-        traced = trace.itrace('RSN')
-        return (1, traced)
+        tracestr = trace.itrace(self.dot, 'RSN')
+        return (1, tracestr)
 
     def i_TSF(self):
         if self.ttyout.ready():
             self.PC = (self.PC + 1) & WORDMASK
-        traced = trace.itrace('TSF')
-        return (1, traced)
+        tracestr = trace.itrace(self.dot, 'TSF')
+        return (1, tracestr)
 
     def i_TSN(self):
         if not self.ttyout.ready():
             self.PC = (self.PC + 1) & WORDMASK
-        traced = trace.itrace('TSN')
-        return (1, traced)
+        tracestr = trace.itrace(self.dot, 'TSN')
+        return (1, tracestr)
 
     def i_SSF(self):
         if self.display.ready():	# skip if 40Hz sync on
             self.PC = (self.PC + 1) & WORDMASK
-        traced = trace.itrace('SSF')
-        return (1, traced)
+        tracestr = trace.itrace(self.dot, 'SSF')
+        return (1, tracestr)
 
     def i_SSN(self):
         if not self.display.ready():
             self.PC = (self.PC + 1) & WORDMASK
-        traced = trace.itrace('SSN')
-        return (1, traced)
+        tracestr = trace.itrace(self.dot, 'SSN')
+        return (1, tracestr)
 
     def i_HSF(self):
         if self.ptrptp.ready():
             self.PC = (self.PC + 1) & WORDMASK
-        traced = trace.itrace('HSF')
-        return (1, traced)
+        tracestr = trace.itrace(self.dot, 'HSF')
+        return (1, tracestr)
 
     def i_HSN(self):
         if not self.ptrptp.ready():
             self.PC = (self.PC + 1) & WORDMASK
-        traced = trace.itrace('HSN')
-        return (1, traced)
+        tracestr = trace.itrace(self.dot, 'HSN')
+        return (1, tracestr)
 
