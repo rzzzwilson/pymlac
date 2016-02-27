@@ -224,12 +224,19 @@ class Memory(object):
 
         # the Imlac can get into infinite defer loops, and so can we!
         while indirect:
+            print('Memory.eff_address: indirect and address=%06o' % address)
             if ISAUTOINC(address):
                 # indirect on auto-inc register, add one to it before use
                 self.memory[address] = MASK_MEM(self.memory[address] + 1)
-            address = self.memory[address]
+            try:
+                address = self.memory[address]
+            except IndexError:
+                # assume we are addressing out of memory limits
+                msg = 'Bad memory address: %06o' % address
+                raise IndexError(msg)
             indirect = bool(address & 0100000)
 
+        print('Memory.eff_address: final address=%06o' % address)
         return address
 
     def str_trace(self, msg=None):
@@ -263,7 +270,7 @@ class Memory(object):
 
         try:
             self.memory[address] = MASK_16(value)
-            print('Memory: setting address %06o to %06o' % (address, MASK_16(value)))
+            print('Memory.put: setting address %06o to %06o' % (address, MASK_16(value)))
         except IndexError:
             raise RuntimeError('Bad address: %06o (max mem=%06o, ADDRMASK=%06o)'
                                % (address, len(self.memory), ADDRMASK))
