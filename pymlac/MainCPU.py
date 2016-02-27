@@ -220,38 +220,41 @@ class MainCPU(object):
         return (1, tracestr)
 
     def i_JMP(self, indirect, address, instruction):
-        new_address = self.memory.eff_address(address, indirect)
-        self.PC = new_address & PCMASK
+        eff_address = self.memory.eff_address(address, indirect)
+        self.PC = eff_address & PCMASK
         tracestr = trace.itrace(self.dot, 'JMP', indirect, address)
         return (3, tracestr) if indirect else (2, tracestr)
 
     def i_DAC(self, indirect, address, instruction):
-        new_address = self.memory.eff_address(address, indirect)
-        self.memory.put(self.AC, new_address, False)
+        print('i_DAC: address=%06o, indirect=%s' % (address, str(indirect)))
+        if indirect:
+            print('\tmemory[%06o]=%06o' % (address, self.memory.fetch(address, False)))
+        eff_address = self.memory.eff_address(address, indirect)
+        self.memory.put(self.AC, eff_address, False)
         tracestr = trace.itrace(self.dot, 'DAC', indirect, address)
         return (3, tracestr) if indirect else (2, tracestr)
 
     def i_XAM(self, indirect, address, instruction):
-        address = self.memory.eff_address(address, indirect)
-        tmp = self.memory.fetch(address, False)
-        self.memory.put(self.AC, address, False)
+        eff_address = self.memory.eff_address(address, indirect)
+        tmp = self.memory.fetch(eff_address, False)
+        self.memory.put(self.AC, eff_address, False)
         self.AC = tmp
         tracestr = trace.itrace(self.dot, 'XAM', indirect, address)
         return (3, tracestr) if indirect else (2, tracestr)
 
     def i_ISZ(self, indirect, address, instruction):
-        address = self.memory.eff_address(address, indirect)
-        value = (self.memory.fetch(address, False) + 1) & WORDMASK
-        self.memory.put(value, address, False)
+        eff_address = self.memory.eff_address(address, indirect)
+        value = (self.memory.fetch(eff_address, False) + 1) & WORDMASK
+        self.memory.put(value, eff_address, False)
         if value == 0:
             self.PC = (self.PC + 1) & WORDMASK
         tracestr = trace.itrace(self.dot, 'ISZ', indirect, address)
         return (3, tracestr) if indirect else (2, tracestr)
 
     def i_JMS(self, indirect, address, instruction):
-        address = self.memory.eff_address(address, indirect)
-        self.memory.put(self.PC, address, False)
-        self.PC = (address + 1) & PCMASK
+        eff_address = self.memory.eff_address(address, indirect)
+        self.memory.put(self.PC, eff_address, False)
+        self.PC = (eff_address + 1) & PCMASK
         tracestr = trace.itrace(self.dot, 'JMS', indirect, address)
         return (3, tracestr) if indirect else (2, tracestr)
 
