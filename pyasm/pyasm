@@ -275,7 +275,7 @@ BlockLoader = [
      0102001, # 003725         asn             ;
      0013746, # 003726         jmp     newblk  ;if same, get next block
      0000000, # 003727         hlt             ;if not same, ERROR
-     0177777, # 003730 neg1    data    0177771 ;-1, load address means STOP load
+     0177777, # 003730 neg1    data    0177777 ;this load address means STOP
               #        ;------------------------
               #        ;Compute checksum.  Word to sum in AC.
               #        ;------------------------
