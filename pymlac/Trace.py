@@ -137,6 +137,9 @@ class Trace(object):
 
         return result
 
+    def flush(self):
+        self.tracefile.flush()
+
     def comment(self, msg):
         """Write a line to the trace file."""
 
