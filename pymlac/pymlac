@@ -86,6 +86,8 @@ def start_running(cpu, memory, ptrptp):
         if tracestr:
             endstr = trace.itraceend(False)
             trace.comment('%s\t%s' % (tracestr, endstr))
+            trace.flush()
+        print('start_running: cycles=%d' % cycles)
         ptrptp.ptr_tick(cycles)
         ptrptp.ptp_tick(cycles)
 
