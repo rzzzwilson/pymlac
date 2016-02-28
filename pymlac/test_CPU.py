@@ -276,8 +276,11 @@ class TestCPU(object):
 
         self.used_cycles= 0
         while self.cpu.running:
-            cycles = self.cpu.execute_one_instruction()
-            trace.itraceend(False)
+            (cycles, tracestr) = self.cpu.execute_one_instruction()
+            if tracestr:
+                endstr = trace.itraceend(False)
+                trace.comment('%s\t%s' % (tracestr, endstr))
+                trace.flush()
             self.ptrptp.ptr_tick(cycles)
             self.ptrptp.ptp_tick(cycles)
             self.used_cycles += cycles
@@ -426,8 +429,8 @@ class TestCPU(object):
             if len(s) != 2:
                 return "dumpmem: dump limits are bad: %s" % addresses
             (begin, end) = s
-            begin = str2int(begin)
-            end = str2int(end)
+            begin = self.str2int(begin)
+            end = self.str2int(end)
             if begin is None or end is None:
                 return "dumpmem: dump limits are bad: %s" % addresses
 
@@ -625,7 +628,7 @@ class TestCPU(object):
             print(test)
             print('\t' + '\n\t'.join(result))
 
-        self.memdump('core.txt', 0, 0200)
+        self.memdump('core.txt', 03700, 0100)
 
     def memdump(self, filename, start, number):
         """Dump memory from 'start' into 'filename', 'number' words dumped."""

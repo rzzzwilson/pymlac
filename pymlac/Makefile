@@ -7,17 +7,18 @@ test:
 	pymlac -b ptr -c -ptr dumpmem_test.ptp -t 040,045:050,052:055,060:065,066:071,077:0100,0110:03700,03761:03766,03777 -r 040 -r 0100
 
 test_debug:	
-	rm -f test.ptr test.ptp CPU.test.trace test_CPU.log
-	./make_ptr > test.ptr
-	python test_CPU.py CPU.test
-	#python test_Display.py     # interactive!
-	@echo "##########  Run 'python test_Display.py' by hand!  ##########"
-	#python test_KBD.py                # interactive!
-	@echo "##########  Run 'python test_KBD.py' by hand!  ##########"
-	python test_Memory.py
-	python test_PTR_PTP.py
-	python test_TTYIN.py
-	python test_TTYOUT.py
+	rm -f test.ptr test.ptp CPU.test.trace test_CPU.log pymlac.trace
+	python test_CPU.py dumpmem.test
+#	./make_ptr > test.ptr
+#	python test_CPU.py CPU.test
+#	#python test_Display.py     # interactive!
+#	@echo "##########  Run 'python test_Display.py' by hand!  ##########"
+#	#python test_KBD.py                # interactive!
+#	@echo "##########  Run 'python test_KBD.py' by hand!  ##########"
+#	python test_Memory.py
+#	python test_PTR_PTP.py
+#	python test_TTYIN.py
+#	python test_TTYOUT.py
 
 
 %:	%.ptp
