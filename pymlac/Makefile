@@ -4,7 +4,7 @@
 #
 
 test:
-	pymlac -b ptr -c -ptr dumpmem_test.ptp -t 040,045:050,052:055,060:065,066:071,077:0100,0110:03700,03761:03766,03777 -r 040 -r 0100
+	pymlac -b ptr -c -ptr dumpmem_test.ptp -t 0100,0110:03700,03761:03766,03777 -r 040 -r 0100
 
 test_debug:	
 	rm -f test.ptr test.ptp CPU.test.trace test_CPU.log pymlac.trace
