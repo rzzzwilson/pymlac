@@ -422,6 +422,7 @@ class TestCPU(object):
 
         # get address limits
         if addresses is None:
+            # dump everything
             begin = 0
             end = 0x3fff
         else:
@@ -440,7 +441,10 @@ class TestCPU(object):
         # create dict containing memory contents: {addr: contents, ...}
         mem = {}
         for addr in range(begin, end+1):
-            mem[addr] = self.memory.fetch(addr, False)
+            addr_str = '%06o' % addr
+            value = self.memory.fetch(addr, False)
+            value_str = '%06o' % value
+            mem[addr_str] = value_str
 
         # dump to JSON file
         with open(filename, 'wb') as handle:
@@ -628,7 +632,6 @@ class TestCPU(object):
             print(test)
             print('\t' + '\n\t'.join(result))
 
-        self.memdump('core.txt', 03700, 0100)
 
     def memdump(self, filename, start, number):
         """Dump memory from 'start' into 'filename', 'number' words dumped."""
