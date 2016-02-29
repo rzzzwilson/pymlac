@@ -226,9 +226,6 @@ class MainCPU(object):
         return (3, tracestr) if indirect else (2, tracestr)
 
     def i_DAC(self, indirect, address, instruction):
-        print('i_DAC: address=%06o, indirect=%s' % (address, str(indirect)))
-        if indirect:
-            print('\tmemory[%06o]=%06o' % (address, self.memory.fetch(address, False)))
         eff_address = self.memory.eff_address(address, indirect)
         self.memory.put(self.AC, eff_address, False)
         tracestr = trace.itrace(self.dot, 'DAC', indirect, address)
