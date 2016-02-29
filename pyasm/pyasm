@@ -212,7 +212,7 @@ OpcodeData = {
              }
 
 ######
-# The papertape/teletype loader code
+# The papertape/teletype loader code (c8lds form)
 ######
 
 BlockLoader = [
@@ -424,12 +424,59 @@ def emit_word(word):
 
     code_block_size = len(BlockBuffer)
     if code_block_size >= BlockMaxSize:
-        write_block()
+        write_block_c8lds()
+        #write_block_lc16sd()
         start_block(Dot)
 
     BlockBuffer.append(word)
 
-def write_block():
+def write_eot_c8lds():
+    """Write End-Of-Tape data for c8lds format tape."""
+
+    write_byte(001)
+    write_word(0177777)
+
+def write_block_c8lds():
+    """Write the current code block and reset the buffer.
+
+    Write the code block in 'c8lds' form:
+        data count (8 bits)
+        load address (16 bits)
+        first data word (16 bits)
+        ...
+        last word (16 bits)
+        checksum (16 bits)
+    Note that a data block may be preceded by a zero leader.
+
+    The 'checksum' is not well defined in the documentation: the checksum is
+    the sum of all the contents modulo 077777.  Yet the example tape has a
+    checksum of 165054.  It is assumed the doc is in error and the checksum
+    is the sum of all the data words, modulo 177777.
+    """
+
+    global BlockBuffer, BlockBufferBase
+
+    code_block_size = len(BlockBuffer)
+    if code_block_size == 0:
+        # block buffer is empty, do nothing
+        return
+
+    # emit the word count (byte) and load address (word)
+    write_byte(code_block_size)
+    write_word(BlockBufferBase)
+
+    # write out data words
+    for word in BlockBuffer:
+        write_word(word)
+
+    # finally, calculate and write the checksum
+    checksum = sum(BlockBuffer)
+    write_word(checksum & WordMask)
+
+    # reset the code buffer
+    start_block(None)
+
+def write_block_lc16sd():
     """Write the current code block and reset the buffer."""
 
     global BlockBuffer, BlockBufferBase
@@ -681,7 +728,8 @@ def pass_2(lines):
                     error("ORG pseudo-op has a bad address")
                     return False
                 if BlockBufferBase is not None:
-                    write_block()        # write any code accumulated so far
+                    write_block_c8lds()     # write any code accumulated so far
+                    #write_block_lc16sd()
                 Dot = eval_expr(addr)
                 start_block(Dot)
                 write_list(None, Dot, lnum, line)
@@ -725,7 +773,8 @@ def pass_2(lines):
                     except KeyError:
                         error("BSS label '%s' wasn't defined in first pass!?"
                               % label)
-                write_block()        # write any code accumulated so far
+                write_block_c8lds()        # write any code accumulated so far
+                #write_block_lc16sd()
                 Dot += value
                 start_block(Dot)
                 write_list(None, None, lnum, line)
@@ -874,11 +923,15 @@ def pass_2(lines):
             write_list(None, None, lnum, line)
 
     # write the final block of code and optional start address
-    write_block()
-    if StartAddress is not None:
-        write_start(StartAddress, ac=0177777)
-    else:
-        write_start()
+    write_block_c8lds()
+
+    # write EOT data
+    write_eot_c8lds()
+    #write_block_lc16sd()
+#    if StartAddress is not None:
+#        write_start(StartAddress, ac=0177777)
+#    else:
+#        write_start()
     write_leader()
 
     # check nothing after END
