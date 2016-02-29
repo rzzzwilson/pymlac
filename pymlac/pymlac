@@ -87,7 +87,6 @@ def start_running(cpu, memory, ptrptp):
             endstr = trace.itraceend(False)
             trace.comment('%s\t%s' % (tracestr, endstr))
             trace.flush()
-        print('start_running: cycles=%d' % cycles)
         ptrptp.ptr_tick(cycles)
         ptrptp.ptp_tick(cycles)
 
@@ -107,8 +106,6 @@ def main():
     # prepare the trace
     trace.add_maincpu(imlac_cpu)
 
-    print('sys.argv=%s' % str(sys.argv))
-
     # trace_map defines addresses we are tracing at
     # initially, no tracing
     trace_map = collections.defaultdict(bool)
@@ -118,7 +115,6 @@ def main():
     while ndx < len_sys_argv:
         opt = sys.argv[ndx]
         ndx += 1
-        print('opt=%s' % opt)
         if opt[0] != '-':
             usage("Bad option: '%s'" % str(opt))
 
@@ -202,18 +198,14 @@ def main():
             ndx += 1
             trace_map = collections.defaultdict(bool)
             if r != 'off':
-                print('r=%s' % r)
                 for rng in r.split(':'):
-                    print('rng=%s' % rng)
                     be = rng.split(',')
-                    print('be=%s' % str(be))
                     if len(be) != 2:
                         usage("'-r' ranges must have form 'begin,end'")
                         sys.exit(10)
                     (begin, end) = be
                     begin = str2int(begin)
                     end = str2int(end)
-                    print('begin=%s, end=%s' % (str(begin), str(end)))
                     for addr in range(begin, end+1):
                         trace_map[addr] = True
         elif opt == '-ttyin':
