@@ -156,6 +156,11 @@ def c8lds_handler(ptp_data, memory):
     A load address of 0177777 indicates the end of the load.
     As there is no autostart mechanism, returns (None, None) on successful load.
     Returns None if there was nothing to load.
+
+    Note that we DO need an 'end of load' block of three bytes at the end of
+    the tape:
+        001         # 1 data word (any non-zero value will do)
+        0177777     # a block load address of 0177777
     """
 
     index = 0
@@ -164,13 +169,11 @@ def c8lds_handler(ptp_data, memory):
     index = skipzeros(ptp_data, index)
     if index is None:
         # empty tape
-#        print('empty tape')
         return None
 
     index = read_blockloader(ptp_data, index, memory)
     if index is None:
         # short block loader?
-#        print('short blockloader?')
         return None
 
     # now read data blocks
@@ -184,7 +187,6 @@ def c8lds_handler(ptp_data, memory):
         result = get_byte(ptp_data, index)
         if result is None:
             # premature end of tape?
-#            print('EOT in block getting count?')
             return None
         (count, index) = result
 
@@ -192,10 +194,10 @@ def c8lds_handler(ptp_data, memory):
         result = get_word(ptp_data, index)
         if result is None:
             # premature end of tape?
-#            print('EOT in block getting load address?')
             return None
         (address, index) = result
         if address == 0177777:
+            # it's an End-Of-Tape block!
             break
 
         # read data words, store in memory and calculate checksum
@@ -204,7 +206,6 @@ def c8lds_handler(ptp_data, memory):
             result = get_word(ptp_data, index)
             if result is None:
                 # premature end of tape?
-#                print('EOT in block getting data word?')
                 return None
             (data, index) = result
 
@@ -218,13 +219,10 @@ def c8lds_handler(ptp_data, memory):
         result = get_word(ptp_data, index)
         if result is None:
             # premature end of tape?
-#            print('EOT in block getting checksum?')
             return None
         (ptp_checksum, index) = result
         if ptp_checksum != checksum:
             # bad checksum
-#            print('bad checksum, PTP checksum is %06o, expected %06o'
-#                  % (ptp_checksum, checksum))
             return None
 
     # no auto-start mechanism, so
@@ -246,7 +244,9 @@ def lc16sd_handler(ptp_data, memory):
         a checksum word (16bits)
         one or more data words (16bits)
 
-    If the load address word is negative the load is finished.
+    If the load address word is negative the load is finished.  The load address
+    with the high bit removed is the actual start address.  The following word
+    is the value put into the AC just before start.
 
     There is an autostart mechanism in this blockloader.  Returns
     (start_address, start_ac) on successful load.
@@ -279,7 +279,7 @@ def lc16sd_handler(ptp_data, memory):
         if result is None:
             return None     # premature end of tape?
         (address, index) = result
-        # if block load address is negative, we are finished
+        # if block load address has high bit set, we are finished
         if address & 0x8000:
             # address 0177777 means 'no autostart'
             if address != 0177777:
