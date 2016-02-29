@@ -92,7 +92,11 @@ def skipzeros(ptp_data, index):
     """
 
     while True:
-        val = ptp_data[index]
+        try:
+            val = ptp_data[index]
+        except IndexError:
+            # off end of tape
+            return None
         if val > 0:
             return index
         index += 1
@@ -174,7 +178,7 @@ def c8lds_handler(ptp_data, memory):
         # skip any leading zeros
         index = skipzeros(ptp_data, index)
         if index is None:
-            break
+            return (None, None)     # end of tape
 
         # get data word count
         result = get_byte(ptp_data, index)
