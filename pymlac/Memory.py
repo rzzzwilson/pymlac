@@ -47,9 +47,7 @@ class Memory(object):
                      0100011, #         cal             ;71 clear AC & LINK
                      0030020, #         isz     020     ;72 inc mem and skip zero
                      0010053, #         jmp     loop    ;73 if not finished, jump
-# DEBUG don't goto 03700
-                     0000000, #         hlt             ;  0110076, #        jmp    *go   ;74 execute loader
-# DEBUG don't goto 03700
+                     0110076, #         jmp     *go     ;74 execute loader
                      0000002, # what    data    2       ;75
                      0003700, # go      data    03700   ;76
                      0003677, # base    data    03677   ;77
@@ -229,7 +227,6 @@ class Memory(object):
 
         # the Imlac can get into infinite defer loops, and so can we!
         while indirect:
-            print('Memory.eff_address: indirect and address=%06o' % address)
             if ISAUTOINC(address):
                 # indirect on auto-inc register, add one to it before use
                 self.memory[address] = MASK_MEM(self.memory[address] + 1)
@@ -241,7 +238,6 @@ class Memory(object):
                 raise IndexError(msg)
             indirect = bool(address & 0100000)
 
-        print('Memory.eff_address: final address=%06o' % address)
         return address
 
     def str_trace(self, msg=None):
@@ -275,7 +271,6 @@ class Memory(object):
 
         try:
             self.memory[address] = MASK_16(value)
-            print('Memory.put: setting address %06o to %06o' % (address, MASK_16(value)))
         except IndexError:
             raise RuntimeError('Bad address: %06o (max mem=%06o, ADDRMASK=%06o)'
                                % (address, len(self.memory), ADDRMASK))
