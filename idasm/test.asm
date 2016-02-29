@@ -1,6 +1,7 @@
-; a very simple 'smoke-test' file
+; a simple 'smoke-test' file
         org     0100
 
-start   hlt
+start   nop
+        hlt
 
-        end
+        end     start
