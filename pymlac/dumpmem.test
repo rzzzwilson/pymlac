@@ -1,2 +1,2 @@
-# test of loading simple code and dumping memory
-bootrom ptr; mount ptr dumpmem_test.ptp; setreg pc 040; rununtil 0; dumpmem dumpmem_test.dump 03700,0377
+# loads executable tape and dumps 0100+4
+bootrom ptr; mount ptr dumpmem_test.ptp; setreg pc 040; rununtil 0; dumpmem dumpmem_test.dump 0100,0104
