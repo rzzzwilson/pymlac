@@ -8,7 +8,7 @@ start   law     fred
 
 fred    equ     2           ; EQU
 
-        org     01100
+        org     0200
 start2  
         lac     start + 2   ; comment
 offset  data    start - 3
