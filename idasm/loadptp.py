@@ -179,9 +179,9 @@ def c8lds_handler(ptp_data, memory):
     # now read data blocks
     while True:
         # skip any leading zeros
-        index = skipzeros(ptp_data, index)
-        if index is None:
-            return (None, None)     # end of tape
+#        index = skipzeros(ptp_data, index)
+#        if index is None:
+#            return (None, None)     # end of tape
 
         # get data word count
         result = get_byte(ptp_data, index)
