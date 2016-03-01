@@ -414,7 +414,6 @@ BlockLoader_LC16SD = [
      0017702, # 03775  himem   DATA    0017702 ;
      0010000, # 03776          DATA    0010000 ;
      0177777, # 03777          DATA    0177777 ;
-     0000000, # 04000          DATA    0000000 ;
               #
               #                END             ;
               ]
@@ -551,8 +550,6 @@ def write_block_c8lds():
     is the sum of all the data words, modulo 177777.
     """
 
-    global BlockBuffer, BlockBufferBase
-
     code_block_size = len(BlockBuffer)
     if code_block_size == 0:
         # block buffer is empty, do nothing
@@ -576,8 +573,6 @@ def write_block_c8lds():
 def write_block_lc16sd():
     """Write the current code block and reset the buffer."""
 
-    global BlockBuffer, BlockBufferBase
-
     code_block_size = len(BlockBuffer)
     if code_block_size == 0:
         # block buffer is empty, do nothing
@@ -589,8 +584,9 @@ def write_block_lc16sd():
     write_word(neg_size)
 
     # calculate and write the checksum
-    checksum = BlockBufferBase + neg_size + sum(BlockBuffer)
-    write_word((~checksum+1) & WordMask)
+    checksum = (BlockBufferBase + neg_size + sum(BlockBuffer)) & WordMask
+    tape_checksum = (~checksum+1) & WordMask
+    write_word(tape_checksum)
 
     # finally, write out data words
     for word in BlockBuffer:
@@ -643,7 +639,8 @@ def eval_expr(expr):
         Undefined = e.message
         if 'is not defined' in e.message:
             Undefined = e.message[len("name '"):-len("' is not defined")]
-            error("ORG pseudo-opcode expression has '%s' undefined" % Undefined)
+            msg = "ORG pseudo-opcode expression has '%s' undefined" % Undefined
+            raise NameError(msg)
         error("ORG pseudo-opcode expression has an error")
 
     return result
@@ -653,7 +650,7 @@ def num_gen_words(opcode, addr):
 
     if opcode:
         # we assume opcode will return 1
-        # TODO has to changed when macros are implemented
+        # TODO has to change when macros are implemented
         return 1
 
     return 0

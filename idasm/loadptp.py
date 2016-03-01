@@ -24,6 +24,15 @@ MemSize = 04000
 # size of block loader
 LoaderSize = 0100
 
+# True if debug code is active
+Debug = False
+
+
+def debug(msg):
+    """Debug message, but only if global Debug is True."""
+
+    if Debug:
+        print(msg)
 
 def pyword(word):
     """Convert a 16bit value to a real python integer.
@@ -148,10 +157,10 @@ def c8lds_handler(ptp_data, memory):
     The example on the last page of the doc has a example tape containing:
         004 000770 001061 100011 023775 037765 165054
 
-    The 'checksum' is not well defined in the documentation: the checksum is
-    the sum of all the contents modulo 077777.  Yet the example tape has a
-    checksum of 165054.  It is assumed the doc is in error and the checksum
-    is the sum of all the data words, modulo 177777.
+    The 'checksum' is not well defined in the documentation which says: the
+    checksum is the sum of all the contents modulo 077777.  Yet the example tape
+    has a checksum of 0165054.  It is assumed the doc is in error and the
+    checksum is the sum of all the data words, modulo 177777.
 
     A load address of 0177777 indicates the end of the load.
     As there is no autostart mechanism, returns (None, None) on successful load.
@@ -159,7 +168,7 @@ def c8lds_handler(ptp_data, memory):
 
     Note that we DO need an 'end of load' block of three bytes at the end of
     the tape:
-        001         # 1 data word (any non-zero value will do)
+        377         # number of data words (any non-zero value will do)
         0177777     # a block load address of 0177777
     """
 
@@ -169,24 +178,22 @@ def c8lds_handler(ptp_data, memory):
     index = skipzeros(ptp_data, index)
     if index is None:
         # empty tape
+        debug('c8lds: No leader?')
         return None
 
     index = read_blockloader(ptp_data, index, memory)
     if index is None:
         # short block loader?
+        debug('c8lds: Short leader?')
         return None
 
     # now read data blocks
     while True:
-        # skip any leading zeros
-#        index = skipzeros(ptp_data, index)
-#        if index is None:
-#            return (None, None)     # end of tape
-
         # get data word count
         result = get_byte(ptp_data, index)
         if result is None:
             # premature end of tape?
+            debug('c8lds: EOT at start of block?')
             return None
         (count, index) = result
 
@@ -194,6 +201,7 @@ def c8lds_handler(ptp_data, memory):
         result = get_word(ptp_data, index)
         if result is None:
             # premature end of tape?
+            debug('c8lds: EOT getting load address?')
             return None
         (address, index) = result
         if address == 0177777:
@@ -206,28 +214,35 @@ def c8lds_handler(ptp_data, memory):
             result = get_word(ptp_data, index)
             if result is None:
                 # premature end of tape?
+                debug('c8lds: EOT getting data word?')
                 return None
             (data, index) = result
 
             memory[address] = data
             address += 1
             checksum += data
-            if checksum != (checksum & 0177777):
-                checksum = (checksum & 0177777) + 1
+            checksum = checksum & 0177777
 
         # check block checksum
         result = get_word(ptp_data, index)
         if result is None:
             # premature end of tape?
+            debug('c8lds: EOT getting checksum?')
             return None
         (ptp_checksum, index) = result
         if ptp_checksum != checksum:
             # bad checksum
+            debug('c8lds: Bad checksum? Read %06o, expected %06o.' % (ptp_checksum, checksum))
             return None
 
     # no auto-start mechanism, so
     return (None, None)
 
+def lc16sd_add_csum(csum, word):
+    """Add 'csum' and 'word', return new checksum."""
+
+    result = (csum + word) & 0xffff
+    return result
 
 def lc16sd_handler(ptp_data, memory):
     """Load blocks according to the ...
@@ -243,6 +258,10 @@ def lc16sd_handler(ptp_data, memory):
         a word of data word count (16bits, complemented)
         a checksum word (16bits)
         one or more data words (16bits)
+
+    The checksum is computed such that the sum of the load address, complemented
+    word count, the checksum itself and all data words will be zero, modulo
+    0177777.
 
     If the load address word is negative the load is finished.  The load address
     with the high bit removed is the actual start address.  The following word
@@ -260,23 +279,21 @@ def lc16sd_handler(ptp_data, memory):
     index = skipzeros(ptp_data, index)
     if index is None:
         # empty tape
+        debug('lc16sd: No leader?')
         return None
 
     index = read_blockloader(ptp_data, index, memory)
     if index is None:
         # short block loader?
+        debug('lc16sd: Short blockloader?')
         return None
 
     # now read data blocks
     while True:
-#        # skip leading zeros, if any
-#        index = skipzeros(ptp_data, index)
-#        if index is None:
-#            break
-
         # get this block load address
         result = get_word(ptp_data, index)
         if result is None:
+            debug('lc16sd: EOT getting load address?')
             return None     # premature end of tape?
         (address, index) = result
         # if block load address has high bit set, we are finished
@@ -286,6 +303,7 @@ def lc16sd_handler(ptp_data, memory):
                 # we have an autostart
                 result = get_word(ptp_data, index)
                 if result is None:
+                    debug('lc16sd: EOT getting AC value for autostart?')
                     return None     # premature end of tape?
                 (start_ac, index) = result
                 return (address & 0x7ffff, start_ac)
@@ -294,32 +312,40 @@ def lc16sd_handler(ptp_data, memory):
 
         # read data block, calculating checksum
         csum = address                      # start checksum with base address
+        debug('lc16sd: address=%06o' % address)
         result = get_word(ptp_data, index)
         if result is None:
+            debug('lc16sd: EOT getting word count?')
             return None         # premature end of tape?
         (count, index) = result
-        count = pyword(count)
         neg_count = pyword(count)
-        csum = (csum + count) & 0xffff          # add neg word count
+        debug('lc16sd: count=%06o, neg_count=%d' % (count, neg_count))
+        csum = lc16sd_add_csum(csum, neg_count)
 
         result = get_word(ptp_data, index)
         if result is None:
+            debug('lc16sd: EOT getting checksum?')
             return None         # premature end of tape?
         (csum_word, index) = result
-        csum = (csum + csum_word) & 0xffff      # add checksum word
+        debug('lc16sd: csum_word=%06o' % csum_word)
+        old_csum = csum
+        csum = lc16sd_add_csum(csum, csum_word)
 
         while neg_count < 0:
             result = get_word(ptp_data, index)
             if result is None:
+                debug('lc16sd: EOT getting data word?')
                 return None     # premature end of tape?
             (word, index) = result
-            csum = (csum + word) & 0xffff
+            debug('lc16sd: data word=%06o' % word)
+            old_csum = csum
+            csum = lc16sd_add_csum(csum, word)
             memory[address] = word
             address += 1
             neg_count += 1
-        csum &= 0xffff
         if csum != 0:
-            return None     # bad block checlsum
+            debug('lc16sd: Bad checksum, sum is %06o, expected 0?' % csum)
+            return None     # bad block checksum
 
     # if we return here there is no autostart
     return (None, None)
