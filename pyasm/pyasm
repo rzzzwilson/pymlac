@@ -4,7 +4,7 @@
 """
 An assembler for the Imlac simulator.
 
-Usage: pyasm [ -h ] [ -l <listfile> ] [ -o <outputfile> ] <asmfile>
+Usage: pyasm [ -h ] [ -l <listfile> ] [ -o <outputfile> ] [ -b <loader> ] <asmfile>
 
 Where <asmfile>  is the file to assemble,
       <outputfile>  is the output PTP file
@@ -12,6 +12,9 @@ Where <asmfile>  is the file to assemble,
 
 If <outputfile> is not specified the output filename is the input
 <asmfile> with any extension removed and a .ptp axtenstion added.
+
+The -b option specifies the blockloader code to use.  <loader> values are either
+'c8lds' or 'lc16sd'.  The default is 'c8lds'.
 """
 
 """
@@ -44,6 +47,9 @@ ListFileHandle = None       # open listing file
 # the output PTP file
 OutputFile = None
 OutputFileHandle = None     # open output file
+
+# the blockloader code to emit
+BlockLoader = None
 
 # the current address during assembly
 Dot = None
@@ -215,7 +221,7 @@ OpcodeData = {
 # The papertape/teletype loader code (c8lds form)
 ######
 
-BlockLoader = [
+BlockLoader_C8LDS = [
 #     code     address  assembler source code
 #    -------   -------  ------------------------------------------------------------------------
               #        ; Imlac Papertape Program Block Loader
@@ -223,8 +229,8 @@ BlockLoader = [
               #        ; This loader is loaded by the bootstrap program at x7700, where x=0 for
               #        ; a 4K machine, and x=1 for an 8K machine, etc.
               #        ;
-              #        ; The load format consists of one or more contiguous blocks, with no
-              #        ; padding bytes between them.  Each block has the form:
+              #        ; The load format consists of one or more data blocks.
+              #        ; Each block has the form:
               #        ;
               #        ;          word count      (byte)
               #        ;          load address
@@ -245,7 +251,7 @@ BlockLoader = [
               #        ; integers, incrementing the sum whenever the 16bit value overflows.
               #        ;
               #        ; The end of the load is signalled by a block with a
-              #        ; starting address WordMask.
+              #        ; starting address 0177777.
               #        ;
               #        ; Disassembled from the 40tp_simpleDisplay.ptp image file.
               #        ;
@@ -332,6 +338,86 @@ BlockLoader = [
               #                end             ;
               ]
 
+BlockLoader_LC16SD = [
+              # 03700          ORG     03700   ;
+              #
+     0001032, # 03700  ldaddr  RCF             ;
+     0037701, # 03701  numwrd  JMS     .       ; get address of 'chksum' into 'numwrd'
+              #
+     0063701, # 03702  chksum  LAC     numwrd  ; are we are running in high memory (017700+)
+     0077775, # 03703          SAM     himem   ;
+     0013710, # 03704          JMP     rdblk   ; if not, just load tape
+              #
+     0104012, # 03705          LWC     012     ; else turn on the display
+     0001003, # 03706          DLA             ;
+     0003100, # 03707          DON             ;
+              #
+     0100011, # 03710  rdblk   CAL             ; initialize block checksum
+     0023702, # 03711          DAC     chksum  ;
+     0037746, # 03712          JMS     rdword  ; get load address
+     0023700, # 03713          DAC     ldaddr  ;
+     0002002, # 03714          ASP             ; if high bit set
+     0013740, # 03715          JMP     ldend   ; then end of tape load
+     0037746, # 03716          JMS     rdword  ; else get number of words in block
+     0023701, # 03717          DAC     numwrd  ;
+     0037746, # 03720          JMS     rdword  ; read checksum word, add to checksum
+     0037746, # 03721  blklp   JMS     rdword  ; get data word
+     0123700, # 03722          DAC     *ldaddr ; store into memory
+     0063700, # 03723          LAC     ldaddr  ; get load address
+     0003063, # 03724          SAR     3       ; echo load address in display (if running)
+     0047765, # 03725          AND     low10   ;
+     0053764, # 03726          IOR     dlya0   ;
+     0023766, # 03727          DAC     disp    ;
+     0163700, # 03730          LAC     *ldaddr ; get last data word
+     0033700, # 03731          ISZ     ldaddr  ; move 'load address' pointer
+     0033701, # 03732          ISZ     numwrd  ; check end of block
+     0013721, # 03733          JMP     blklp   ; jump if not ended
+     0067702, # 03734          ADD     chksum  ; block end, check checksum
+     0002001, # 03735          ASZ             ; if checksum invalid,
+     0013736, # 03736          JMP     .       ;     busy wait here
+     0013710, # 03737          JMP     rdblk   ; else go get next block
+              #        ; end of load, AC is load address, high bit set
+     0001012, # 03740  ldend   DOF             ; turn off the display
+     0100004, # 03741          IAC             ;
+     0102001, # 03742          ASN             ; if address is 0177777
+     0000000, # 03743          HLT             ;     then just halt
+     0037746, # 03744          JMS     rdword  ; else get AC contents
+     0113700, # 03745          JMP     *ldaddr ; and jump to start address
+              #        ; read a word from tape, leave in AC
+     0000000, # 03746  rdword  DATA    0       ;
+     0067702, # 03747          ADD     chksum  ;
+     0023702, # 03750          DAC     chksum  ;
+     0100011, # 03751          CAL             ;
+     0002040, # 03752          RSF             ;
+     0013752, # 03753          JMP     .-1     ;
+     0001033, # 03754          RRC             ;
+     0003003, # 03755          RAL     3       ;
+     0003003, # 03756          RAL     3       ;
+     0003002, # 03757          RAL     2       ;
+     0002040, # 03760          RSF             ;
+     0013760, # 03761          JMP     .-1     ;
+     0001033, # 03762          RRC             ;
+     0113746, # 03763          JMP     *rdword ;
+              #
+     0020000, # 03764  dlya0   DLYA    0       ;
+     0001777, # 03765  low10   DATA    001777  ;
+              #
+              #        ; display routine, used if running in extended memory
+     0020000, # 03766  disp    DLYA    00000   ;
+     0010000, # 03767          DLXA    00000   ;
+     0004005, # 03770          DSTS    1       ;
+     0046000, # 03771          DLVH    02000   ;
+     0021777, # 03772          DLYA    01777   ;
+     0000000, # 03773          DHLT            ;
+              #
+     0067766, # 03774          DATA    0067766 ;
+     0017702, # 03775  himem   DATA    0017702 ;
+     0010000, # 03776          DATA    0010000 ;
+     0177777, # 03777          DATA    0177777 ;
+     0000000, # 04000          DATA    0000000 ;
+              #
+              #                END             ;
+              ]
 
 def usage(msg=None):
     """Print usage and optional error message."""
@@ -403,8 +489,6 @@ def write_leader(size=ZeroLeaderSize):
 def write_block_loader():
     """Emit the block loader prefix code."""
 
-    write_leader()
-
     for word in BlockLoader:
         write_word(word)
 
@@ -424,17 +508,30 @@ def emit_word(word):
 
     code_block_size = len(BlockBuffer)
     if code_block_size >= BlockMaxSize:
-        write_block_c8lds()
-        #write_block_lc16sd()
+        write_block()
         start_block(Dot)
 
     BlockBuffer.append(word)
 
-def write_eot_c8lds():
-    """Write End-Of-Tape data for c8lds format tape."""
+def write_eot():
+    """Write End-Of-Tape data for whatever format tape."""
 
-    write_byte(001)
-    write_word(0177777)
+    if BlockLoader is BlockLoader_C8LDS:
+        write_byte(0377)
+        write_word(0177777)
+    else:
+        if StartAddress is not None:
+            write_start(StartAddress, ac=0177777)
+        else:
+            write_start()
+
+def write_block():
+    """Write block in desired format."""
+
+    if BlockLoader is BlockLoader_C8LDS:
+        write_block_c8lds()
+    else:
+        write_block_lc16sd()
 
 def write_block_c8lds():
     """Write the current code block and reset the buffer.
@@ -707,6 +804,7 @@ def pass_2(lines):
     global Dot, StartAddress, CurrentLineNumber, CurrentLine
 
     # punch the zero leader and ptr/tty loader
+    write_leader()
     write_block_loader()
 
     # for each line in the file
@@ -728,8 +826,7 @@ def pass_2(lines):
                     error("ORG pseudo-op has a bad address")
                     return False
                 if BlockBufferBase is not None:
-                    write_block_c8lds()     # write any code accumulated so far
-                    #write_block_lc16sd()
+                    write_block()     # write any code accumulated so far
                 Dot = eval_expr(addr)
                 start_block(Dot)
                 write_list(None, Dot, lnum, line)
@@ -773,8 +870,7 @@ def pass_2(lines):
                     except KeyError:
                         error("BSS label '%s' wasn't defined in first pass!?"
                               % label)
-                write_block_c8lds()        # write any code accumulated so far
-                #write_block_lc16sd()
+                write_block()        # write any code accumulated so far
                 Dot += value
                 start_block(Dot)
                 write_list(None, None, lnum, line)
@@ -923,15 +1019,10 @@ def pass_2(lines):
             write_list(None, None, lnum, line)
 
     # write the final block of code and optional start address
-    write_block_c8lds()
+    write_block()
 
-    # write EOT data
-    write_eot_c8lds()
-    #write_block_lc16sd()
-#    if StartAddress is not None:
-#        write_start(StartAddress, ac=0177777)
-#    else:
-#        write_start()
+    # write EOT data and end leader
+    write_eot()
     write_leader()
 
     # check nothing after END
@@ -1201,19 +1292,21 @@ def assemble_file():
 def main():
     """The assembler."""
 
-    global AsmFile, ListFile, OutputFile
+    global AsmFile, ListFile, OutputFile, BlockLoader
     global ListFileHandle, OutputFileHandle
 
     # handle the options
     try:
-        (opts, args) = getopt.gnu_getopt(sys.argv, "hl:o:",
-                                         ["help", "list=", "output="])
+        (opts, args) = getopt.gnu_getopt(sys.argv, "hl:o:b:",
+                                         ["help", "list=", "output=",
+                                          "blockloader="])
     except getopt.GetoptError:
         usage()
         sys.exit(10)
 
     ListFile = None
     OutputFile = None
+    BlockLoader = BlockLoader_C8LDS
 
     for opt, arg in opts:
         if opt in ('-h', '--help'):
@@ -1223,6 +1316,14 @@ def main():
             ListFile = arg
         elif opt in ('-o', '--output'):
             OutputFile = arg
+        elif opt in ('-b', '--blockloader'):
+            loader = arg.upper()
+            if loader not in ['C8LDS', 'LC16SD']:
+                usage("-b options expects either C8LDS or LC16SD param")
+            if loader == 'C8LDS':
+                BlockLoader = BlockLoader_C8LDS
+            else:
+                BlockLoader = BlockLoader_LC16SD
 
     if len(args) != 2:
         usage()
