@@ -529,8 +529,10 @@ def write_block():
     """Write block in desired format."""
 
     if BlockLoader is BlockLoader_C8LDS:
+        write_leader()
         write_block_c8lds()
     else:
+        write_leader()
         write_block_lc16sd()
 
 def write_block_c8lds():
