@@ -338,6 +338,7 @@ BlockLoader_C8LDS = [
               #                end             ;
               ]
 
+# the LC16SD blockloader as disassembled from bin/munch.ptp
 BlockLoader_LC16SD = [
               # 03700          ORG     03700   ;
               #
