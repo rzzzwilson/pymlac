@@ -25,7 +25,7 @@ MemSize = 04000
 LoaderSize = 0100
 
 # True if debug code is active
-Debug = True
+Debug = False
 
 
 def debug(msg):
@@ -247,6 +247,9 @@ def c8lds_handler(ptp_data, memory):
             debug('c8lds: Bad checksum? Read %06o, expected %06o.' % (ptp_checksum, checksum))
             return None
 
+        # only read one block
+        break
+
     # no auto-start mechanism, so
     return (None, None)
 
@@ -358,6 +361,9 @@ def lc16sd_handler(ptp_data, memory):
         if csum != 0:
             debug('lc16sd: Bad checksum, sum is %06o, expected 0?' % csum)
             return None     # bad block checksum
+
+        # only read one block
+        break
 
     # if we return here there is no autostart
     return (None, None)
