@@ -77,7 +77,7 @@ def usage(msg=None):
     print(__doc__)
 
 
-def start_running(cpu, memory, ptrptp):
+def start_running(cpu, memory, ptrptp, ttyin):
     """Run the Imlac machine until it stops."""
 
     cpu.running = True
@@ -89,6 +89,7 @@ def start_running(cpu, memory, ptrptp):
             trace.flush()
         ptrptp.ptr_tick(cycles)
         ptrptp.ptp_tick(cycles)
+        ttyin.tick(cycles)
 
 def main():
     """Main function of the simulator.  Mostly interpret CLI args."""
@@ -182,7 +183,7 @@ def main():
                     sys.exit(10)
                 imlac_cpu.PC = addr_value
             trace.set_trace_map(trace_map)
-            start_running(imlac_cpu, imlac_memory, imlac_ptrptp)
+            start_running(imlac_cpu, imlac_memory, imlac_ptrptp, imlac_ttyin)
         elif opt == '-s':
             if ndx >= len_sys_argv:
                 usage("'-s' option needs a following data filename")
