@@ -25,7 +25,7 @@ MemSize = 04000
 LoaderSize = 0100
 
 # True if debug code is active
-Debug = False
+Debug = True
 
 
 def debug(msg):
@@ -189,6 +189,12 @@ def c8lds_handler(ptp_data, memory):
 
     # now read data blocks
     while True:
+        index = skipzeros(ptp_data, index)
+        if index is None:
+            # empty tape
+            debug('c8lds: EOT looking for block?')
+            return None
+
         # get data word count
         result = get_byte(ptp_data, index)
         if result is None:
@@ -196,14 +202,17 @@ def c8lds_handler(ptp_data, memory):
             debug('c8lds: EOT at start of block?')
             return None
         (count, index) = result
+        debug('c8lds: word count=%03o' % count)
 
         # get block load address
         result = get_word(ptp_data, index)
         if result is None:
             # premature end of tape?
             debug('c8lds: EOT getting load address?')
+#            break
             return None
         (address, index) = result
+        debug('c8lds: load address=%06o' % address)
         if address == 0177777:
             # it's an End-Of-Tape block!
             break
@@ -221,6 +230,9 @@ def c8lds_handler(ptp_data, memory):
             memory[address] = data
             address += 1
             checksum += data
+            if checksum & 0177777 != checksum:
+                # if overflow, increment before masking
+                checksum += 1
             checksum = checksum & 0177777
 
         # check block checksum
