@@ -53,6 +53,14 @@ class Memory(object):
                      0003677, # base    data    03677   ;77
                     ]
 
+    TTY_ROM_IMAGE_TEST = [
+          #00040   0001:         org     040
+0100001,  #00040   0002: loop    cla             ; clear AC
+0001031,  #00041   0003:         rrb             ; IOR tty input -> AC
+0010040,  #00042   0004:         jmp     loop    ; keep going
+          #        0005:         end
+                         ]
+    # TTY ROM image from "Loading The PDS-1" (loading.pdf)
     TTY_ROM_IMAGE = [         #        org    040
                      0060077, # start  lac    base   ;40 get load address
                      0020010, #        dac    10     ;41 put into auto-inc reg
@@ -177,6 +185,7 @@ class Memory(object):
 
         i = self.ROM_START
         for tty_value in self.TTY_ROM_IMAGE:
+        #for tty_value in self.TTY_ROM_IMAGE_TEST:
             self.memory[i] = tty_value
             i += 1
 
