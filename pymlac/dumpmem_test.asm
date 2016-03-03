@@ -5,5 +5,7 @@
 start	nop                     ;
         jmp	end             ; 
 end     hlt                     ;
+        org     0200            ;
+        hlt                     ;
 ;-------------------------------
 	end
