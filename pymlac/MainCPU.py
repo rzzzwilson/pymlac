@@ -229,6 +229,7 @@ class MainCPU(object):
         eff_address = self.memory.eff_address(address, indirect)
         self.memory.put(self.AC, eff_address, False)
         tracestr = trace.itrace(self.dot, 'DAC', indirect, address)
+        print('DAC: storing %06o at address %06o' % (self.AC, eff_address))
         return (3, tracestr) if indirect else (2, tracestr)
 
     def i_XAM(self, indirect, address, instruction):
@@ -343,8 +344,8 @@ class MainCPU(object):
         return (1, tracestr)
 
     def i_DLA(self, indirect, address, instruction):
-        self.displaycpu.DPC = self.AC
-        tracestr = trace.itrace(self.dot, 'DLA')
+        #self.displaycpu.DPC = self.AC
+        tracestr = trace.itrace(self.dot, 'DLA_X')
         return (1, tracestr)
 
     def i_CTB(self, indirect, address, instruction):
@@ -352,8 +353,8 @@ class MainCPU(object):
         return (1, tracestr)
 
     def i_DOF(self, indirect, address, instruction):
-        self.displaycpu.stop()
-        tracestr = trace.itrace(self.dot, 'DOF')
+        #self.displaycpu.stop()
+        tracestr = trace.itrace(self.dot, 'DOF_X')
         return (1, tracestr)
 
     def i_KRB(self, indirect, address, instruction):
@@ -590,9 +591,9 @@ class MainCPU(object):
         return (1, tracestr)
 
     def i_DON(self, indirect, address, instruction):
-        self.displaycpu.DRSindex = 0
-        self.displaycpu.start()
-        tracestr = trace.itrace(self.dot, 'DON')
+        #self.displaycpu.DRSindex = 0
+        #self.displaycpu.start()
+        tracestr = trace.itrace(self.dot, 'DON_X')
         return (1, tracestr)
 
     def i_ASZ(self):
@@ -632,15 +633,15 @@ class MainCPU(object):
         return (1, tracestr)
 
     def i_DSF(self):
-        if self.displaycpu.ison():
-            self.PC = (self.PC + 1) & WORDMASK
-        tracestr = trace.itrace(self.dot, 'DSF')
+#        if self.displaycpu.ison():
+#            self.PC = (self.PC + 1) & WORDMASK
+        tracestr = trace.itrace(self.dot, 'DSF_X')
         return (1, tracestr)
 
     def i_DSN(self):
-        if not self.displaycpu.ison():
-            self.PC = (self.PC + 1) & WORDMASK
-        tracestr = trace.itrace(self.dot, 'DSN')
+#        if not self.displaycpu.ison():
+#            self.PC = (self.PC + 1) & WORDMASK
+        tracestr = trace.itrace(self.dot, 'DSN_X')
         return (1, tracestr)
 
     def i_KSF(self):
