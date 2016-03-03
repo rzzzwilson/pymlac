@@ -8,7 +8,7 @@ test:
 	#pymlac -b tty -c -ttyin dumpmem_test.ptp -t 0100,0110:03700,03751:03754,03757:03762,03777 -r 040 -r 0100
 	#pymlac -b tty -c -ttyin dumpmem_test.ptp -t 0100,0110:03700,03751:03754,03757:03762,03777 -r 040 
 	#pymlac -b tty -c -ttyin dumpmem_test.ptp -t 03700,03751:03754,03757:03762,03777 -r 040 -r 0100
-	pymlac -b tty -c -ttyin dumpmem_test.ptp -t 040,077:03700,03751:03754,03757:03762,03777 -r 040
+	pymlac -b tty -c -ttyin dumpmem_test.ptp -t 040,045:050,052:055,060:063,077:03700,03751:03754,03757:03762,03777 -r 040
 
 test_debug:	
 	rm -f test.ptr test.ptp CPU.test.trace test_CPU.log pymlac.trace

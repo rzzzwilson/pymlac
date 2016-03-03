@@ -71,11 +71,12 @@ class Memory(object):
                      0002040, #        rsf           ;46 skip if TTY has data
                      0010046, #        jmp    .-1    ;47 wait until there is data
                      0001031, #        rrb           ;50 read TTY -> AC
+                     #0001033, #        rrc           ;50 read TTY -> AC, clear TTY flag
                      0074075, #        sam    75     ;51 first non-zero must be 02
                      0010044, #        jmp    044    ;52 wait until TTY return == 02
                      0002040, # loop   rsf           ;53 skip if TTY has data
-                     0010053, #        jmp    .-1    ;54 wait until there is data
-                     0001033, #        rrc           ;55 read TTY -> AC
+                     0010053, #        jmp    .-1    ;54     wait until there is data
+                     0001033, #        rrc           ;55 read TTY -> AC, clear TTY flag
                      0003003, #        ral    3      ;56 move TTY byte into high AC
                      0003003, #        ral    3      ;57
                      0003002, #        ral    2      ;60
@@ -92,8 +93,10 @@ class Memory(object):
                      0000000, #        data   0      ;73
                      0000000, #        data   0      ;74
                      0000002, #        data   2      ;75
-                     0037700, # go     word   037700 ;76 block loader base address
-                     0037677  # base   word   037677 ;77 init value for 010 auto inc
+                     #0037700, # go     word   037700 ;76 block loader base address
+                     0003700, # go     word   003700 ;76 block loader base address
+                     #0037677  # base   word   037677 ;77 init value for 010 auto inc
+                     0003677  # base   word   003677 ;77 init value for 010 auto inc
                     ]
 
     # class instance variables
