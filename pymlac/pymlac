@@ -46,6 +46,9 @@ import TtyIn
 import TtyOut
 import Trace
 
+import log
+log = log.Log('test.log', log.Log.DEBUG)
+
 trace = Trace.Trace(TRACE_FILENAME)
 
 
@@ -85,8 +88,9 @@ def start_running(cpu, memory, ptrptp, ttyin):
         (cycles, tracestr) = cpu.execute_one_instruction()
         if tracestr:
             endstr = trace.itraceend(False)
-            trace.comment('%s\t%s' % (tracestr, endstr))
-            trace.flush()
+            log('%s\t%s' % (tracestr, endstr))
+#            trace.comment('%s\t%s' % (tracestr, endstr))
+#            trace.flush()
         ptrptp.ptr_tick(cycles)
         ptrptp.ptp_tick(cycles)
         ttyin.tick(cycles)
@@ -202,7 +206,7 @@ def main():
                 for rng in r.split(':'):
                     be = rng.split(',')
                     if len(be) != 2:
-                        usage("'-r' ranges must have form 'begin,end'")
+                        usage("'-t' ranges must have form 'begin,end'")
                         sys.exit(10)
                     (begin, end) = be
                     begin = str2int(begin)

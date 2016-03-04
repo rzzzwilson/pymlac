@@ -10,6 +10,10 @@ import sys
 from Globals import *
 import Trace
 
+import log
+log = log.Log('test.log', log.Log.DEBUG)
+
+
 trace = Trace.Trace(TRACE_FILENAME)
 
 class MainCPU(object):
@@ -229,7 +233,8 @@ class MainCPU(object):
         eff_address = self.memory.eff_address(address, indirect)
         self.memory.put(self.AC, eff_address, False)
         tracestr = trace.itrace(self.dot, 'DAC', indirect, address)
-        print('DAC: storing %06o at address %06o' % (self.AC, eff_address))
+        log('DAC: %s' % tracestr)
+        log('DAC: storing %06o at address %06o' % (self.AC, eff_address))
         return (3, tracestr) if indirect else (2, tracestr)
 
     def i_XAM(self, indirect, address, instruction):

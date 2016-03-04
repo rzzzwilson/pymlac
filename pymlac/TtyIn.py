@@ -7,7 +7,7 @@ Emulate the Input TTY device (TTYIN).
 from Globals import *
 
 import log
-log = log.Log('test_TTYIN.log', log.Log.DEBUG)
+log = log.Log('test.log', log.Log.DEBUG)
 
 
 class TtyIn(object):
@@ -27,7 +27,7 @@ class TtyIn(object):
 
         self.filename = None
         self.open_file = None
-        self.value = 0
+        self.value = 0xff
         self.atEOF = True
         self.cycle_count = 0
         self.status = self.DEVICE_NOT_READY
@@ -49,10 +49,13 @@ class TtyIn(object):
             # EOF on input file
             self.atEOF = True
             self.cycle_count = 0
-            self.value = 0
             log('TTYIN: EOF set on device (file %s)' % self.fname)
-        self.value = ord(self.value)
-        self.offset = -1
+        else:
+            self.value = ord(self.value)
+        self.offset = 0
+
+        log('TTYIN: Mounting file %s, .value=%03o, .offset=%04o'
+            % (self.filename, self.value, self.offset))
 
     def dismount(self):
         """Dismount the file on the TTYIN device."""
@@ -66,7 +69,7 @@ class TtyIn(object):
         self.value = 0
         self.atEOF = True
         self.status = self.DEVICE_NOT_READY
-        self.offset = None
+        self.offset = 0
 
     def read(self):
         """Return the current device value."""
@@ -86,7 +89,7 @@ class TtyIn(object):
     def clear(self):
         """Clear the device 'ready' status."""
 
-        log("TTYIN: Clearing device 'ready' status")
+        log("TTYIN: Clearing device 'ready' status, offset=%04o" % self.offset)
 
         self.status = self.DEVICE_NOT_READY
 
@@ -101,15 +104,15 @@ class TtyIn(object):
                 self.cycle_count += self.DEVICE_READY_CYCLES
                 self.status = self.DEVICE_READY
                 self.value = self.open_file.read(1)
+                self.offset += 1
                 if len(self.value) < 1:
                     # EOF on input file
                     self.atEOF = True
-                    self.value = chr(0)
+                    self.value = chr(0xff)
                     self.cycle_count = 0
                     self.status = self.DEVICE_NOT_READY
                     log('TTYIN: EOF set on device (file %s)' % self.filename)
-                else:
-                    log('TTYIN: .cycle_count expired, new character is %s (%03o)'
-                            % (self.value, ord(self.value[0])))
                 self.value = ord(self.value)
-                self.offset += 1
+
+                log('TTYIN: .cycle_count expired, new character is %03o, .offset=%04o'
+                        % (self.value, self.offset))

@@ -10,6 +10,10 @@ import struct
 from Globals import *
 import Trace
 
+import log
+log = log.Log('test.log', log.Log.DEBUG)
+
+
 
 class Memory(object):
 
