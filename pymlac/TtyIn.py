@@ -31,6 +31,7 @@ class TtyIn(object):
         self.atEOF = True
         self.cycle_count = 0
         self.status = self.DEVICE_NOT_READY
+        self.offset = 0
 
         log('TTYIN: DEVICE_READY_CYCLES=%d' % self.DEVICE_READY_CYCLES)
 
