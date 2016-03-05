@@ -176,7 +176,7 @@ OPCODE opcodes[] =
  * The PTR block loader, origin at 03700.
  ******/
 
-#define ZEROLEADERSIZE                  2
+#define ZEROLEADERSIZE                  16
 
 WORD blkldr[] =
 {
@@ -1329,6 +1329,9 @@ Pass2(void)
 
     emitblock();
     emitstart(WORDMASK);
+
+    for (int i = 0; i < ZEROLEADERSIZE; ++i)
+        emitbyte(0);
 
     return TRUE;
 }
