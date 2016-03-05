@@ -498,8 +498,8 @@ emitblock(void)
         for (i = 0; i < nextcodeword; ++i)
         {
             checksum = checksum + codeblock[i];
-            if (checksum & ~WORDMASK)
-                ++checksum;
+//            if (checksum & ~WORDMASK)
+//                ++checksum;
             checksum &= WORDMASK;
             emitword(codeblock[i]);
         }
@@ -586,7 +586,7 @@ Description : Emit papertape end-of-code start block.
 static void
 emitstart(WORD address)
 {
-    emitbyte(1);		/* one byte block */
+    emitbyte(0377);		/* one byte block */
     emitword(address);		/* start address */
 }
 
