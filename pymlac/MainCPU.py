@@ -216,7 +216,7 @@ class MainCPU(object):
     def i_LAW_LWC(self, indirect, address, instruction):
         tracestr = None
         if indirect:
-            self.AC = ~address & WORDMASK
+            self.AC = (~address+1) & WORDMASK
             tracestr = trace.itrace(self.dot, 'LWC', False, address)
         else:
             self.AC = address
