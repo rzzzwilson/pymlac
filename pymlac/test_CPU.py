@@ -251,7 +251,7 @@ class TestCPU(object):
 
         self.used_cycles= 0
         for _ in range(number):
-            cycles = self.cpu.execute_one_instruction()
+            (cycles, _) = self.cpu.execute_one_instruction()
             trace.itraceend(False)
             self.ptrptp.ptr_tick(cycles)
             self.ptrptp.ptp_tick(cycles)

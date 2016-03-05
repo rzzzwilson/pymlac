@@ -9,10 +9,10 @@ setreg ac 0; setreg l 1; setmem 0100 [LAW 0377]; setreg pc 0100; RUN; checkcycle
 setreg ac 0; setreg l 0; setmem 0100 [LAW 0377]; setreg pc 0100; RUN; checkcycles 1; checkreg pc 0101; checkreg ac 0377
 
 # LWC
-setreg ac 0; setreg l 1; setmem 0100 [LWC 0]; setreg pc 0100; RUN; checkcycles 1; checkreg pc 0101; checkreg ac 0177777
-setreg ac 0; setreg l 0; setmem 0100 [LWC 0]; setreg pc 0100; RUN; checkcycles 1; checkreg pc 0101; checkreg ac 0177777
-setreg ac 0; setreg l 1; setmem 0100 [LWC 1]; setreg pc 0100; RUN; checkcycles 1; checkreg pc 0101; checkreg ac 0177776
-setreg ac 0; setreg l 0; setmem 0100 [LWC 1]; setreg pc 0100; RUN; checkcycles 1; checkreg pc 0101; checkreg ac 0177776
+setreg ac 0; setreg l 1; setmem 0100 [LWC 0]; setreg pc 0100; RUN; checkcycles 1; checkreg pc 0101; checkreg ac 0000000
+setreg ac 0; setreg l 0; setmem 0100 [LWC 0]; setreg pc 0100; RUN; checkcycles 1; checkreg pc 0101; checkreg ac 0000000
+setreg ac 0; setreg l 1; setmem 0100 [LWC 1]; setreg pc 0100; RUN; checkcycles 1; checkreg pc 0101; checkreg ac 0177777
+setreg ac 0; setreg l 0; setmem 0100 [LWC 1]; setreg pc 0100; RUN; checkcycles 1; checkreg pc 0101; checkreg ac 0177777
 
 # JMP
 setreg ac 012345; setreg l 1; setmem 0100 [JMP 0200]; setreg pc 0100; RUN; checkcycles 2; checkreg pc 0200
@@ -442,7 +442,7 @@ setreg ac 0; setreg pc 0100; mount ptp test.ptp
 	checkfile test.ptp
 setreg pc 0100; mount ptp test.ptp
         setmem 0100 [LWC 10|DAC 1|LAW 0|PSF|JMP 0103|PPC|IAC|ISZ 1|JMP 0103|HLT]
-        rununtil 0111; checkreg ac 013; checkreg pc 0111
+        rununtil 0111; checkreg ac 012; checkreg pc 0111
 	checkfile test.ptp
 # and lots of IOT instructions
 
