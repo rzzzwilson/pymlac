@@ -192,17 +192,18 @@ def c8lds_handler(ptp_data, memory, loader=False, body=False):
         # empty tape
         debug('c8lds: No leader?')
         return None
+    debug('c8lds: after zero leader, index=%d' % index)
 
     if loader:
         index = read_blockloader(ptp_data, index, memory=memory)
     else:
-        unused_mem = {}
-        index = read_blockloader(ptp_data, index, memory=unused_mem)
+        index = read_blockloader(ptp_data, index, memory={})
 
     if index is None:
         # short block loader?
         debug('c8lds: Short leader?')
         return None
+    debug('c8lds: after blockloader, index=%d' % index)
 
     # now read data blocks
     if not body:
@@ -213,6 +214,7 @@ def c8lds_handler(ptp_data, memory, loader=False, body=False):
             # empty tape
             debug('c8lds: EOT looking for block?')
             return None
+        debug('c8lds: index before block=%d' % index)
 
         # get data word count
         result = get_byte(ptp_data, index)
@@ -231,6 +233,10 @@ def c8lds_handler(ptp_data, memory, loader=False, body=False):
             return None
         (address, index) = result
         debug('c8lds: load address=%06o' % address)
+        if address > 03777:
+            # bad load address
+            debug('c8lds: Bad load address=%06o' % address)
+            return None
         if address == 0177777:
             # it's an End-Of-Tape block!
             return (None, None)
@@ -351,6 +357,11 @@ def lc16sd_handler(ptp_data, memory, loader=False, body=False):
                 (initAC, index) = result
                 return (address & 0x3fff, initAC)
             return (None, None)
+        else:
+            if address > 03777:
+                # bad load address
+                debug('lc16sd: Bad load address=%06o' % address)
+                return None
 
         # read data block, calculating checksum
         csum = address                      # start checksum with base address
@@ -395,10 +406,10 @@ def lc16sd_handler(ptp_data, memory, loader=False, body=False):
     return None
 
 # list of recognized loaders and handlers
-Loaders = [
-           ('c8lds', c8lds_handler),
-           ('lc16sd', lc16sd_handler),
-          ]
+Handlers = [
+            ('lc16sd', lc16sd_handler),     # lc16sd first as c8lds is very easy
+            ('c8lds', c8lds_handler),
+           ]
 
 def load(filename, loader=False, body=False):
     """Load a PTP file into a memory object after figuring out its format.
@@ -408,11 +419,12 @@ def load(filename, loader=False, body=False):
     body      True if the body code is to be loaded
 
     Returns None if there was a problem, else returns a tuple
-        (loader, memory, start, initial_ac)
-    where the 'loader'      string identifies the loader,
-              'memory'      is a memory object holding the loaded code,
+        (name, memory, start, initial_ac)
+    where the 'name'        string wgich identifies the loader used,
+              'memory'      is a memory object holding the loaded code:
+                            {address: code, ...},
               'start'       is the start addres, if any
-              'initial_ac'  is the initial contents of AC
+              'initial_ac'  is the initial contents of AC, if any
     """
 
     # get all of PTP file into memory
@@ -432,10 +444,10 @@ def load(filename, loader=False, body=False):
     ptp_data = [ord(x) for x in data]
 
     # try loaders in order
-    for (name, loader) in Loaders:
+    for (name, handler) in Handlers:
         try:
             memory = {}
-            result = loader(ptp_data, memory, loader=loader, body=body)
+            result = handler(ptp_data, memory, loader=loader, body=body)
             debug('%s: result=%s' % (name, str(result)))
         except IndexError:
             result = None
@@ -456,7 +468,7 @@ if __name__ == '__main__':
             print('*'*60)
             print(msg)
             print('*'*60)
-        print('Usage: loadptp <filename>')
+            print('Usage: loadptp <file> [ <file> ... ]')
         sys.exit(10)
 
     if len(sys.argv) < 2:

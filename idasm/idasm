@@ -19,6 +19,7 @@ import processmain
 import processdisplay
 import processdata
 import mem
+import loadptp
 
 
 PROGRAMNAME = "idasm"
@@ -28,7 +29,7 @@ objwildcard = "Papertape files (*.ptp)|*.ptp|All files (*.*)|*.*"
 projwildcard = "Project files (*.idasm)|*.idasm|All files (*.*)|*.*"
 
 grid = None
-mem = None
+Mem = None
 frame = None
 projectName = ""
 
@@ -48,7 +49,7 @@ def newCycleNumber():
         yield cycle
 
 
-newcycle = newCycleNumber()
+NewCycle = newCycleNumber()
 
 
 def loadProject(filename):
@@ -59,31 +60,31 @@ def loadProject(filename):
 
 
 def saveProject(filename):
-    global mem, grid
+    global Mem, grid
     f = open(filename, "wb")
     p = pickle.Pickler(f, -1)
-    p.dump(mem)
+    p.dump(Mem)
     del p
     f.close()
 
 
 def writeASM(filename):
-    global mem
+    global Mem
     if not filename.endswith('.asm'):
         filename = filename + '.asm'
     address = -1
     lines = ""
 
-    addrlist = mem.keys()
+    addrlist = Mem.keys()
     addrlist.sort()
 
     for addr in addrlist:
         addrint = int(addr, 8)
-        code = mem.getCode(addrint)
-        opcode = mem.getOp(addrint)
-        field = mem.getFld(addrint)
-        lab = mem.getLabcount(addrint)
-        ref = mem.getRef(addrint)
+        code = Mem.getCode(addrint)
+        opcode = Mem.getOp(addrint)
+        field = Mem.getFld(addrint)
+        lab = Mem.getLabcount(addrint)
+        ref = Mem.getRef(addrint)
         label = ""
         if lab > 0:
             label = "L%05o" % effAddr(int(addr, 8))
@@ -213,89 +214,89 @@ class MyPopupMenu(wx.Menu):
         self.Bind(wx.EVT_MENU, self.popupDoType, item)
 
     def popupDoMain(self, event):
-        global grid, mem, newcycle, frame
+        global grid, Mem, NewCycle, frame
         rows = grid.GetSelectedRows()
         addrlist = []
         for row in rows:
             if grid.GetCellValue(row, ColumnCode):
                 addrlist.append(int(grid.GetCellValue(row, ColumnAddress), 8))
-        thiscycle = newcycle.next()
-        mem.setUndo()
-        processmain.process(mem, addrlist, thiscycle)
-        fillGrid(grid, mem)
+        thiscycle = NewCycle.next()
+        Mem.setUndo()
+        processmain.process(Mem, addrlist, thiscycle)
+        fillGrid(grid, Mem)
         grid.ClearSelection()
         frame.enableUndo(True)
 
     def popupDoDisplay(self, event):
-        global grid, mem, newcycle
+        global grid, Mem, NewCycle
         rows = grid.GetSelectedRows()
         addrlist = []
         for row in rows:
             if grid.GetCellValue(row, ColumnCode):
                 addrlist.append(int(grid.GetCellValue(row, ColumnAddress), 8))
-        thiscycle = newcycle.next()
-        mem.setUndo()
-        processdisplay.process(mem, addrlist, thiscycle)
-        fillGrid(grid, mem)
+        thiscycle = NewCycle.next()
+        Mem.setUndo()
+        processdisplay.process(Mem, addrlist, thiscycle)
+        fillGrid(grid, Mem)
         grid.ClearSelection()
         frame.enableUndo(True)
 
     def popupDoData(self, event):
-        global grid, mem, newcycle
-        thiscycle = newcycle.next()
-        mem.setUndo()
+        global grid, Mem, NewCycle
+        thiscycle = NewCycle.next()
+        Mem.setUndo()
         for row in grid.GetSelectedRows():
             if grid.GetCellValue(row, ColumnCode):
                 addr = int(grid.GetCellValue(row, ColumnAddress), 8)
-                processdata.process(mem, addr, thiscycle)
-        fillGrid(grid, mem)
+                processdata.process(Mem, addr, thiscycle)
+        fillGrid(grid, Mem)
         grid.ClearSelection()
         frame.enableUndo(True)
 
     def popupSetRef(self, event):
-        global grid, mem
+        global grid, Mem
         row = grid.GetSelectedRows()[0]
         if grid.GetCellValue(row, ColumnCode):
             addrstr = grid.GetCellValue(row, ColumnAddress)
             addr = int(addrstr, 8)
-            ref = mem.getRef(addr)
-            memref = int(mem.getFld(addr), 8)
-            mem.setUndo()
+            ref = Mem.getRef(addr)
+            memref = int(Mem.getFld(addr), 8)
+            Mem.setUndo()
             if ref:
-                mem.decLab(memref)
-            mem.incLab(memref)
-            mem.setRef(addr)
-            fillGrid(grid, mem)
+                Mem.decLab(memref)
+            Mem.incLab(memref)
+            Mem.setRef(addr)
+            fillGrid(grid, Mem)
             frame.enableUndo(True)
         grid.ClearSelection()
 
     def popupClearRef(self, event):
-        global grid, mem
+        global grid, Mem
         row = grid.GetSelectedRows()[0]
         if grid.GetCellValue(row, ColumnCode):
             addrstr = grid.GetCellValue(row, ColumnAddress)
             addr = int(addrstr, 8)
-            ref = mem.getRef(addr)
-            memref = int(mem.getFld(addr), 8)
+            ref = Mem.getRef(addr)
+            memref = int(Mem.getFld(addr), 8)
             if ref:
-                mem.setUndo()
-                mem.decLab(memref)
-                mem.clearRef(addr)
-                fillGrid(grid, mem)
+                Mem.setUndo()
+                Mem.decLab(memref)
+                Mem.clearRef(addr)
+                fillGrid(grid, Mem)
                 frame.enableUndo(True)
         grid.ClearSelection()
 
     def popupDoType(self, event):
-        global grid, mem
+        global grid, Mem
         for row in grid.GetSelectedRows():
             if grid.GetCellValue(row, ColumnCode):
                 addrstr = grid.GetCellValue(row, ColumnAddress)
                 addr = int(addrstr, 8)
-                word = mem.getCode(addr)
-                cycle = mem.getCycle(addr)
-                type = mem.getType(addr)
-                lab = mem.getLabcount(addr)
-                ref = mem.getRef(addr)
+                word = Mem.getCode(addr)
+                cycle = Mem.getCycle(addr)
+                type = Mem.getType(addr)
+                lab = Mem.getLabcount(addr)
+                ref = Mem.getRef(addr)
                 print "row %d, addr=%s, code=%05o, cycle=%d, type=%s, lab=%s, ref=%s" % \
                             (row+1, addrstr, word, cycle, type, lab, ref)
 
@@ -431,7 +432,7 @@ class MyFrame(wx.Frame):
         event.Skip()
 
     def Menu100(self, event):
-        global mem, projectName
+        global Mem, projectName
         filename = None
         dlg = wx.FileDialog(self, message="Choose a project file to load",
                             defaultDir=os.getcwd(), defaultFile=projectName,
@@ -440,18 +441,18 @@ class MyFrame(wx.Frame):
         if dlg.ShowModal() == wx.ID_OK:
             filename = dlg.GetPath()
             self.grid.ClearGrid()
-            mem = loadProject(filename)
-            fillGrid(self.grid, mem)
+            Mem = loadProject(filename)
+            fillGrid(self.grid, Mem)
             projectName = os.path.basename(filename)
             if projectName.endswith(DEFPROJSUFFIX):
                 projectName = projectName[:-len(DEFPROJSUFFIX)]
         dlg.Destroy()
         self.enableSaveWrite(True)
-        mem.clearUndo()
+        Mem.clearUndo()
         self.enableUndo(False)
 
     def Menu101(self, event):
-        global mem, projectName
+        global Mem, projectName
         filename = projectName + DEFPROJSUFFIX
         if projectName == "":
             dlg = wx.FileDialog(self,
@@ -470,7 +471,7 @@ class MyFrame(wx.Frame):
         saveProject(filename)
 
     def Menu102(self, event):
-        global mem, projectName
+        global Mem, projectName
 
         dlg = wx.FileDialog(self,
                             message='Choose a project file to save as',
@@ -486,9 +487,9 @@ class MyFrame(wx.Frame):
         dlg.Destroy()
 
     def Menu103(self, event):
-        """Choose PTP file to load blockloader and code from."""
+        """Choose PTP file to load blockloader and body code from."""
 
-        global grid, mem, projectName
+        global grid, Mem, projectName
 
         filename = None
         dlg = wx.FileDialog(self, message="Choose an IMLAC object file to load",
@@ -498,26 +499,28 @@ class MyFrame(wx.Frame):
         if dlg.ShowModal() == wx.ID_OK:
             filename = dlg.GetPath()
             self.grid.ClearGrid()
-            result = binimport.ptpimport(filename, blockloader=True, code=True)
+
+            result = loadptp.load(filename, loader=True, body=True)
             if result is not None:
-                (mem, start, ac) = result
-                fillGrid(grid, mem)
+                (loader, memory, start, ac) = result
+                Mem = mem.Mem(memory)
+                fillGrid(grid, Mem)
                 projectName = os.path.basename(filename)
                 if projectName.endswith(DEFPTPSUFFIX):
                     projectName = projectName[:-len(DEFPTPSUFFIX)]
                 self.enableSaveWrite(True)
-                mem.clearUndo()
+                Mem.clearUndo()
                 self.enableUndo(False)
                 if start:
                     # mark start address as MAIN instructions
-                    self.do_main_start(start & 077777)
+                    self.do_main_start(start)
         dlg.Destroy()
 
 
     def Menu104(self, event):
-        """Choose PTP file to load code from."""
+        """Choose PTP file to load only body code from."""
 
-        global grid, mem, projectName
+        global grid, Mem, projectName
 
         filename = None
         dlg = wx.FileDialog(self, message="Choose an IMLAC object file to load",
@@ -527,26 +530,27 @@ class MyFrame(wx.Frame):
         if dlg.ShowModal() == wx.ID_OK:
             filename = dlg.GetPath()
             self.grid.ClearGrid()
-            result = binimport.ptpimport(filename, blockloader=False, code=True)
+            result = loadptp.load(filename, loader=False, body=True)
             if result is not None:
-                (mem, start, ac) = result
-                fillGrid(grid, mem)
+                (loader, memory, start, ac) = result
+                Mem = mem.Mem(memory)
+                fillGrid(grid, Mem)
                 projectName = os.path.basename(filename)
                 if projectName.endswith(DEFPTPSUFFIX):
                     projectName = projectName[:-len(DEFPTPSUFFIX)]
                 self.enableSaveWrite(True)
-                mem.clearUndo()
+                Mem.clearUndo()
                 self.enableUndo(False)
                 if start:
                     # mark start address as MAIN instructions
-                    self.do_main_start(start & 077777)
+                    self.do_main_start(start)
         dlg.Destroy()
 
 
     def Menu105(self, event):
         """Choose PTP file to load blockloader from."""
 
-        global grid, mem, projectName
+        global grid, Mem, projectName
 
         filename = None
         dlg = wx.FileDialog(self, message="Choose an IMLAC object file to load",
@@ -556,24 +560,24 @@ class MyFrame(wx.Frame):
         if dlg.ShowModal() == wx.ID_OK:
             filename = dlg.GetPath()
             self.grid.ClearGrid()
-            result = binimport.ptpimport(filename, blockloader=True, code=False)
+            result = loadptp.load(filename, loader=True, body=False)
             if result is not None:
-                (mem, start, ac) = result
-                fillGrid(grid, mem)
+                (loader, memory, start, ac) = result
+                Mem = mem.Mem(memory)
+                fillGrid(grid, Mem)
                 projectName = os.path.basename(filename)
                 if projectName.endswith(DEFPTPSUFFIX):
                     projectName = projectName[:-len(DEFPTPSUFFIX)]
                 self.enableSaveWrite(True)
-                mem.clearUndo()
+                Mem.clearUndo()
                 self.enableUndo(False)
-                if start:
-                    # mark start address as MAIN instructions
-                    self.do_main_start(start & 077777)
+                # mark start address as MAIN instructions
+                self.do_main_start(03700)
         dlg.Destroy()
 
 
     def Menu109(self, event):
-        global mem, grid, projectName
+        global Mem, grid, projectName
         filename = None
         dlg = wx.FileDialog(self,
                             message="Choose an IMLAC assembler file to write",
@@ -611,14 +615,25 @@ class MyFrame(wx.Frame):
         wx.AboutBox(info)
 
     def Menu309(self, event):
-        global mem, grid
-        mem.undoX()
-        fillGrid(grid, mem)
+        global Mem, grid
+        Mem.undoX()
+        fillGrid(grid, Mem)
 
     def do_main_start(self, start):
         """Mark start address as MAIN opcodes."""
 
-        print('do_main_start: start=%06o' % start)
+        global Mem, NewCycle
+
+#        thiscycle = NewCycle.next()
+#        processmain.process(Mem, [start], thiscycle)
+
+
+        thiscycle = NewCycle.next()
+        Mem.setUndo()
+        processmain.process(Mem, [start], thiscycle)
+        fillGrid(grid, Mem)
+        grid.ClearSelection()
+        frame.enableUndo(True)
 
 
 class MyApp(wx.App):

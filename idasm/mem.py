@@ -26,9 +26,19 @@ where address    is the address of the data (integer)
 
 class Mem(object):
 
-    def __init__(self):
+    def __init__(self, oldmem=None):
+        """Init a Mem object.
+
+        oldmem  optional dict: {addr: code, ...}
+        """
+
         self.memory = {}
         self.undo = None
+
+        # handle optional initial values
+        if oldmem is not None:
+            for (address, code) in oldmem.items():
+                self.add(address, code)
 
     def add(self, address, code):
         self.putMem(address, (code, "", "", 0, False, None, 0))

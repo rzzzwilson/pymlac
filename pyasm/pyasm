@@ -532,7 +532,7 @@ def write_block():
         write_leader()
         write_block_c8lds()
     else:
-        write_leader()
+#        write_leader()
         write_block_lc16sd()
 
 def write_block_c8lds():

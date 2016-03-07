@@ -70,6 +70,15 @@ def isSkip(code):
     return False
 
 def process(mem, addrlist, newcycle):
+    """Mark address in 'addrlist' as MAIN instructions.
+
+    mem       the Mem() object holding memory contents
+    addrlist  list of addresses to mark
+    newcycle  a new cycle number
+
+    Is smart and adds targets of JMP, ISZ, etc, to addrlist.
+    """
+
     for addr in addrlist:
         enqueMain(addr)
     while len(mainQ) > 0:
