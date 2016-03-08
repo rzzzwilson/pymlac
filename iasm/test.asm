@@ -4,4 +4,4 @@
 	org	0100		; 
 start	jmp	start		; 
 ;-------------------------------
-	end
+	end     start
