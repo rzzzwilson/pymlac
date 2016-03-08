@@ -25,14 +25,11 @@ MemSize = 04000
 # size of block loader
 LoaderSize = 0100
 
-# True if debug code is active
-Debug = True
 
+def debug(debug, msg):
+    """Debug message, but only if param debug is True."""
 
-def debug(msg):
-    """Debug message, but only if global Debug is True."""
-
-    if Debug:
+    if debug:
         print(msg)
 
 def pyword(word):
@@ -141,13 +138,14 @@ def read_blockloader(ptp_data, index, memory=None):
 
     return index
 
-def c8lds_handler(ptp_data, memory, loader=False, body=False):
+def c8lds_handler(ptp_data, memory, loader=False, body=False, debugging=False):
     """Sees if the PTP data follows the format in "Loading the PDS-1" document.
 
     ptp_data  array of PTP data
     memory    memory object to be populated with body code
     loader    True if we put loader code into memory
     body      True if we put body code into memory
+    debugging True if we are debugging
 
     Returns None if PTP not recognized as 'c8lds'.
     Returns a tuple (None, None) if recognized.  This tuple is really
@@ -190,9 +188,9 @@ def c8lds_handler(ptp_data, memory, loader=False, body=False):
     index = skipzeros(ptp_data, index)
     if index is None:
         # empty tape
-        debug('c8lds: No leader?')
+        debug(debugging, 'c8lds: No leader?')
         return None
-    debug('c8lds: after zero leader, index=%d' % index)
+    debug(debugging, 'c8lds: after zero leader, index=%d' % index)
 
     if loader:
         index = read_blockloader(ptp_data, index, memory=memory)
@@ -201,57 +199,62 @@ def c8lds_handler(ptp_data, memory, loader=False, body=False):
 
     if index is None:
         # short block loader?
-        debug('c8lds: Short leader?')
+        debug(debugging, 'c8lds: Short leader?')
         return None
-    debug('c8lds: after blockloader, index=%d' % index)
+    debug(debugging, 'c8lds: after blockloader, index=%d' % index)
 
     # now read data blocks
+    got_data_block = False
     if not body:
         memory = {}     # save body code into unused memory
     while True:
         index = skipzeros(ptp_data, index)
         if index is None:
             # empty tape
-            debug('c8lds: EOT looking for block?')
+            debug(debugging, 'c8lds: EOT looking for block?')
             return None
-        debug('c8lds: index before block=%d' % index)
+        debug(debugging, 'c8lds: index before block=%d' % index)
 
         # get data word count
         result = get_byte(ptp_data, index)
         if result is None:
             # premature end of tape?
-            debug('c8lds: EOT at start of block?')
+            debug(debugging, 'c8lds: EOT at start of block?')
             return None
         (count, index) = result
-        debug('c8lds: word count=%03o' % count)
+        debug(debugging, 'c8lds: word count=%03o' % count)
 
         # get block load address
         result = get_word(ptp_data, index)
         if result is None:
             # premature end of tape?
-            debug('c8lds: EOT getting load address?')
+            debug(debugging, 'c8lds: EOT getting load address?')
             return None
         (address, index) = result
-        debug('c8lds: load address=%06o' % address)
-        if address > 03777:
-            # bad load address
-            debug('c8lds: Bad load address=%06o' % address)
-            return None
+        debug(debugging, 'c8lds: load address=%06o' % address)
         if address == 0177777:
             # it's an End-Of-Tape block!
+            if not got_data_block:
+                # if we have no data blocks, probably NOT c8lds
+                return None
             return (None, None)
+        if address > 03777:
+            # bad load address
+            debug(debugging, 'c8lds: Bad load address=%06o' % address)
+            return None
 
         # read data words, store in memory and calculate checksum
+        got_data_block = True       # we got at least one data block
         checksum = 0
         for _ in range(count):
             result = get_word(ptp_data, index)
             if result is None:
                 # premature end of tape?
-                debug('c8lds: EOT getting data word?')
+                debug(debugging, 'c8lds: EOT getting data word?')
                 return None
             (data, index) = result
             memory[address] = data
-            debug('c8lds: data word=%06o' % data)
+            debug(debugging, 'c8lds: data word=%06o' % data)
 
             address += 1
             checksum += data
@@ -264,16 +267,16 @@ def c8lds_handler(ptp_data, memory, loader=False, body=False):
         result = get_word(ptp_data, index)
         if result is None:
             # premature end of tape?
-            debug('c8lds: EOT getting checksum?')
+            debug(debugging, 'c8lds: EOT getting checksum?')
             return None
         (ptp_checksum, index) = result
         if ptp_checksum != checksum:
             # bad checksum
-            debug('c8lds: Bad checksum? Read %06o, expected %06o.' % (ptp_checksum, checksum))
+            debug(debugging, 'c8lds: Bad checksum? Read %06o, expected %06o.' % (ptp_checksum, checksum))
             return None
 
     # we shouldn't get here
-    debug('c8lds: Badly formed PTP file')
+    debug(debugging, 'c8lds: Badly formed PTP file')
     return None
 
 def lc16sd_add_csum(csum, word):
@@ -282,13 +285,14 @@ def lc16sd_add_csum(csum, word):
     result = (csum + word) & 0xffff
     return result
 
-def lc16sd_handler(ptp_data, memory, loader=False, body=False):
+def lc16sd_handler(ptp_data, memory, loader=False, body=False, debugging=False):
     """Decides if PTP data is in 'lc16sd' format.
 
     ptp_data  array of PTP data
     memory    memory object to be populated with body code
     loader    True if we put loader code into memory
     body      True if we put body code into memory
+    debugging True if we are debugging
 
     Returns None if PTP not recognized as 'lc16sd'.
     Returns a tuple (start, initialAC) if recognized.
@@ -321,7 +325,7 @@ def lc16sd_handler(ptp_data, memory, loader=False, body=False):
     index = skipzeros(ptp_data, index)
     if index is None:
         # empty tape
-        debug('lc16sd: No leader?')
+        debug(debugging, 'lc16sd: No leader?')
         return None
 
     if loader:
@@ -332,7 +336,7 @@ def lc16sd_handler(ptp_data, memory, loader=False, body=False):
 
     if index is None:
         # short block loader?
-        debug('lc16sd: Short blockloader?')
+        debug(debugging, 'lc16sd: Short blockloader?')
         return None
 
     # now read data blocks
@@ -342,7 +346,7 @@ def lc16sd_handler(ptp_data, memory, loader=False, body=False):
         # get this block load address
         result = get_word(ptp_data, index)
         if result is None:
-            debug('lc16sd: EOT getting load address?')
+            debug(debugging, 'lc16sd: EOT getting load address?')
             return None     # premature end of tape?
         (address, index) = result
         # if block load address has high bit set, we are finished
@@ -352,7 +356,7 @@ def lc16sd_handler(ptp_data, memory, loader=False, body=False):
                 # we have an autostart
                 result = get_word(ptp_data, index)
                 if result is None:
-                    debug('lc16sd: EOT getting AC value for autostart?')
+                    debug(debugging, 'lc16sd: EOT getting AC value for autostart?')
                     return None     # premature end of tape?
                 (initAC, index) = result
                 return (address & 0x3fff, initAC)
@@ -360,27 +364,27 @@ def lc16sd_handler(ptp_data, memory, loader=False, body=False):
         else:
             if address > 03777:
                 # bad load address
-                debug('lc16sd: Bad load address=%06o' % address)
+                debug(debugging, 'lc16sd: Bad load address=%06o' % address)
                 return None
 
         # read data block, calculating checksum
         csum = address                      # start checksum with base address
-        debug('lc16sd: address=%06o' % address)
+        debug(debugging, 'lc16sd: address=%06o' % address)
         result = get_word(ptp_data, index)
         if result is None:
-            debug('lc16sd: EOT getting word count?')
+            debug(debugging, 'lc16sd: EOT getting word count?')
             return None         # premature end of tape?
         (count, index) = result
         neg_count = pyword(count)
-        debug('lc16sd: count=%06o, neg_count=%d' % (count, neg_count))
+        debug(debugging, 'lc16sd: count=%06o, neg_count=%d' % (count, neg_count))
         csum = lc16sd_add_csum(csum, neg_count)
 
         result = get_word(ptp_data, index)
         if result is None:
-            debug('lc16sd: EOT getting checksum?')
+            debug(debugging, 'lc16sd: EOT getting checksum?')
             return None         # premature end of tape?
         (csum_word, index) = result
-        debug('lc16sd: csum_word=%06o' % csum_word)
+        debug(debugging, 'lc16sd: csum_word=%06o' % csum_word)
         old_csum = csum
         csum = lc16sd_add_csum(csum, csum_word)
 
@@ -388,21 +392,21 @@ def lc16sd_handler(ptp_data, memory, loader=False, body=False):
         while neg_count < 0:
             result = get_word(ptp_data, index)
             if result is None:
-                debug('lc16sd: EOT getting data word?')
+                debug(debugging, 'lc16sd: EOT getting data word?')
                 return None     # premature end of tape?
             (word, index) = result
-            debug('lc16sd: data word=%06o' % word)
+            debug(debugging, 'lc16sd: data word=%06o' % word)
             old_csum = csum
             csum = lc16sd_add_csum(csum, word)
             memory[address] = word
             address += 1
             neg_count += 1
         if csum != 0:
-            debug('lc16sd: Bad checksum, sum is %06o, expected 0?' % csum)
+            debug(debugging, 'lc16sd: Bad checksum, sum is %06o, expected 0?' % csum)
             return None     # bad block checksum
 
     # on a well-formed 'lc16sd' file we shouldn't get here
-    debug('lc16sd: Badly formed file')
+    debug(debugging, 'lc16sd: Badly formed file')
     return None
 
 # list of recognized loaders and handlers
@@ -411,12 +415,13 @@ Handlers = [
             ('c8lds', c8lds_handler),
            ]
 
-def load(filename, loader=False, body=False):
+def load(filename, loader=False, body=False, debugging=False):
     """Load a PTP file into a memory object after figuring out its format.
 
     filename  path of the PTP file to inspect
     loader    True if the blockloader code is to be loaded
     body      True if the body code is to be loaded
+    debugging True if we are debugging
 
     Returns None if there was a problem, else returns a tuple
         (name, memory, start, initial_ac)
@@ -444,16 +449,33 @@ def load(filename, loader=False, body=False):
     ptp_data = [ord(x) for x in data]
 
     # try loaders in order
+    results = []
+    handlers = []
     for (name, handler) in Handlers:
         try:
             memory = {}
-            result = handler(ptp_data, memory, loader=loader, body=body)
-            debug('%s: result=%s' % (name, str(result)))
+            result = handler(ptp_data, memory, loader=loader,
+                             body=body, debugging=debugging)
+            debug(debugging, '%s: result=%s' % (name, str(result)))
         except IndexError:
             result = None
         if result is not None:
             (start_addr, initial_ac) = result
-            return (name, memory, start_addr, initial_ac)
+            results.append((name, memory, start_addr, initial_ac))
+            handlers.append(name)
+
+    # analyse the results
+    debug(debugging, 'results=%s' % str(results))
+    if results:
+        if len(results) == 1:
+            return results[0]
+        else:
+            names = []
+            for (name, _, _, _) in results:
+                names.append(name)
+            names = ','.join(names)
+            print('%s: %s' % (names, filename))
+            return None
 
     return None
 
@@ -473,9 +495,21 @@ if __name__ == '__main__':
 
     if len(sys.argv) < 2:
         usage()
-    for filename in sys.argv[1:]:
-        result = load(filename, loader=True, body=True)
-        debug('top: result=%s' % str(result))
+
+    # handle -d option
+    debugging = False
+    args = sys.argv[1:]
+    if args[0] == '-d':
+        debugging = True
+        args = args[1:]
+
+    if len(args) < 1:
+        usage()
+
+    # dump each file
+    for filename in args:
+        result = load(filename, loader=True, body=True, debugging=debugging)
+        debug(debugging, 'top: result=%s' % str(result))
         if result is not None:
             (loader, memory, start, initial_ac) = result
             start_str = ''
