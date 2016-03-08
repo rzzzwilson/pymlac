@@ -514,6 +514,9 @@ class MyFrame(wx.Frame):
                 if start:
                     # mark start address as MAIN instructions
                     self.do_main_start(start)
+            else:
+                self.warn("File '%s' was not recognized as any form of PTP file"
+                          % filename)
         dlg.Destroy()
 
 
@@ -624,16 +627,17 @@ class MyFrame(wx.Frame):
 
         global Mem, NewCycle
 
-#        thiscycle = NewCycle.next()
-#        processmain.process(Mem, [start], thiscycle)
-
-
         thiscycle = NewCycle.next()
         Mem.setUndo()
         processmain.process(Mem, [start], thiscycle)
         fillGrid(grid, Mem)
         grid.ClearSelection()
         frame.enableUndo(True)
+
+    def warn(self, msg):
+        """Display a warning message, log and graphically."""
+
+        wx.MessageBox(msg, 'Warning', wx.OK | wx.ICON_ERROR)
 
 
 class MyApp(wx.App):
