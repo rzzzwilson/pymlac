@@ -500,7 +500,8 @@ class MyFrame(wx.Frame):
             filename = dlg.GetPath()
             self.grid.ClearGrid()
 
-            result = loadptp.load(filename, loader=True, body=True)
+            print('idasm: calling loadptp.load(debugging=True)')
+            result = loadptp.load(filename, loader=True, body=True, debugging=True)
             if result is not None:
                 (loader, memory, start, ac) = result
                 Mem = mem.Mem(memory)
