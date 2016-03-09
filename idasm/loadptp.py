@@ -104,7 +104,6 @@ def get_word(ptp_data, index):
         return None
     (second_byte, index) = result
 
-
     word = (first_byte << 8) + second_byte
     return (word, index)
 
@@ -124,7 +123,7 @@ def skipzeros(ptp_data, index):
         except IndexError:
             # off end of tape
             return None
-        if val > 0:
+        if val != 0:
             return index
         index += 1
 
@@ -193,7 +192,8 @@ def c8lds_handler(ptp_data, memory, loader=False, body=False,
     The 'checksum' is not well defined in the documentation which says: the
     checksum is the sum of all the contents modulo 077777.  Yet the example tape
     has a checksum of 0165054.  It is assumed the doc is in error and the
-    checksum is the sum of all the data words, modulo 177777.
+    checksum is the sum of all the data words incremented by one when
+    overflowing 177777.
 
     A load address of 0177777 indicates the end of the load.
     Note that we DO need an 'end of load' block of three bytes at the end of
@@ -512,7 +512,6 @@ def load(filename, loader=False, body=False,
                 names.append(name)
             names = ','.join(names)
             return (names, {}, None, None)
-#            return None
 
     return None
 
