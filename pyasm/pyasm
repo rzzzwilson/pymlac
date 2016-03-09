@@ -532,7 +532,7 @@ def write_block():
         write_leader()
         write_block_c8lds()
     else:
-#        write_leader()
+        # can't write zero leader with lc16sd
         write_block_lc16sd()
 
 def write_block_c8lds():
@@ -567,7 +567,12 @@ def write_block_c8lds():
         write_word(word)
 
     # finally, calculate and write the checksum
-    checksum = sum(BlockBuffer)
+    checksum = 0
+    for v in BlockBuffer:
+        checksum += v
+        if checksum & WordMask != checksum:
+            checksum += 1
+        checksum &= WordMask
     write_word(checksum & WordMask)
 
     # reset the code buffer
@@ -642,9 +647,10 @@ def eval_expr(expr):
         Undefined = e.message
         if 'is not defined' in e.message:
             Undefined = e.message[len("name '"):-len("' is not defined")]
-            msg = "ORG pseudo-opcode expression has '%s' undefined" % Undefined
-            raise NameError(msg)
-        error("ORG pseudo-opcode expression has an error")
+            msg = "Opcode expression has '%s' undefined" % Undefined
+            error(msg)
+            #raise NameError(msg)
+        error("Opcode expression has an error")
 
     return result
 
