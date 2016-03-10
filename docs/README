@@ -9,3 +9,6 @@ running the ROM-60 program, so the output shows the floppy
 bootloader in the "correct" column and the papertape bootloader
 in the "actual" column.  This is from the PDS-4 that was at
 Sydney University in 1978.
+
+Actual disassembly of the code from Sydney_University_PDS-4_Rom.png
+doesn't produce any recognizable bootstrap code?
