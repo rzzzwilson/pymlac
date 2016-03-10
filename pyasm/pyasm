@@ -1327,8 +1327,10 @@ def main():
             if loader not in ['C8LDS', 'LC16SD']:
                 usage("-b options expects either C8LDS or LC16SD param")
             if loader == 'C8LDS':
+                print('BlockLoader=BlockLoader_C8LDS')
                 BlockLoader = BlockLoader_C8LDS
             else:
+                print('BlockLoader=BlockLoader_LC16SD')
                 BlockLoader = BlockLoader_LC16SD
 
     if len(args) != 2:

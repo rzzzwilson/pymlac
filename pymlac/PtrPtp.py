@@ -11,6 +11,8 @@ the PTR/PTP object how many CPU cycles have passed (tick()).
 import struct
 
 from Globals import *
+import log
+log = log.Log('test.log', log.Log.DEBUG)
 
 
 class PtrPtp(object):
@@ -77,6 +79,8 @@ class PtrPtp(object):
         if self.device_use == self.InUsePTP:
             raise RuntimeError("ptr_mount: Can't mount PTR file, being used as PTP")
 
+        log("Mounting '%s' onto PTR" % fname)
+
         self.device_use = self.InUsePTR
         self.device_motor_on = False
         self.device_filename = fname
@@ -92,6 +96,8 @@ class PtrPtp(object):
         if self.device_use == self.InUsePTP:
             raise RuntimeError("ptr_dismount: Can't dismount PTR file, being used as PTP")
 
+        log("Dismounting '%s' onto PTR" % self.device_filename)
+
         if self.device_filename:
             self.device_open_file.close()
 
@@ -103,6 +109,8 @@ class PtrPtp(object):
         if self.device_use == self.InUsePTP:
             raise RuntimeError("start: Can't start PTR motor, being used as PTP")
 
+        log("Starting PTR")
+
         self.device_use = self.InUsePTR
         self.device_motor_on = True
         self.device_ready = False
@@ -113,6 +121,8 @@ class PtrPtp(object):
 
         if self.device_use == self.InUsePTP:
             raise RuntimeError("stop: Can't stop PTR motor, being used as PTP")
+
+        log("Stopping PTR")
 
         self.device_motor_on = False
         self.device_ready = False
