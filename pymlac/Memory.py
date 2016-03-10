@@ -51,8 +51,7 @@ class Memory(object):
                      0100011, #         cal             ;71 clear AC & LINK
                      0030020, #         isz     020     ;72 inc mem and skip zero
                      0010053, #         jmp     loop    ;73 if not finished, jump
-                     0000000, #         hlt             ;74 JUST STOP
-                     #0110076, #         jmp     *go     ;74 execute loader
+                     0110076, #         jmp     *go     ;74 execute loader
                      0000002, # what    data    2       ;75
                      0003700, # go      data    03700   ;76
                      0003677, # base    data    03677   ;77
