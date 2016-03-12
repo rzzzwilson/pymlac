@@ -182,7 +182,7 @@ class Memory(object):
     def set_PTR_ROM(self):
         """Set addresses 040 to 077 as PTR ROM."""
 
-        log('seting PTR bootstrap into ROM')
+        log('setting PTR bootstrap into ROM')
         i = self.ROM_START
         for ptr_value in self.PTR_ROM_IMAGE:
             self.memory[i] = ptr_value
@@ -191,7 +191,7 @@ class Memory(object):
     def set_TTY_ROM(self):
         """Set addresses 040 to 077 as TTY ROM."""
 
-        log('seting TTY bootstrap into ROM')
+        log('setting TTY bootstrap into ROM')
         i = self.ROM_START
         for tty_value in self.TTY_ROM_IMAGE:
         #for tty_value in self.TTY_ROM_IMAGE_TEST:
