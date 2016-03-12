@@ -89,8 +89,6 @@ def start_running(cpu, memory, ptrptp, ttyin):
         if tracestr:
             endstr = trace.itraceend(False)
             log('%s\t%s' % (tracestr, endstr))
-#            trace.comment('%s\t%s' % (tracestr, endstr))
-#            trace.flush()
         ptrptp.ptr_tick(cycles)
         ptrptp.ptp_tick(cycles)
         ttyin.tick(cycles)
@@ -186,6 +184,9 @@ def main():
                     usage("'-r' option needs a following address or 'pc'")
                     sys.exit(10)
                 imlac_cpu.PC = addr_value
+                log('Running from address %06o' % addr_value)
+            else:
+                log('Running from current PC %06o' % imlac_cpu.PC)
             trace.set_trace_map(trace_map)
             start_running(imlac_cpu, imlac_memory, imlac_ptrptp, imlac_ttyin)
         elif opt == '-s':
