@@ -1,5 +1,5 @@
-; disassembled from iasm/simpledisplay2.ptp
-; a lc16sd blockloader for TTYIN
+; a lc16sd blockloader for TTYIN, with visual display.
+; disassembled from iasm/simpledisplay2.ptp.
 	ORG	03700	; addr  code
 
 addr	RCF		; 03700 0001032
