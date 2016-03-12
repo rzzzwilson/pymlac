@@ -34,7 +34,7 @@ class TtyIn(object):
     def mount(self, fname):
         """Mount a file on the TTYIN device."""
 
-        log("Mounting '%s' on TTYIN" % fname)
+#        log("Mounting '%s' on TTYIN" % fname)
 
         self.filename = fname
         self.open_file = open(fname, 'r')
@@ -53,7 +53,7 @@ class TtyIn(object):
     def dismount(self):
         """Dismount the file on the TTYIN device."""
 
-        log("Dismounting '%s' on TTYIN" % self.filename)
+#        log("Dismounting '%s' on TTYIN" % self.filename)
 
         if self.open_file:
             self.open_file.close()
@@ -67,7 +67,7 @@ class TtyIn(object):
     def read(self):
         """Return the current device value."""
 
-        log("Reading TTYIN: returning %03o" % self.value)
+#        log("Reading TTYIN: returning %03o" % self.value)
 
         return self.value
 
@@ -79,7 +79,7 @@ class TtyIn(object):
     def clear(self):
         """Clear the device 'ready' status."""
 
-        log("TTYIN: clearing flag")
+#        log("TTYIN: clearing flag")
 
         self.status = self.DEVICE_NOT_READY
 
