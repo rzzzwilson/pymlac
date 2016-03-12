@@ -1,11 +1,13 @@
 ;-------------------------------
 ; Just loop in place - CPU speed test.
+; Also has two blocks - blockloader test.
 ;-------------------------------
 	org	0100		; 
 start	nop                     ;
-        jmp	end             ; 
-end     hlt                     ;
-        org     0200            ;
+        jmp	other           ; 
+                                ;
+        org     0104            ;
+other   law     0111            ;
         hlt                     ;
 ;-------------------------------
 	end     start
