@@ -12,3 +12,6 @@ Sydney University in 1978.
 
 Actual disassembly of the code from Sydney_University_PDS-4_Rom.png
 doesn't produce any recognizable bootstrap code?
+
+The *.asm files are semi-production versions of the bootstrap and
+blockloader code.  These are embedded in pymlac/Memory.py and pyasm/pyasm.
