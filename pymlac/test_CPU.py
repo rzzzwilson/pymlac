@@ -315,13 +315,16 @@ class TestCPU(object):
         We also stop if the CPU executes the HLT instruction.
         """
 
-        log('rununtil: address=%s' % address)
         new_address = self.str2int(address)
         if new_address is None:
+            log('ABORT! rununtil: invalid stop address: %s' % address)
             return 'rununtil: invalid stop address: %s' % address
 
-        self.used_cycles= 0
+        log('rununtil: address=%s, self.cpu.running=%s' % (address, str(self.cpu.running)))
+        self.used_cycles = 0
+        self.cpu.running = True
         while self.cpu.running:
+            log('rununtil: loop top')
             (cycles, tracestr) = self.cpu.execute_one_instruction()
             if tracestr:
                 endstr = trace.itraceend(False)
@@ -332,6 +335,7 @@ class TestCPU(object):
             self.used_cycles += cycles
             if self.cpu.PC == new_address:
                 break
+            log('rununtil: bottom top, PC=%06o' % self.cpu.PC)
 
     def checkcycles(self, cycles, ignore):
         """Check that opcode cycles used is correct.
