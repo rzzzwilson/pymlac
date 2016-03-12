@@ -21,6 +21,7 @@ import collections
 import sys
 import os
 import json
+import collections
 
 from Globals import *
 import MainCPU
@@ -31,6 +32,35 @@ import TtyOut
 import Trace
 
 trace = Trace.Trace(TRACE_FILENAME)
+
+
+def octword_line(s, offset):
+    """Generate one line of fdump output.
+
+    s       integer list to convert (8 words or less)
+    offset  offset from start of dump
+    """
+
+    HEXLEN = 48
+    CHARLEN = 16
+
+    hex = ''
+    char = ''
+    for v in s:
+        hex += '%06o ' % v
+        hi = v >> 8
+        lo = v & 0xff
+        if ord(' ') <= hi <= ord('~'):
+            char += chr(hi)
+        else:
+            char += '.'
+        if ord(' ') <= lo <= ord('~'):
+            char += chr(lo)
+        else:
+            char += '.'
+    hex = (hex + ' '*HEXLEN)[:HEXLEN]
+    char = (char + '|' + ' '*CHARLEN)[:CHARLEN+1]
+    return '%06o  %s |%s' % (offset, hex, char)
 
 
 class TestCPU(object):
@@ -128,7 +158,7 @@ class TestCPU(object):
 
 # Here we implement the DSL primitives.  They all take two parameters which are
 # the DSL field1 and field2 values (lowercase strings).  If one or both are
-# missing the parameter is None.
+# missing the parameters are None.
 #
 #   setreg <name> <value>
 #   setmem <address> <value>
@@ -389,7 +419,12 @@ class TestCPU(object):
             self.ptrptp.ptr_mount(filename)
         elif device == 'ptp':
             self.ptrptp.ptp_mount(filename)
+        elif device == 'ttyin':
+            if not os.path.exists(filename) or not os.path.isfile(filename):
+                return "mount: '%s' doesn't exist or isn't a file" % filename
+            self.ttyin.mount(filename)
         else:
+            print('mount: bad device: %s' % device)
             return 'mount: bad device: %s' % device
 
     def dismount(self, device, ignore):
@@ -438,17 +473,35 @@ class TestCPU(object):
         print('dumpmem: filename=%s, begin=%06o, end=%06o'
               % (filename, begin, end))
 
-        # create dict containing memory contents: {addr: contents, ...}
-        mem = {}
-        for addr in range(begin, end+1):
-            addr_str = '%06o' % addr
-            value = self.memory.fetch(addr, False)
-            value_str = '%06o' % value
-            mem[addr_str] = value_str
-
-        # dump to JSON file
+        # create octdump-like text file with required memory locations
         with open(filename, 'wb') as handle:
-            json.dump(mem, handle)
+            addr = begin
+            offset = addr
+            chunk = []
+            while addr < end:
+                word = self.memory.fetch(addr, False)
+                addr += 1
+                chunk.append(word)
+                if len(chunk) == 16:
+                    line = octword_line(chunk, offset)
+                    handle.write(line + '\n')
+                    chunk = []
+                    offset = addr
+            if len(chunk):
+                line = octword_line(chunk, offset)
+                handle.write(line + '\n')
+
+#        # create dict containing memory contents: {addr: contents, ...}
+#        mem = {}
+#        for addr in range(begin, end+1):
+#            addr_str = '%06o' % addr
+#            value = self.memory.fetch(addr, False)
+#            value_str = '%06o' % value
+#            mem[addr_str] = value_str
+#
+#        # dump to JSON file
+#        with open(filename, 'wb') as handle:
+#            json.dump(mem, handle)
 
     def cmpmem(self, filename, ignore):
         pass
@@ -541,6 +594,12 @@ class TestCPU(object):
         self.ttyout = TtyOut.TtyOut()
         self.cpu = MainCPU.MainCPU(self.memory, None, None,
                                    None, self.ttyin, self.ttyout, self.ptrptp)
+        # trace at all addresses
+        trace_map = collections.defaultdict(bool)
+        for addr in range(0, 03777+1):
+            trace_map[addr] = True
+        trace.set_trace_map(trace_map)
+
         self.cpu.running = True
         self.display_state = False
 
