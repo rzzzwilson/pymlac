@@ -233,8 +233,6 @@ class MainCPU(object):
         eff_address = self.memory.eff_address(address, indirect)
         self.memory.put(self.AC, eff_address, False)
         tracestr = trace.itrace(self.dot, 'DAC', indirect, address)
-        log('DAC: %s' % tracestr)
-        log('DAC: storing %06o at address %06o' % (self.AC, eff_address))
         return (3, tracestr) if indirect else (2, tracestr)
 
     def i_XAM(self, indirect, address, instruction):
