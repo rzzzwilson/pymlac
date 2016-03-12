@@ -23,8 +23,6 @@ class TtyIn(object):
     def __init__(self):
         """Initialize the TTYIN device."""
 
-        log('TTYIN: Initializing device')
-
         self.filename = None
         self.open_file = None
         self.value = 0xff
@@ -33,12 +31,8 @@ class TtyIn(object):
         self.status = self.DEVICE_NOT_READY
         self.offset = 0
 
-        log('TTYIN: DEVICE_READY_CYCLES=%d' % self.DEVICE_READY_CYCLES)
-
     def mount(self, fname):
         """Mount a file on the TTYIN device."""
-
-        log('TTYIN: Mounting file %s on device' % fname)
 
         self.filename = fname
         self.open_file = open(fname, 'r')
@@ -50,18 +44,12 @@ class TtyIn(object):
             # EOF on input file
             self.atEOF = True
             self.cycle_count = 0
-            log('TTYIN: EOF set on device (file %s)' % self.fname)
         else:
             self.value = ord(self.value)
         self.offset = 0
 
-        log('TTYIN: Mounting file %s, .value=%03o, .offset=%04o'
-            % (self.filename, self.value, self.offset))
-
     def dismount(self):
         """Dismount the file on the TTYIN device."""
-
-        log('TTYIN: Dismounting file %s' % self.filename)
 
         if self.open_file:
             self.open_file.close()
@@ -75,22 +63,15 @@ class TtyIn(object):
     def read(self):
         """Return the current device value."""
 
-        log('TTYIN: Reading device, value is %03o, offset=%04o' % (self.value, self.offset))
-
         return self.value
 
     def ready(self):
         """Return device status."""
 
-        log("TTYIN: Device 'ready' status is %s, offset=%d"
-            % (str(self.status == self.DEVICE_READY), self.offset))
-
         return (self.status == self.DEVICE_READY)
 
     def clear(self):
         """Clear the device 'ready' status."""
-
-        log("TTYIN: Clearing device 'ready' status, offset=%04o" % self.offset)
 
         self.status = self.DEVICE_NOT_READY
 
@@ -98,8 +79,6 @@ class TtyIn(object):
         """Advance the device state by 'cycles' number of CPU cycles."""
 
         if not self.atEOF:
-            log("TTYIN: Doing 'tick' cycle=%d, .atEOF=%s, .cycle_count=%d"
-                    % (cycles, str(self.atEOF), self.cycle_count))
             self.cycle_count -= cycles
             if self.cycle_count <= 0:
                 self.cycle_count += self.DEVICE_READY_CYCLES
@@ -112,8 +91,4 @@ class TtyIn(object):
                     self.value = chr(0xff)
                     self.cycle_count = 0
                     self.status = self.DEVICE_NOT_READY
-                    log('TTYIN: EOF set on device (file %s)' % self.filename)
                 self.value = ord(self.value)
-
-                log('TTYIN: .cycle_count expired, new character is %03o, .offset=%04o'
-                        % (self.value, self.offset))
