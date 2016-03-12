@@ -1,2 +1,3 @@
 # loads executable tape and dumps 0100+4
-bootrom ptr; mount ptr dumpmem_test.ptp; setreg pc 040; rununtil 0; dumpmem dumpmem_test.dump 0100,0104
+bootrom ptr; mount ptr dumpmem_test_c8lds.ptp; setreg pc 040; rununtil 0; dumpmem dumpmem_test.dump 0100,0110
+#bootrom tty; mount ttyin dumpmem_test_c8lds.ptp; setreg pc 040; rununtil 0; dumpmem dumpmem_test.dump 0100,0110
