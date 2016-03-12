@@ -33,6 +33,9 @@ import Trace
 
 trace = Trace.Trace(TRACE_FILENAME)
 
+import log
+log = log.Log('test.log', log.Log.DEBUG)
+
 
 def octword_line(s, offset):
     """Generate one line of fdump output.
@@ -41,7 +44,7 @@ def octword_line(s, offset):
     offset  offset from start of dump
     """
 
-    HEXLEN = 48
+    HEXLEN = 55
     CHARLEN = 16
 
     hex = ''
@@ -106,9 +109,14 @@ class TestCPU(object):
         """Convert string to numeric value.
 
         s  numeric string (decimal or octal)
+           (could be None)
 
         Returns the numeric value.
+        Returns None if value incorrect.
         """
+
+        if s is None:
+            return None
 
         base = 10
         if s[0] == '0':
@@ -185,6 +193,7 @@ class TestCPU(object):
         Remember value to check later.
         """
 
+        log('setreg: name=%s, value=%s' % (name, value))
         value = self.str2int(value)
 
         self.reg_values[name] = value
@@ -207,6 +216,7 @@ class TestCPU(object):
         values  value to store at 'addr'
         """
 
+        log('setmem: addr=%s, value=%s' % (addr, value))
         addr = self.str2int(addr)
 
         # check if we must assemble values
@@ -224,6 +234,7 @@ class TestCPU(object):
     def allreg(self, value, ignore):
         """Set all registers to a value."""
 
+        log('allreg: value=%s' % value)
         new_value = self.str2int(value)
         if new_value is None:
             return 'allreg: bad value: %s' % str(value)
@@ -241,6 +252,7 @@ class TestCPU(object):
         Remember value to check later.
         """
 
+        log('allmem: value=%s' % value)
         new_value = self.str2int(value)
         if new_value is None:
             return 'allmem: bad value: %s' % str(value)
@@ -256,6 +268,7 @@ class TestCPU(object):
         loader_type  either 'ptr' or 'tty'
         """
 
+        log('bootrom: loader_type=%s' % loader_type)
         if loader_type not in ['ptr', 'tty']:
             return 'bootrom: invalid bootloader type: %s' % loader_type
         self.memory.set_ROM(loader_type)
@@ -263,6 +276,7 @@ class TestCPU(object):
     def romwrite(self, writable, ignore):
         """Set ROM to be writable or not."""
 
+        log('romwrite: writable=%s' % str(writable))
         self.memory.rom_protected = writable
 
     def run(self, num_instructions, ignore):
@@ -271,6 +285,7 @@ class TestCPU(object):
         num_instructions  number of instructions to execute
         """
 
+        log('run: num_instructions=%s' % str(num_instructions))
         if num_instructions is None:
             # assume number of instructions is 1
             number = 1
@@ -300,6 +315,7 @@ class TestCPU(object):
         We also stop if the CPU executes the HLT instruction.
         """
 
+        log('rununtil: address=%s' % address)
         new_address = self.str2int(address)
         if new_address is None:
             return 'rununtil: invalid stop address: %s' % address
@@ -323,6 +339,7 @@ class TestCPU(object):
         cycles  expected number of cycles used
         """
 
+        log('checkcycles: cycles=%s' % cycles)
         num_cycles = self.str2int(cycles)
         if num_cycles is None:
             return 'checkcycles: invalid number of cycles: %s' % cycles
@@ -334,6 +351,7 @@ class TestCPU(object):
     def checkreg(self, reg, value):
         """Check register is as it should be."""
 
+        log('checkreg: reg=%s, value=%s' % (reg, value))
         new_value = self.str2int(value)
         if new_value is None:
             return 'checkreg: bad value: %s' % str(value)
@@ -364,6 +382,7 @@ class TestCPU(object):
     def checkmem(self, addr, value):
         """Check a memory location is as it should be."""
 
+        log('checkmem: addr=%s, value=%s' % (addr, value))
         new_addr = self.str2int(addr)
         if new_addr is None:
             return 'checkmem: bad address: %s' % str(addr)
@@ -384,6 +403,7 @@ class TestCPU(object):
         if state not in ('on', 'off'):
             return 'checkcpu: bad state: %s' % str(state)
 
+        log('checkcpu: state=%s' % state)
         cpu_state = str(self.cpu.running).lower()
 
         if ((state == "on" and cpu_state != "true") or
@@ -397,6 +417,7 @@ class TestCPU(object):
         if state not in ('on', 'off'):
             return 'checkdcpu: bad state: %s' % str(state)
 
+        log('checkdcpu: state=%s' % state)
         dcpu_state = str(self.display.running).lower()
 
         if ((state == "on" and dcpu_state != "true") or
@@ -413,6 +434,7 @@ class TestCPU(object):
         If the device is an input device, the file must exist.
         """
 
+        log('mount: device=%s, filename=%s' % (device, filename))
         if device == 'ptr':
             if not os.path.exists(filename) or not os.path.isfile(filename):
                 return "mount: '%s' doesn't exist or isn't a file" % filename
@@ -433,6 +455,7 @@ class TestCPU(object):
         device    name of device
         """
 
+        log('dismount: device=%s' % device)
         if device == 'ptr':
             self.ptrptp.ptr_dismount()
         elif device == 'ptp':
@@ -443,6 +466,7 @@ class TestCPU(object):
     def checkfile(self, file1, file2):
         """Compare two files, error if different."""
 
+        log('checkfile: file1=%s, file2==%s' % (file1, file2))
         cmd = 'cmp -s %s %s' % (file1, file2)
         res = os.system(cmd) & 0xff
         if res:
@@ -470,19 +494,19 @@ class TestCPU(object):
             if begin is None or end is None:
                 return "dumpmem: dump limits are bad: %s" % addresses
 
-        print('dumpmem: filename=%s, begin=%06o, end=%06o'
-              % (filename, begin, end))
+        log('dumpmem: filename=%s, begin=%06o, end=%06o'
+            % (filename, begin, end))
 
         # create octdump-like text file with required memory locations
         with open(filename, 'wb') as handle:
             addr = begin
             offset = addr
             chunk = []
-            while addr < end:
+            while addr <= end:
                 word = self.memory.fetch(addr, False)
                 addr += 1
                 chunk.append(word)
-                if len(chunk) == 16:
+                if len(chunk) == 8:
                     line = octword_line(chunk, offset)
                     handle.write(line + '\n')
                     chunk = []
@@ -491,19 +515,8 @@ class TestCPU(object):
                 line = octword_line(chunk, offset)
                 handle.write(line + '\n')
 
-#        # create dict containing memory contents: {addr: contents, ...}
-#        mem = {}
-#        for addr in range(begin, end+1):
-#            addr_str = '%06o' % addr
-#            value = self.memory.fetch(addr, False)
-#            value_str = '%06o' % value
-#            mem[addr_str] = value_str
-#
-#        # dump to JSON file
-#        with open(filename, 'wb') as handle:
-#            json.dump(mem, handle)
-
     def cmpmem(self, filename, ignore):
+        log('cmpmem: filename=%s' % filename)
         pass
 
 # end of DSL primitives
