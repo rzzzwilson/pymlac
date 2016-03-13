@@ -4,10 +4,8 @@
 #
 
 test:
-	pymlac -b ptr -c -ptr dumpmem_test_c8lds.ptp -t 040,045:050,052:055,060:065,066:071,077:03700,03767:03772,03777 -r 040 -t 0100,0110 -r 0100
-	#pymlac -b tty -c -ttyin dumpmem_test_lc16sd.ptp -t 040,045:050,052:055,060:065,066:071,077:0100,0110:03700,03761:03766,03777 -r 040
-	#pymlac -b ptr -c -ptr dumpmem_test.ptp -t 040,045:050,052:055,060:065,066:071,077 -r 040 -t 03700,03777 -r 0100
-	#pymlac -b tty -c -ttyin dumpmem_test.ptp -t 0100,0110:03700,03751:03754,03757:03762,03777 -r 040 -r 0100
+	#pymlac -b ptr -c -ptr dumpmem_test_c8lds.ptp -t 040,045:050,052:055,060:065,066:071,077:03700,03767:03772,03777 -r 040 -t 0100,0110 -r 0100
+	pymlac -b tty -c -ttyin dumpmem_test_c8lds.ptp -t 040,045:050,052:055,060:063,077:03700,03767:03772,03777 -r 040 -t 0100,0110 -r 0100
 
 test_debug:	
 	rm -f test.ptr test.ptp CPU.test.trace test_CPU.log pymlac.trace
