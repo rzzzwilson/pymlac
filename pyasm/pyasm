@@ -79,6 +79,13 @@ BlockBufferBase = None      # base address of the block
 ShortVectorMode = False     # True if within a DEIM/INC instruction
 BeamState = 0               # 1 if beam is ON, 0 if OFF
 
+# stuff about the current code block
+CodeBlockMask = 0174000     # high 5 bit address mask
+CodeBlockSize = 04000       # 2K code block size
+CodeBlockBase = None        # base of the current code block
+AddressMask = 03777         # mask for 11 bit address
+MaxMemory = 0177777         # highest possible address
+
 ######
 # Mostly constant stuff
 ######
@@ -116,8 +123,8 @@ def mask(n):
 (AYES, ANO, AOPT) = range(3)
 
 OpcodeData = {
-              'LAW': ( 0004000, AYES, mask(11), False),
-              'LWC': ( 0104000, AYES, mask(11), False),
+              'LAW': ( 0004000, AOPT, mask(11), False),
+              'LWC': ( 0104000, AOPT, mask(11), False),
               'JMP': ( 0010000, AYES, mask(11), True ),
               'DAC': ( 0020000, AYES, mask(11), True ),
               'XAM': ( 0024000, AYES, mask(11), True ),
@@ -146,10 +153,10 @@ OpcodeData = {
               'LDA': ( 0100041, ANO,  0,        False),
               'CAL': ( 0100011, ANO,  0,        False),
 
-              'RAL': ( 0003000, AYES, mask(2),  False),
-              'RAR': ( 0003020, AYES, mask(2),  False),
-              'SAL': ( 0003040, AYES, mask(2),  False),
-              'SAR': ( 0003060, AYES, mask(2),  False),
+              'RAL': ( 0003000, AOPT, mask(2),  False),
+              'RAR': ( 0003020, AOPT, mask(2),  False),
+              'SAL': ( 0003040, AOPT, mask(2),  False),
+              'SAR': ( 0003060, AOPT, mask(2),  False),
               'DON': ( 0003100, ANO,  0,        False),
 
               'ASZ': ( 0002001, ANO,  0,        False),
@@ -661,6 +668,7 @@ def pass_1(lines):
     global Dot, StartAddress
     global CurrentLineNumber, CurrentLine
     global SymTable, SymTableLine
+    global CodeBlockBase
 
     # initialize things
     Dot = None
@@ -683,6 +691,8 @@ def pass_1(lines):
                     error("ORG pseudo-op has a bad address")
                     return False
                 Dot = eval_expr(addr)
+                if Dot > MaxMemory:
+                    error("ORG pseudo-op has an address overflow")
                 if label:
                     error("ORG pseudo-op must not have a label")
 
@@ -781,6 +791,11 @@ def pass_1(lines):
                 error("Label '%s' has already been defined" % label)
                 return False
             define_label(label, Dot, lnum)
+
+        # update the code block base address
+        # Dot moved either from ORG or generated code
+        if Dot:
+            CodeBlockBase = Dot & CodeBlockMask
 
     return True
 
@@ -1009,6 +1024,11 @@ def pass_2(lines):
         else:
             write_list(None, None, lnum, line)
 
+        # update the code block base address
+        # Dot moved either from ORG or generated code
+        if Dot:
+            CodeBlockBase = Dot & CodeBlockMask
+
     # write the final block of code and optional start address
     write_block()
 
@@ -1162,9 +1182,14 @@ def gen_code(lnum, line, dot, label, opcode, indirect, addr):
 
     # check if 'addr' has overflowed.  add in if OK
     if value:
-        if value & mask != value:
-            error("Address field overflow: %06o" % value)
-        word += value
+        if aok == AYES:
+            # check address is in current code block
+            if not (CodeBlockBase <= value <= (CodeBlockBase+CodeBlockSize)):
+                error("Address field overflow: %06o" % value)
+            # now mask address to 11 bits
+            word += value & AddressMask
+        elif aok == AOPT:
+            word += value
 
     # if indirect and indirect OK, set high bit
     if indirect and ind:
