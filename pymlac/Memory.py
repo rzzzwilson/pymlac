@@ -65,42 +65,53 @@ class Memory(object):
           #        0005:         end
                          ]
     # TTY ROM image from "Loading The PDS-1" (loading.pdf)
-    TTY_ROM_IMAGE = [         #        org    040
-                     0060077, # start  lac    base   ;40 get load address
-                     0020010, #        dac    10     ;41 put into auto-inc reg
-                     0104076, #        lwc    076    ;42 -076 into AC (loader size)
-                     0020020, #        dac    20     ;43 put into memory
-                     0001032, #        rcf           ;44 clear TTY flag
-                     0100011, # wait   cal           ;45 clear AC+LINK
-                     0002040, #        rsf           ;46 skip if TTY has data
-                     0010046, #        jmp    .-1    ;47 wait until there is data
-                     0001031, #        rrb           ;50 read TTY -> AC
-                     #0001033, #        rrc           ;50 read TTY -> AC, clear TTY flag
-                     0074075, #        sam    75     ;51 first non-zero must be 02
-                     0010044, #        jmp    044    ;52 wait until TTY return == 02
-                     0002040, # loop   rsf           ;53 skip if TTY has data
-                     0010053, #        jmp    .-1    ;54     wait until there is data
-                     0001033, #        rrc           ;55 read TTY -> AC, clear TTY flag
-                     0003003, #        ral    3      ;56 move TTY byte into high AC
-                     0003003, #        ral    3      ;57
-                     0003002, #        ral    2      ;60
-                     0002040, #        rsf           ;61 wait until there is data
-                     0010061, #        jmp    .-1    ;62
-                     0001033, #        rrc           ;63 read TTY -> AC, clear flag
-                     0120010, #        dac    *10    ;64 store word, inc pointer
-                     0100011, #        cal           ;65 clear AC & LINK
-                     0030020, #        isz    20     ;66 inc mem and skip if zero
-                     0010053, #        jmp    loop   ;67 if not finished, next word
-                     0110076, #        jmp    *go    ;70 else execute block loader
-                     0000000, #        data   0      ;71
-                     0000000, #        data   0      ;72
-                     0000000, #        data   0      ;73
-                     0000000, #        data   0      ;74
-                     0000002, #        data   2      ;75
-                     #0037700, # go     word   037700 ;76 block loader base address
-                     0003700, # go     word   003700 ;76 block loader base address
-                     #0037677  # base   word   037677 ;77 init value for 010 auto inc
-                     0003677  # base   word   003677 ;77 init value for 010 auto inc
+    TTY_ROM_IMAGE = [
+         #        0001: ;------------------------
+         #        0002: ; TTY bootstrap code from images/imlacdocs/loading.pdf
+         #        0003: ;------------------------
+         #        0004:                         ;
+         #37700   0005: bladdr  equ     037700  ; address of top mem minus 0100
+         #00100   0006: blsize  equ     0100    ; size of blockloader code
+         #        0007:                         ;
+         #00040   0008: 	ORG	040	;
+         #        0009:                         ;
+0060077, #00040   0010: 	LAC	staddr	;
+0020010, #00041   0011: 	DAC	010	; 010 points to loading word
+0104076, #00042   0012: 	LWC	blsize-2;
+0020020, #00043   0013: 	DAC	020	; 020 is ISZ counter of loader size
+         #        0014: ; skip all bytes until the expected byte
+0001032, #00044   0015: skpzer	RCF		;
+0100011, #00045   0016: 	CAL		;
+0002040, #00046   0017: 	RSF		; wait for next byte
+0010046, #00047   0018: 	JMP	.-1	;
+0001031, #00050   0019: 	RRB		; get next TTY byte
+0074075, #00051   0020: 	SAM	fbyte	; wait until it's the expected byte
+0010044, #00052   0021: 	JMP	skpzer	;
+0002040, #00053   0022: nxtwrd	RSF		; wait until TTY byte ready
+0010053, #00054   0023: 	JMP	.-1	;
+0001033, #00055   0024: 	RRC		; get high byte and clear flag
+0003003, #00056   0025: 	RAL	3	; shift into AC high byte
+0003003, #00057   0026: 	RAL	3	;
+0003002, #00060   0027: 	RAL	2	;
+0002040, #00061   0028: 	RSF		; wait until next TTY byte
+0010061, #00062   0029: 	JMP	.-1	;
+0001033, #00063   0030: 	RRC		; get low byte and clear flag
+0120010, #00064   0031: 	DAC	*010	; store word
+0100011, #00065   0032: 	CAL		; clear AC ready for next word
+0030020, #00066   0033: 	ISZ	020	; finished?
+0010053, #00067   0034: 	JMP	nxtwrd	; jump if not
+0110076, #00070   0035: 	JMP	*blstrt	; else execute the blockloader
+         #        0036:                         ;
+0000000, #00071   0037: 	DATA	000000	; empty space?
+0000000, #00072   0038: 	DATA	000000	;
+0000000, #00073   0039: 	DATA	000000	;
+0000000, #00074   0040: 	DATA	000000	;
+         #        0041:                         ;
+0000002, #00075   0042: fbyte	DATA	000002	; expected first byte of block loader
+0037700, #00076   0043: blstrt	data	bladdr	; start of blockloader code
+0037677, #00077   0044: staddr	data	bladdr-1; ISZ counter for blockloader size
+         #        0045:                         ;
+         #        0046: 	END		;
                     ]
 
     # class instance variables
