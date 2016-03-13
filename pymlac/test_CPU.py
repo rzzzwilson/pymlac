@@ -13,6 +13,7 @@ where <filename> is a file of test instructions and
 
 import time
 import collections
+import filecmp
 
 # We implement a small interpreter to test the CPU.
 # The DSL is documented here: [github.com/rzzzwilson/pymlac].
@@ -216,7 +217,7 @@ class TestCPU(object):
         values  value to store at 'addr'
         """
 
-        log('setmem: addr=%s, value=%s' % (addr, value))
+        log('setmem: addr=%s, values=%s' % (addr, values))
         addr = self.str2int(addr)
 
         # check if we must assemble values
@@ -449,6 +450,8 @@ class TestCPU(object):
             if not os.path.exists(filename) or not os.path.isfile(filename):
                 return "mount: '%s' doesn't exist or isn't a file" % filename
             self.ttyin.mount(filename)
+        elif device == 'ttyout':
+            self.ttyout.mount(filename)
         else:
             print('mount: bad device: %s' % device)
             return 'mount: bad device: %s' % device
@@ -472,8 +475,7 @@ class TestCPU(object):
 
         log('checkfile: file1=%s, file2==%s' % (file1, file2))
         cmd = 'cmp -s %s %s' % (file1, file2)
-        res = os.system(cmd) & 0xff
-        if res:
+        if filecmp.cmp(file1, file2, shallow=False):
             return 'Files %s and %s are different' % (file1, file2)
 
     def dumpmem(self, filename, addresses):
@@ -520,8 +522,34 @@ class TestCPU(object):
                 handle.write(line + '\n')
 
     def cmpmem(self, filename, ignore):
-        log('cmpmem: filename=%s' % filename)
-        pass
+        """Compare a 'dumpmem' file with memory.
+
+        filename  path of the 'dumpmem' file
+
+        A dumpmem file has the following format:
+            000100  100000 010104 000000 000000 004111 000000 000000 000000 |...D.....I......|
+        """
+
+        # get file contents into memory
+        try:
+            with open(filename, 'rb') as handle:
+                lines = handle.readlines()
+        except IOError as e:
+            return "Error opening file '%s': %s" % (filename, e.strerror)
+
+        # read dumpmem file, get address and expected contents
+        for line in lines:
+            line = line.split('|', 1)[0]
+
+            values = line.split()
+            address = self.str2int(values[0])
+            for value in values[1:]:
+                expected = self.str2int('0'+value)  # force octal evaluation
+                actual = self.memory.fetch(address, False)
+                if actual != expected:
+                    return ('Address %06o is wrong, expected %06o, is %06o'
+                            % (address, expected, actual))
+                address += 1
 
 # end of DSL primitives
 
