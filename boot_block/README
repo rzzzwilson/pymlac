@@ -1,0 +1,11 @@
+The files here are 'production' versions of system code:
+
+bootstrap_tty.asm
+    The TTY bootstrap ROM code created from the data in file
+    images/imlacdocs/loading.pdf.
+
+blockloader_c8lds_ptr_tty.asm
+    The blockloader for c8lds format files found in iasm/chars.ptp.
+
+blockloader_lc16sd_tty.asm
+    The blockloader for lc16sd format files found in bin/munch.ptp.
