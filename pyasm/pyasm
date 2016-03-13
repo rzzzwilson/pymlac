@@ -218,205 +218,88 @@ OpcodeData = {
              }
 
 ######
-# The papertape/teletype loader code (c8lds form)
+# The papertape/teletype blockloader codes
 ######
-
-X_BlockLoader_C8LDS = [
-#     code     address  assembler source code
-#    -------   -------  ------------------------------------------------------------------------
-              #        ; Imlac Papertape Program Block Loader
-              #        ;
-              #        ; This loader is loaded by the bootstrap program at x7700, where x=0 for
-              #        ; a 4K machine, and x=1 for an 8K machine, etc.
-              #        ;
-              #        ; The load format consists of one or more data blocks.
-              #        ; Each block has the form:
-              #        ;
-              #        ;          word count      (byte)
-              #        ;          load address
-              #        ;          data word 1
-              #        ;          data word 2
-              #        ;          ...
-              #        ;          data word n
-              #        ;          checksum
-              #        ;
-              #        ; All values are 16bit words, except the word count, which is an 8bit byte.
-              #        ; Words are always received high-order byte first.
-              #        ;
-              #        ; After the word count there is the load address, followed by <word count>
-              #        ; data words, which are loaded starting at "load address".
-              #        ;
-              #        ; The sum of all the data words in the block must be the same as the checksum
-              #        ; word which follows the data words.  The checksum is calculated with 16bit
-              #        ; integers, incrementing the sum whenever the 16bit value overflows.
-              #        ;
-              #        ; The end of the load is signalled by a block with a
-              #        ; starting address 0177777.
-              #        ;
-              #        ; Disassembled from the 40tp_simpleDisplay.ptp image file.
-              #        ;
-              #                org     003700  ;
-              #        cksum   equ     .-1     ;checksum stored here (at 003677)
-     0001032, # 003700         rcf             ;
-     0013740, # 003701         jmp     patch   ;go decide TTY or PTR, clear AC
-     0023677, # 003702 ndpatch dac     cksum   ;zero checksum, AC is zero (from patch)
-     0037760, # 003703         jms     rdbyte  ;
-     0102001, # 003704         asn             ;wait here for non-zero byte
-     0013703, # 003705         jmp     .-2     ;
-     0100006, # 003706         cia             ;
-     0023777, # 003707         dac     wrdcnt  ;store negative word count
-     0037750, # 003710         jms     rdword  ;read load address
-     0023776, # 003711         dac     ldaddr  ;
-     0077730, # 003712         sam     neg1    ;
-     0013715, # 003713         jmp     rdblock ;
-     0000000, # 003714         hlt             ;if load address is -1, finished
-     0037750, # 003715 rdblock jms     rdword  ;now read block to load address
-     0123776, # 003716         dac     *ldaddr ;
-     0037731, # 003717         jms     dosum   ;
-     0033776, # 003720         isz     ldaddr  ;
-     0033777, # 003721         isz     wrdcnt  ;
-     0013715, # 003722         jmp     rdblock ;
-     0037750, # 003723         jms     rdword  ;get expected checksum
-     0073677, # 003724         sub     cksum   ;compare with calculated
-     0102001, # 003725         asn             ;
-     0013746, # 003726         jmp     newblk  ;if same, get next block
-     0000000, # 003727         hlt             ;if not same, ERROR
-     0177777, # 003730 neg1    data    0177777 ;this load address means STOP
-              #        ;------------------------
-              #        ;Compute checksum.  Word to sum in AC.
-              #        ;------------------------
-     0017720, # 003731 dosum   bss     1       ;
-     0100010, # 003732         cll             ; clear link
-     0067677, # 003733         add     cksum   ; add AC to checksum
-     0002004, # 003734         lsz             ; if overflow:
-     0100004, # 003735         iac             ;     increment new checksum
-     0023677, # 003736         dac     cksum   ; save new checksum
-     0113731, # 003737         jmp     *dosum  ;
-              #        ;------------------------
-              #        ;Decide what input device we are using, PTR or TTY.
-              #        ;------------------------
-     0001061, # 003740 patch   hon             ;
-     0063774, # 003741         lac     ttyset  ;
-     0023761, # 003742         dac     devpat  ;
-     0005032, # 003743         law     1032    ;
-     0177775, # 003744         sam     *adr044 ;
-     0023761, # 003745         dac     devpat  ;
-     0100011, # 003746 newblk  cal             ;
-     0013702, # 003747         jmp     ndpatch ;
-              #        ;------------------------
-              #        ;Read WORD from input device.
-              #        ;------------------------
-     0017711, # 003750 rdword  bss     1       ;
-     0100011, # 003751         cal             ;
-     0037760, # 003752         jms     rdbyte  ;
-     0003003, # 003753         ral     3       ;
-     0003003, # 003754         ral     3       ;
-     0003002, # 003755         ral     2       ;
-     0037760, # 003756         jms     rdbyte  ;
-     0113750, # 003757         jmp     *rdword ;
-              #        ;------------------------
-              #        ;Read BYTE from input device. Read from PTR or TTY.
-              #        ;------------------------
-     0017757, # 003760 rdbyte  bss     1       ;
-     0001032, # 003761 devpat  rcf             ;could be patched to 'jmp rdtty'
-     0102400, # 003762         hsn             ;
-     0013762, # 003763         jmp     .-1     ;
-     0002400, # 003764         hsf             ;
-     0013764, # 003765         jmp     .-1     ;
-     0001051, # 003766         hrb             ;read PTR byte
-     0113760, # 003767         jmp     *rdbyte ;
-     0002040, # 003770 rdtty   rsf             ;
-     0013770, # 003771         jmp     .-1     ;
-     0001033, # 003772         rrc             ;read TTY byte, clear flag
-     0113760, # 003773         jmp     *rdbyte ;
-              #        ;------------------------
-     0013770, # 003774 ttyset  jmp     rdtty   ;
-     0000044, # 003775 adr044  data    044     ;
-     0000000, # 003776 ldaddr  data    0       ;
-     0000000, # 003777 wrdcnt  data    0       ;
-              #        ;------------------------
-              #                end             ;
-              ]
 
 # the LC16SD blockloader as disassembled from bin/munch.ptp
 BlockLoader_LC16SD = [
-              # 03700          ORG     03700   ;
-              #
-     0001032, # 03700  ldaddr  RCF             ;
-     0037701, # 03701  numwrd  JMS     .       ; get address of 'chksum' into 'numwrd'
-              #
-     0063701, # 03702  chksum  LAC     numwrd  ; are we are running in high memory (017700+)
-     0077775, # 03703          SAM     himem   ;
-     0013710, # 03704          JMP     rdblk   ; if not, just load tape
-              #
-     0104012, # 03705          LWC     012     ; else turn on the display
-     0001003, # 03706          DLA             ;
-     0003100, # 03707          DON             ;
-              #
-     0100011, # 03710  rdblk   CAL             ; initialize block checksum
-     0023702, # 03711          DAC     chksum  ;
-     0037746, # 03712          JMS     rdword  ; get load address
-     0023700, # 03713          DAC     ldaddr  ;
-     0002002, # 03714          ASP             ; if high bit set
-     0013740, # 03715          JMP     ldend   ; then end of tape load
-     0037746, # 03716          JMS     rdword  ; else get number of words in block
-     0023701, # 03717          DAC     numwrd  ;
-     0037746, # 03720          JMS     rdword  ; read checksum word, add to checksum
-     0037746, # 03721  blklp   JMS     rdword  ; get data word
-     0123700, # 03722          DAC     *ldaddr ; store into memory
-     0063700, # 03723          LAC     ldaddr  ; get load address
-     0003063, # 03724          SAR     3       ; echo load address in display (if running)
-     0047765, # 03725          AND     low10   ;
-     0053764, # 03726          IOR     dlya0   ;
-     0023766, # 03727          DAC     disp    ;
-     0163700, # 03730          LAC     *ldaddr ; get last data word
-     0033700, # 03731          ISZ     ldaddr  ; move 'load address' pointer
-     0033701, # 03732          ISZ     numwrd  ; check end of block
-     0013721, # 03733          JMP     blklp   ; jump if not ended
-     0067702, # 03734          ADD     chksum  ; block end, check checksum
-     0002001, # 03735          ASZ             ; if checksum invalid,
-     0013736, # 03736          JMP     .       ;     busy wait here
-     0013710, # 03737          JMP     rdblk   ; else go get next block
-              #        ; end of load, AC is load address, high bit set
-     0001012, # 03740  ldend   DOF             ; turn off the display
-     0100004, # 03741          IAC             ;
-     0102001, # 03742          ASN             ; if address is 0177777
-     0000000, # 03743          HLT             ;     then just halt
-     0037746, # 03744          JMS     rdword  ; else get AC contents
-     0113700, # 03745          JMP     *ldaddr ; and jump to start address
-              #        ; read a word from tape, leave in AC
-     0000000, # 03746  rdword  DATA    0       ;
-     0067702, # 03747          ADD     chksum  ;
-     0023702, # 03750          DAC     chksum  ;
-     0100011, # 03751          CAL             ;
-     0002040, # 03752          RSF             ;
-     0013752, # 03753          JMP     .-1     ;
-     0001033, # 03754          RRC             ;
-     0003003, # 03755          RAL     3       ;
-     0003003, # 03756          RAL     3       ;
-     0003002, # 03757          RAL     2       ;
-     0002040, # 03760          RSF             ;
-     0013760, # 03761          JMP     .-1     ;
-     0001033, # 03762          RRC             ;
-     0113746, # 03763          JMP     *rdword ;
-              #
-     0020000, # 03764  dlya0   DLYA    0       ;
-     0001777, # 03765  low10   DATA    001777  ;
-              #
-              #        ; display routine, used if running in extended memory
-     0020000, # 03766  disp    DLYA    00000   ;
-     0010000, # 03767          DLXA    00000   ;
-     0004005, # 03770          DSTS    1       ;
-     0046000, # 03771          DLVH    02000   ;
-     0021777, # 03772          DLYA    01777   ;
-     0000000, # 03773          DHLT            ;
-              #
-     0067766, # 03774          DATA    0067766 ;
-     0017702, # 03775  himem   DATA    0017702 ;
-     0010000, # 03776          DATA    0010000 ;
-     0177777, # 03777          DATA    0177777 ;
-              #
-              #                END             ;
+         #03700          ORG     03700   ;
+         #
+0001032, #03700  ldaddr  RCF             ;
+0037701, #03701  numwrd  JMS     .       ; get address of 'chksum' into 'numwrd'
+         #
+0063701, #03702  chksum  LAC     numwrd  ; are we are running in high memory (017700+)
+0077775, #03703          SAM     himem   ;
+0013710, #03704          JMP     rdblk   ; if not, just load tape
+         #
+0104012, #03705          LWC     012     ; else turn on the display
+0001003, #03706          DLA             ;
+0003100, #03707          DON             ;
+         #
+0100011, #03710  rdblk   CAL             ; initialize block checksum
+0023702, #03711          DAC     chksum  ;
+0037746, #03712          JMS     rdword  ; get load address
+0023700, #03713          DAC     ldaddr  ;
+0002002, #03714          ASP             ; if high bit set
+0013740, #03715          JMP     ldend   ; then end of tape load
+0037746, #03716          JMS     rdword  ; else get number of words in block
+0023701, #03717          DAC     numwrd  ;
+0037746, #03720          JMS     rdword  ; read checksum word, add to checksum
+0037746, #03721  blklp   JMS     rdword  ; get data word
+0123700, #03722          DAC     *ldaddr ; store into memory
+0063700, #03723          LAC     ldaddr  ; get load address
+0003063, #03724          SAR     3       ; echo load address in display (if running)
+0047765, #03725          AND     low10   ;
+0053764, #03726          IOR     dlya0   ;
+0023766, #03727          DAC     disp    ;
+0163700, #03730          LAC     *ldaddr ; get last data word
+0033700, #03731          ISZ     ldaddr  ; move 'load address' pointer
+0033701, #03732          ISZ     numwrd  ; check end of block
+0013721, #03733          JMP     blklp   ; jump if not ended
+0067702, #03734          ADD     chksum  ; block end, check checksum
+0002001, #03735          ASZ             ; if checksum invalid,
+0013736, #03736          JMP     .       ;     busy wait here
+0013710, #03737          JMP     rdblk   ; else go get next block
+         #       ; end of load, AC is load address, high bit set
+0001012, #03740  ldend   DOF             ; turn off the display
+0100004, #03741          IAC             ;
+0102001, #03742          ASN             ; if address is 0177777
+0000000, #03743          HLT             ;     then just halt
+0037746, #03744          JMS     rdword  ; else get AC contents
+0113700, #03745          JMP     *ldaddr ; and jump to start address
+         #       ; read a word from tape, leave in AC
+0000000, #03746  rdword  DATA    0       ;
+0067702, #03747          ADD     chksum  ;
+0023702, #03750          DAC     chksum  ;
+0100011, #03751          CAL             ;
+0002040, #03752          RSF             ;
+0013752, #03753          JMP     .-1     ;
+0001033, #03754          RRC             ;
+0003003, #03755          RAL     3       ;
+0003003, #03756          RAL     3       ;
+0003002, #03757          RAL     2       ;
+0002040, #03760          RSF             ;
+0013760, #03761          JMP     .-1     ;
+0001033, #03762          RRC             ;
+0113746, #03763          JMP     *rdword ;
+         #
+0020000, #03764  dlya0   DLYA    0       ;
+0001777, #03765  low10   DATA    001777  ;
+         #
+         #       ; display routine, used if running in extended memory
+0020000, #03766  disp    DLYA    00000   ;
+0010000, #03767          DLXA    00000   ;
+0004005, #03770          DSTS    1       ;
+0046000, #03771          DLVH    02000   ;
+0021777, #03772          DLYA    01777   ;
+0000000, #03773          DHLT            ;
+         #
+0067766, #03774          DATA    0067766 ;
+0017702, #03775  himem   DATA    0017702 ;
+0010000, #03776          DATA    0010000 ;
+0177777, #03777          DATA    0177777 ;
+         #
+         #               END             ;
               ]
 
 
