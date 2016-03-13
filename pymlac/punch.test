@@ -1,0 +1,7 @@
+# try to run the blockpunch.ptp program
+bootrom ptr
+    mount ptr blockpunch.ptp
+    mount ttyout blockpunch.out.ptp
+    setreg pc 03640; rununtil 0
+#    setreg ds 0100; rununtil 0
+#    setreg ds 0120; rununtil 0
