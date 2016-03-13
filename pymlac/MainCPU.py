@@ -175,8 +175,6 @@ class MainCPU(object):
     def execute_one_instruction(self):
         """Execute one MAIN instruction, return # cycles and a trace string."""
 
-        log('execute_one_instruction: self.running=%s, .PC=%06o'
-            % (str(self.running), self.PC))
         if not self.running:
             return (0, None)
 
@@ -191,7 +189,6 @@ class MainCPU(object):
         indirect = bool(instruction & 0100000)
         address = (instruction & 03777)
 
-        log('execute_one_instruction: running instruction')
         return self.main_decode.get(opcode, self.illegal)(indirect,
                                                           address,
                                                           instruction)
@@ -227,7 +224,6 @@ class MainCPU(object):
         return (1, tracestr)
 
     def i_JMP(self, indirect, address, instruction):
-        log('JMP handler')
         eff_address = self.memory.eff_address(address, indirect)
         self.PC = eff_address & PCMASK
         tracestr = trace.itrace(self.dot, 'JMP', indirect, address)
