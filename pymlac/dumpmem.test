@@ -1,3 +1,4 @@
 # loads executable tape and dumps 0100->0107
-bootrom ptr; mount ptr dumpmem_test_c8lds.ptp; setreg pc 040; rununtil 0; checkreg ac 0177777; checkreg pc 03715; dumpmem dumpmem_test.dump 0100,0107; setreg pc 0100; rununtil 0; checkreg ac 0111; checkreg pc 0106
+#bootrom ptr; mount ptr dumpmem_test_c8lds.ptp; setreg pc 040; rununtil 0; checkreg ac 0177777; checkreg pc 03715; dumpmem dumpmem_test.dump 0100,0107; setreg pc 0100; rununtil 0; checkreg ac 0111; checkreg pc 0106
+bootrom ptr; mount ptr dumpmem_test_c8lds.ptp; setreg pc 040; rununtil 0; checkreg ac 0177777; checkreg pc 03715; cmpmem dumpmem_test.dump; setreg pc 0100; rununtil 0; checkreg ac 0111; checkreg pc 0106
 #bootrom tty; mount ttyin dumpmem_test_c8lds.ptp; setreg pc 040; rununtil 0; dumpmem dumpmem_test.dump 0100,0107
