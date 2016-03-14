@@ -1,0 +1,7 @@
+# run the "blockpunch" program
+bootrom ptr; mount ptr blockpunch.ptp; trace 03540,03677; setreg pc 040; rununtil 0
+	mount ttyout xyzzy.out; setreg pc 03660; rununtil 0
+	setreg ds 040; rununtil 0
+	setreg ds 077; rununtil 0
+	setreg pc 03670; rununtil 0
+	
