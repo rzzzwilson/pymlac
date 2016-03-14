@@ -1,7 +1,10 @@
 # run the "blockpunch" program
 bootrom ptr; mount ptr blockpunch.ptp; trace 03540,03677; setreg pc 040; rununtil 0
-	mount ttyout xyzzy.out; setreg pc 03660; rununtil 0
-	setreg ds 040; rununtil 0
-	setreg ds 077; rununtil 0
-	setreg pc 03670; rununtil 0
+	mount ttyout xyzzy.out
+	setreg pc 03660; rununtil 0		# punch leader
+	setreg pc 03640; rununtil 0		# punch block loader
+	setreg pc 03660; rununtil 0		# punch leader
+	setreg ds 040; rununtil 0		# feed in start address 040
+	setreg ds 077; rununtil 0		# and end address 077
+	setreg pc 03670; rununtil 0		# punch memory and end leader
 	
