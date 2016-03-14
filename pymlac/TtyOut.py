@@ -21,6 +21,9 @@ open_file = 0
 cycle_count = 0
 state = DEVICE_NOT_READY
 
+import log
+log = log.Log('test.log', log.Log.DEBUG)
+
 
 class TtyOut(object):
 
@@ -43,19 +46,24 @@ class TtyOut(object):
         self.state = DEVICE_NOT_READY
 
     def write(self, char):
+        log('TTYOUT: writing byte %03o, .open_file=%s' % (char, self.open_file))
         if self.open_file:
-            self.open_file.write(char)
+            self.open_file.write(chr(char))
+            self.state = DEVICE_NOT_READY
             self.cycle_count = DEVICE_NOT_READY_CYCLES
+            log('TTYOUT: device -> DEVICE_NOT_READY, .cycle_count=%d' % self.cycle_count)
 
     def ready(self):
         return (self.state != DEVICE_NOT_READY)
 
     def clear(self):
-        self.state = DEVICE_NOT_READY
+        self.state = DEVICE_READY
 
     def tick(self, cycles):
         if (self.state == DEVICE_NOT_READY):
             self.cycle_count -= cycles
+            log('TTYOUT: tick: .cycle_count set to %d' % self.cycle_count)
             if self.cycle_count <= 0:
+                log('TTYOUT: tick: device set to DEVICE_READY')
                 self.state = DEVICE_READY
 

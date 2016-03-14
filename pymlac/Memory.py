@@ -290,8 +290,14 @@ class Memory(object):
         auto-increment address.
         """
 
+        # limit memory to available range
+        address = address & PCMASK
+
         if indirect:
             address = self.memory[address] & ADDRMASK
+
+        # limit memory to available range
+        address = address & PCMASK
 
         if self.rom_protected and self.ROM_START <= address <= self.ROM_END:
             print('Attempt to write to ROM address %07o' % address)

@@ -187,6 +187,8 @@ class TestCPU(object):
 #   checkfile <file1> <file2>
 #   dumpmem file begin,end
 #   cmpmem file
+#   trace <range>[:<range>:...]
+#       where <range> ::= <addr>,<addr>
 
     def setreg(self, name, value):
         """Set register to a value.
@@ -500,9 +502,6 @@ class TestCPU(object):
             if begin is None or end is None:
                 return "dumpmem: dump limits are bad: %s" % addresses
 
-        log('dumpmem: filename=%s, begin=%06o, end=%06o'
-            % (filename, begin, end))
-
         # create octdump-like text file with required memory locations
         with open(filename, 'wb') as handle:
             addr = begin
@@ -550,6 +549,34 @@ class TestCPU(object):
                     return ('Address %06o is wrong, expected %06o, is %06o'
                             % (address, expected, actual))
                 address += 1
+
+    def trace(self, ranges, ignore):
+        """Set the trace range(s).
+
+        ranges  trace ranges of the form <range>[:<range>:...]
+                where <range> ::= <addr>,<addr>
+
+        Puts the trace range(s) into the Trace object.
+        """
+
+        log('trace: ranges=%s' % ranges)
+
+        trace_map = collections.defaultdict(bool)
+        for rng in ranges.split(':'):
+            be = rng.split(',')
+            if len(be) != 2:
+                return("Trace ranges must have the form 'begin,end'")
+            (begin, end) = be
+            begin = self.str2int(begin)
+            end = self.str2int(end)
+            if begin > end:
+                return("Trace begin address must be <= end address.  Got: %s" % rng)
+            for addr in range(begin, end+1):
+                trace_map[addr] = True
+
+        trace.set_trace_map(trace_map)
+ 
+        log('trace: trace_map=%s' % str(trace_map))
 
 # end of DSL primitives
 
@@ -639,10 +666,8 @@ class TestCPU(object):
         self.ttyout = TtyOut.TtyOut()
         self.cpu = MainCPU.MainCPU(self.memory, None, None,
                                    None, self.ttyin, self.ttyout, self.ptrptp)
-        # trace at all addresses
+        # turn yrace OFF, initially
         trace_map = collections.defaultdict(bool)
-        for addr in range(0, 03777+1):
-            trace_map[addr] = True
         trace.set_trace_map(trace_map)
 
         self.cpu.running = True
@@ -716,6 +741,8 @@ class TestCPU(object):
                 r = self.dumpmem(fld1, fld2)
             elif opcode == 'cmpmem':
                 r = self.cmpmem(fld1, fld2)
+            elif opcode == 'trace':
+                r = self.trace(fld1, fld2)
             else:
                 print("Unrecognized opcode '%s' in: %s" % (opcode, test))
                 raise Exception("Unrecognized opcode '%s' in: %s" % (opcode, test))
