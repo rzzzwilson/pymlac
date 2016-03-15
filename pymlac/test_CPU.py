@@ -196,7 +196,6 @@ class TestCPU(object):
         Remember value to check later.
         """
 
-        log('setreg: name=%s, value=%s' % (name, value))
         value = self.str2int(value)
 
         self.reg_values[name] = value
@@ -219,7 +218,6 @@ class TestCPU(object):
         values  value to store at 'addr'
         """
 
-        log('setmem: addr=%s, values=%s' % (addr, values))
         addr = self.str2int(addr)
 
         # check if we must assemble values
@@ -237,7 +235,6 @@ class TestCPU(object):
     def allreg(self, value, ignore):
         """Set all registers to a value."""
 
-        log('allreg: value=%s' % value)
         new_value = self.str2int(value)
         if new_value is None:
             return 'allreg: bad value: %s' % str(value)
@@ -255,7 +252,6 @@ class TestCPU(object):
         Remember value to check later.
         """
 
-        log('allmem: value=%s' % value)
         new_value = self.str2int(value)
         if new_value is None:
             return 'allmem: bad value: %s' % str(value)
@@ -271,7 +267,6 @@ class TestCPU(object):
         loader_type  either 'ptr' or 'tty'
         """
 
-        log('bootrom: loader_type=%s' % loader_type)
         if loader_type not in ['ptr', 'tty']:
             return 'bootrom: invalid bootloader type: %s' % loader_type
         self.memory.set_ROM(loader_type)
@@ -279,7 +274,6 @@ class TestCPU(object):
     def romwrite(self, writable, ignore):
         """Set ROM to be writable or not."""
 
-        log('romwrite: writable=%s' % str(writable))
         self.memory.rom_protected = writable
 
     def run(self, num_instructions, ignore):
@@ -288,7 +282,6 @@ class TestCPU(object):
         num_instructions  number of instructions to execute
         """
 
-        log('run: num_instructions=%s' % str(num_instructions))
         if num_instructions is None:
             # assume number of instructions is 1
             number = 1
@@ -298,12 +291,14 @@ class TestCPU(object):
                 return 'Invalid number of instructions: %s' % num_instructions
 
         self.used_cycles= 0
-        for _ in range(number):
+        while number > 0:
+#        for _ in range(number):
             (cycles, _) = self.cpu.execute_one_instruction()
             trace.itraceend(False)
             self.ptrptp.ptr_tick(cycles)
             self.ptrptp.ptp_tick(cycles)
             self.used_cycles += cycles
+            number -= 1
 
 
     def rununtil(self, address, ignore):
@@ -320,14 +315,11 @@ class TestCPU(object):
 
         new_address = self.str2int(address)
         if new_address is None:
-            log('ABORT! rununtil: invalid stop address: %s' % address)
             return 'rununtil: invalid stop address: %s' % address
 
-        log('rununtil: address=%s, self.cpu.running=%s' % (address, str(self.cpu.running)))
         self.used_cycles = 0
         self.cpu.running = True
         while self.cpu.running:
-            log('rununtil: loop top')
             (cycles, tracestr) = self.cpu.execute_one_instruction()
             if tracestr:
                 endstr = trace.itraceend(False)
@@ -338,7 +330,6 @@ class TestCPU(object):
             self.used_cycles += cycles
             if self.cpu.PC == new_address:
                 break
-            log('rununtil: bottom top, PC=%06o' % self.cpu.PC)
 
     def checkcycles(self, cycles, ignore):
         """Check that opcode cycles used is correct.
@@ -346,7 +337,6 @@ class TestCPU(object):
         cycles  expected number of cycles used
         """
 
-        log('checkcycles: cycles=%s' % cycles)
         num_cycles = self.str2int(cycles)
         if num_cycles is None:
             return 'checkcycles: invalid number of cycles: %s' % cycles
@@ -358,7 +348,6 @@ class TestCPU(object):
     def checkreg(self, reg, value):
         """Check register is as it should be."""
 
-        log('checkreg: reg=%s, value=%s' % (reg, value))
         new_value = self.str2int(value)
         if new_value is None:
             return 'checkreg: bad value: %s' % str(value)
@@ -389,7 +378,6 @@ class TestCPU(object):
     def checkmem(self, addr, value):
         """Check a memory location is as it should be."""
 
-        log('checkmem: addr=%s, value=%s' % (addr, value))
         new_addr = self.str2int(addr)
         if new_addr is None:
             return 'checkmem: bad address: %s' % str(addr)
@@ -410,7 +398,6 @@ class TestCPU(object):
         if state not in ('on', 'off'):
             return 'checkcpu: bad state: %s' % str(state)
 
-        log('checkcpu: state=%s' % state)
         cpu_state = str(self.cpu.running).lower()
 
         if ((state == "on" and cpu_state != "true") or
@@ -424,7 +411,6 @@ class TestCPU(object):
         if state not in ('on', 'off'):
             return 'checkdcpu: bad state: %s' % str(state)
 
-        log('checkdcpu: state=%s' % state)
         dcpu_state = str(self.display.running).lower()
 
         if ((state == "on" and dcpu_state != "true") or
@@ -441,7 +427,6 @@ class TestCPU(object):
         If the device is an input device, the file must exist.
         """
 
-        log('mount: device=%s, filename=%s' % (device, filename))
         if device == 'ptr':
             if not os.path.exists(filename) or not os.path.isfile(filename):
                 return "mount: '%s' doesn't exist or isn't a file" % filename
@@ -464,7 +449,6 @@ class TestCPU(object):
         device    name of device
         """
 
-        log('dismount: device=%s' % device)
         if device == 'ptr':
             self.ptrptp.ptr_dismount()
         elif device == 'ptp':
@@ -475,7 +459,6 @@ class TestCPU(object):
     def checkfile(self, file1, file2):
         """Compare two files, error if different."""
 
-        log('checkfile: file1=%s, file2==%s' % (file1, file2))
         cmd = 'cmp -s %s %s' % (file1, file2)
         if filecmp.cmp(file1, file2, shallow=False):
             return 'Files %s and %s are different' % (file1, file2)
@@ -559,8 +542,6 @@ class TestCPU(object):
         Puts the trace range(s) into the Trace object.
         """
 
-        log('trace: ranges=%s' % ranges)
-
         trace_map = collections.defaultdict(bool)
         for rng in ranges.split(':'):
             be = rng.split(',')
@@ -576,8 +557,6 @@ class TestCPU(object):
 
         trace.set_trace_map(trace_map)
  
-        log('trace: trace_map=%s' % str(trace_map))
-
 # end of DSL primitives
 
     def check_all_mem(self):
@@ -797,6 +776,10 @@ class TestCPU(object):
 
             if line[0] == '#':              # a comment
                 continue
+
+            if '#' in line:
+                index = line.find('#')
+                line = line[:index]
 
             if line[0] in ('\t', ' '):      # continuation
                 if test:
