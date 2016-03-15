@@ -53,7 +53,8 @@ class PtrPtp(object):
     def reset(self):
         """Reset device to a known state."""
 
-        # general device
+        log("Resetting the PTR/PTP device")
+
         self.device_use = None
         self.device_motor_on = False
         self.device_open_file = None
@@ -79,7 +80,9 @@ class PtrPtp(object):
         if self.device_use == self.InUsePTP:
             raise RuntimeError("ptr_mount: Can't mount PTR file, being used as PTP")
 
-        log("Mounting '%s' onto PTR" % fname)
+        if self.device_open_file:
+            log('ptr_mount: closing %s' % str(self.device_open_file))
+            self.device_open_file.close()
 
         self.device_use = self.InUsePTR
         self.device_motor_on = False
@@ -90,15 +93,18 @@ class PtrPtp(object):
         self.ptr_at_eof = False
         self.ptr_value = None
 
+        log("Mounting '%s' onto PTR, .device_filename=%s, .device_open_file=%s"
+            % (fname, self.device_filename, str(self.device_open_file)))
+
     def ptr_dismount(self):
         """Dismount a papertape file."""
 
         if self.device_use == self.InUsePTP:
             raise RuntimeError("ptr_dismount: Can't dismount PTR file, being used as PTP")
 
-        log("Dismounting '%s' onto PTR" % self.device_filename)
+        log("Dismounting '%s' from PTR" % self.device_filename)
 
-        if self.device_filename:
+        if self.device_open_file:
             self.device_open_file.close()
 
         self.reset()
@@ -109,12 +115,13 @@ class PtrPtp(object):
         if self.device_use == self.InUsePTP:
             raise RuntimeError("start: Can't start PTR motor, being used as PTP")
 
-        log("Starting PTR")
-
         self.device_use = self.InUsePTR
         self.device_motor_on = True
         self.device_ready = False
         self.device_cycle_count = self.PtrReadyCycles
+
+        log("Starting PTR, .device_motor_on=%s, .device_ready=%s, .device_cycle_count=%d"
+            % (str(self.device_motor_on), str(self.device_ready), self.device_cycle_count))
 
     def stop(self):
         """Stop reader motor."""
@@ -150,11 +157,15 @@ class PtrPtp(object):
         cycles  number of cycles passed since last tick
         """
 
+        log('ptr_tick: cycles=%d, .device_cycle_count=%d, .device_filename=%s, .device_open_file=%s'
+            % (cycles, self.device_cycle_count, self.device_filename, str(self.device_open_file)))
+
         if self.device_use != self.InUsePTR:
             return
 
         # if end of tape or motor off, do nothing, state remains unchanged
         if self.ptr_at_eof or not self.device_motor_on:
+            log('ptr_tick: EOT or motor off')
             return
 
         self.device_cycle_count -= cycles
@@ -163,16 +174,22 @@ class PtrPtp(object):
             if self.device_ready:
                 self.device_ready = False
                 self.device_cycle_count += self.PtrNotReadyCycles
+                log('ptr_tick: device going not ready')
             else:
                 self.device_ready = True
                 self.device_cycle_count += self.PtrReadyCycles
+                log('ptr_tick: reading from file %s' % str(self.device_open_file))
                 self.ptr_value = self.device_open_file.read(1)
+                log('ptr_tick: .ptr_value=%s' % str(self.ptr_value))
                 if len(self.ptr_value) < 1:
                     # EOF on input file, pretend end of tape
                     self.ptr_at_eof = True
                     self.ptr_value = self.PtrEOF
+                    log('ptr_tick: device went EOT')
                 else:
                     self.ptr_value = ord(self.ptr_value)
+                    log('ptr_tick: device going ready, value=%03o' % self.ptr_value)
+        log('ptr_tick: --------------------------')
 
     ###############
     # Interface routines for punch

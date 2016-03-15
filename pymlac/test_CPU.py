@@ -774,12 +774,15 @@ class TestCPU(object):
             if not line:
                 continue                    # skip blank lines
 
-            if line[0] == '#':              # a comment
-                continue
-
             if '#' in line:
                 index = line.find('#')
                 line = line[:index]
+
+            # remove trailing spaces
+            line = line.rstrip()
+
+            if not line:
+                continue                    # skip blank lines
 
             if line[0] in ('\t', ' '):      # continuation
                 if test:
