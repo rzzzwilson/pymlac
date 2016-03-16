@@ -2,6 +2,7 @@
 bootrom ptr; mount ptr dumpmem_test.ptp; setreg pc 040; rununtil 0	# load the test program into 0100-0110
 	mount ptr blockpunch.ptp; setreg pc 040; rununtil 0		# then load blockpunch
 	mount ttyout xyzzy.ptp						# punch the test program to xyzzy.ptp
+	trace 03540,03700
 	setreg pc 03660; rununtil 0		# punch leader
 	setreg pc 03640; rununtil 0		# punch block loader
 	setreg pc 03660; rununtil 0		# punch leader
@@ -9,7 +10,7 @@ bootrom ptr; mount ptr dumpmem_test.ptp; setreg pc 040; rununtil 0	# load the te
 	setreg ds 0110; rununtil 0		# and end address 0110
 	setreg pc 03670; rununtil 0		# punch memory and end leader
 
-# now see if we can run the punched memory
-bootrom ptr; mount ptr xyzzy.ptp; trace 040,045:050,077; setreg pc 040; rununtil 0		# load the blockpunch output PTP
-	setreg pc 0100; trace 0100,0110; rununtil 0			# run it with trace
+## now see if we can run the punched memory
+#bootrom ptr; mount ptr xyzzy.ptp; trace 040,045:050,077; setreg pc 040; rununtil 0		# load the blockpunch output PTP
+#	setreg pc 0100; trace 0100,0110; rununtil 0			# run it with trace
 	
