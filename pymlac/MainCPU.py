@@ -282,7 +282,7 @@ class MainCPU(object):
     def i_ADD(self, indirect, address, instruction):
         self.AC += self.memory.fetch(self.BLOCKADDR(address), indirect)
         if self.AC & OVERFLOWMASK:
-            self.L = (~self.L) & 01
+            self.L = 0 if self.L else 1
         self.AC &= WORDMASK
         tracestr = trace.itrace(self.dot, 'ADD', indirect, address)
         return (3, tracestr) if indirect else (2, tracestr)
@@ -292,7 +292,7 @@ class MainCPU(object):
         addit = (~addit + 1) & WORDMASK
         self.AC += addit
         if self.AC & OVERFLOWMASK:
-            self.L = ~self.L
+            self.L = 0 if self.L else 1
         self.AC &= WORDMASK
         tracestr = trace.itrace(self.dot, 'SUB', indirect, address)
         return (3, tracestr) if indirect else (2, tracestr)
@@ -315,13 +315,13 @@ class MainCPU(object):
         if instruction & 002:
             self.AC = (~self.AC) & WORDMASK
         if instruction & 020:
-            self.L = (~self.L) & 01
+            self.L = 0 if self.L else 1
 
         # T3
         if instruction & 004:
             self.AC += 1
             if self.AC & OVERFLOWMASK:
-                self.L = (~self.L) & 1
+                self.L = 0 if self.L else 1
             self.AC &= WORDMASK
         if instruction & 040:
             self.AC |= self.DS
