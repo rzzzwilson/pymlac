@@ -3,10 +3,10 @@
 
 """
 The Imlac display.
+
+A temporary version that outputs a PPM graphics image.
 """
 
-
-import wx
 
 from Globals import *
 # if we don't have log.py, don't crash
@@ -25,107 +25,11 @@ __version__ = '0.0'
 DisplayStop = 1
 
 
-######
-# Base class for the widget canvas - buffered and flicker-free.
-######
-
-class _BufferedCanvas(wx.Panel):
-    """Implements a buffered, flicker-free canvas widget.
-
-    This class is based on:
-        http://wiki.wxpython.org/index.cgi/BufferedCanvas
-    """
-
-    # The backing buffer
-    buffer = None
-
-    # max coordinates of scaled display
-    ScaleMaxX = 2048
-    ScaleMaxY = 2048
-#    ScaleMaxX = 512
-#    ScaleMaxY = 512
-
-    def __init__(self, parent, id=wx.ID_ANY, pos=wx.DefaultPosition,
-                 size=wx.DefaultSize, style=wx.NO_FULL_REPAINT_ON_RESIZE):
-        """Initialise the canvas.
-
-        parent  reference to 'parent' widget
-        id      the unique widget ID (NB: shadows builtin 'id')
-        pos     canvas position
-        size    canvas size
-        style   wxPython style
-        """
-
-        wx.Panel.__init__(self, parent, id, pos, size, style)
-
-        # Bind events
-        self.Bind(wx.EVT_PAINT, self.OnPaint)
-        self.Bind(wx.EVT_SIZE, self.OnSize)
-
-        # Disable background erasing (flicker-licious)
-        def disable_event(*args, **kwargs):
-            pass            # the sauce, please
-        self.Bind(wx.EVT_ERASE_BACKGROUND, disable_event)
-
-        # set callback upon onSize event
-        self.onSizeCallback = None
-
-        self.dc = None
-
-    def Draw(self, dc):
-        """Stub: called when the canvas needs to be re-drawn."""
-
-        # set display scale
-        scaleX = self.view_width*1.0 / self.ScaleMaxX
-        scaleY = self.view_height*1.0 / self.ScaleMaxY
-        dc.SetUserScale(min(scaleX,scaleY), min(scaleX,scaleY))
-
-        # don't REPLACE this method, EXTEND it!
-
-    def Update(self):
-        """Causes the canvas to be updated."""
-
-        dc = wx.BufferedDC(wx.ClientDC(self), self.buffer)
-        dc.BeginDrawing()
-        dc.Clear()      # because maybe view size > map size
-        self.Draw(dc)
-        dc.EndDrawing()
-        self.dc = dc
-
-    def OnPaint(self, event):
-        """Paint the canvas to the screen."""
-
-        # Blit the front buffer to the screen
-        wx.BufferedPaintDC(self, self.buffer)
-
-    def OnSize(self, event=None):
-        """Create a new off-screen buffer to hold drawn data."""
-
-        (width, height) = self.GetClientSizeTuple()
-
-        # keep widget square
-        minsize = min(width, height)
-        self.SetSize((minsize, minsize))
-
-        self.view_width = minsize
-        self.view_height = minsize
-
-        # new off-screen buffer
-        self.buffer = wx.EmptyBitmap(minsize, minsize)
-
-        # call onSize callback, if registered
-        if self.onSizeCallback:
-            self.onSizeCallback()
-
-        # Now update the screen
-        self.Update()
-
-
 ################################################################################
 # The actual pymlc display widget.
 ################################################################################
 
-class Display(_BufferedCanvas):
+class Display(object):
 
     BackgroundColour = 'black'
     DrawColour = '#ffff88'
@@ -141,55 +45,57 @@ class Display(_BufferedCanvas):
 
 
     def __init__(self, parent, **kwargs):
-        # create and initialise the base panel
-        _BufferedCanvas.__init__(self, parent=parent, **kwargs)
-        self.SetBackgroundColour(self.BackgroundColour)
+        # create and initialise the image array
+        # reference .array[y*ScaleMaxX + x]
+        self.array = [0] * self.ScaleMaxY * self.ScaleMaxX
 
         # set internal state
         self.running = 0
         self.cycle_count = 0
         self.Sync40hz = 1
-        self.drawlist = []
+        self.next_file_num = 0
 
-        self.OnSize()
+        # 'dirty' flag set after writing
+        self.dirty = False 
+
+    def write(self):
+        """Write display array to PPM file."""
+
+        self.next_file_num += 1
+        filename = 'pymlac_%06d.ppm' % self.next_file_num
+        with open(filename, 'wb') as handle:
+            # output header data
+            handle.write('P1\n')
+            handle.write('# created by pymlac %s\n' % __version__)
+            handle.write('%d %d\n' % (self.ScaleMaxX, self.ScaleMaxY))
+            handle.write('1\n')
+
+            # output graphics data
+            for v in self.array:
+                handle.write('%d\n' % v)
+        self.dirty = False
 
     def draw(self, x1, y1, x2, y2, dotted=False):
         """Draw a line on the screen.
 
         x1, y1  start coordinates
         x2, y2  end coordinates
-        dotted  True if dotted line, else False
+        dotted  True if dotted line, else False (IGNORED)
         """
 
-        self.drawlist.append((x1, y1, x2, y2, dotted))
-#        log('Draw: x1,y1=%d,%d, x2,y2=%d,%d, dotted=%s' % (x1, y1, x2, y2, str(dotted)))
-        self.Update()
+        self.dirty = True
+
+        # draw a straight line using Breshenam
+        self.bresenham(x1, y1, x2, y2)
 
     def clear(self):
         """Clear the display."""
 
-        self.drawlist = []
-        self.Update()
-
-    def Draw(self, dc):
-        """Update the display on the widget screen."""
-
-        # there's some code in super.Draw() we need
-        super(Display, self).Draw(dc)
-
-        pen = wx.Pen(self.DrawColour)
-
-        for (x1, y1, x2, y2, dotted) in self.drawlist:
-            if not dotted:
-                pen.SetStyle(wx.SOLID)
-                pen.SetWidth(1)
-            else:
-                pen.SetStyle(wx.DOT)
-                pen.SetWidth(2)
-            dc.SetPen(pen)
-
-            dc.DrawLine(x1, self.ScaleMaxY - y1,
-                        x2, self.ScaleMaxY - y2)
+        # write display to next PPM file first
+        if self.dirty:
+            self.write()
+            self.array = [0] * self.ScaleMaxY * self.ScaleMaxX
+            self.dirty = False
 
     def syncclear(self):
         self.Sync40hz = 0
@@ -206,3 +112,44 @@ class Display(_BufferedCanvas):
             self.Sync40hz = 1
             self.cycle_count = 0
 
+    def close(self):
+        """Close display, writing data if 'dirty'."""
+
+        if self.dirty:
+            self.write()
+
+    def bresenham(self, x1, y1, x2, y2):
+        """Draw a straight line on the graphics array."""
+
+# algorithm from:
+# http://www.idav.ucdavis.edu/education/GraphicsNotes/Bresenhams-Algorithm.pdf
+#       Let ∆x = x2 − x1
+#       Let ∆y = y2 − y1
+#       Let j = y1
+#       Let ε = ∆y − ∆x
+#
+#       for i = x1 to x2−1
+#           illuminate (i, j)
+#           if (ε ≥ 0)
+#               j += 1
+#               ε −= ∆x
+#           end if
+#           i += 1
+#           ε += ∆y
+#       next i
+#
+#       finish
+
+        dx = x2 - x1
+        dy = y2 - y1
+        j = y1
+        sigma = dy = dx
+
+        for i in range(x1, x2):
+            #illuminate(i, j)
+            self.array[j*self.ScaleMaxX + i]
+            if sigma >= 0:
+                j += 1
+                sigma -= dx
+            i += 1
+            sigma += dy
