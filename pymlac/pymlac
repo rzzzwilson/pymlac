@@ -40,6 +40,8 @@ import collections
 
 from Globals import *
 import MainCPU
+import DisplayCPU
+import Display
 import Memory
 import PtrPtp
 import TtyIn
@@ -80,7 +82,7 @@ def usage(msg=None):
     print(__doc__)
 
 
-def start_running(cpu, memory, ptrptp, ttyin):
+def start_running(cpu, dcpu, memory, ptrptp, ttyin):
     """Run the Imlac machine until it stops."""
 
     cpu.running = True
@@ -88,7 +90,7 @@ def start_running(cpu, memory, ptrptp, ttyin):
         (cycles, tracestr) = cpu.execute_one_instruction()
         if tracestr:
             endstr = trace.itraceend(False)
-            log('%s\t%s' % (tracestr, endstr))
+        dcpu.execute_one_instruction()
         ptrptp.ptr_tick(cycles)
         ptrptp.ptp_tick(cycles)
         ttyin.tick(cycles)
@@ -101,13 +103,16 @@ def main():
     imlac_ptrptp = PtrPtp.PtrPtp()
     imlac_ttyin = TtyIn.TtyIn()
     imlac_ttyout = TtyOut.TtyOut()
-    imlac_cpu = MainCPU.MainCPU(imlac_memory, None, None,
+    imlac_display = Display.Display()
+    imlac_dcpu = DisplayCPU.DisplayCPU(imlac_display, imlac_memory)
+    imlac_cpu = MainCPU.MainCPU(imlac_memory, imlac_dcpu, None,
                                 None, imlac_ttyin, imlac_ttyout, imlac_ptrptp)
     imlac_cpu.running = True
     imlac_display_state = False
 
     # prepare the trace
     trace.add_maincpu(imlac_cpu)
+    trace.add_displaycpu(imlac_dcpu)
 
     # trace_map defines addresses we are tracing at
     # initially, no tracing
@@ -188,7 +193,7 @@ def main():
             else:
                 log('Running from current PC %06o' % imlac_cpu.PC)
             trace.set_trace_map(trace_map)
-            start_running(imlac_cpu, imlac_memory, imlac_ptrptp, imlac_ttyin)
+            start_running(imlac_cpu, imlac_dcpu, imlac_memory, imlac_ptrptp, imlac_ttyin)
         elif opt == '-s':
             if ndx >= len_sys_argv:
                 usage("'-s' option needs a following data filename")

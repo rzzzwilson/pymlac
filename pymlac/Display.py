@@ -44,7 +44,7 @@ class Display(object):
     ScaleMaxY = 1024
 
 
-    def __init__(self, parent, **kwargs):
+    def __init__(self):
         # create and initialise the image array
         # reference .array[y*ScaleMaxX + x]
         self.array = [0] * self.ScaleMaxY * self.ScaleMaxX
@@ -56,7 +56,7 @@ class Display(object):
         self.next_file_num = 0
 
         # 'dirty' flag set after writing
-        self.dirty = False 
+        self.dirty = False
 
     def write(self):
         """Write display array to PPM file."""
@@ -143,11 +143,10 @@ class Display(object):
         dx = x2 - x1
         dy = y2 - y1
         j = y1
-        sigma = dy = dx
+        sigma = dy - dx
 
         for i in range(x1, x2):
-            #illuminate(i, j)
-            self.array[j*self.ScaleMaxX + i]
+            self.array[j*self.ScaleMaxX + i] = 1
             if sigma >= 0:
                 j += 1
                 sigma -= dx

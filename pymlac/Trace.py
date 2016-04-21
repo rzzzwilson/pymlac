@@ -57,7 +57,7 @@ class Trace(object):
 
         self.cpu = maincpu
 
-    def add_dispcpu(self, dispcpu):
+    def add_displaycpu(self, dispcpu):
         """Add the display CPU object."""
 
         self.dcpu = dispcpu
@@ -112,6 +112,7 @@ class Trace(object):
         """
 
         result = None
+
         if self.tracing and self.trace_map[dot]:
             char = '*' if indirect else ''
             if address is None:

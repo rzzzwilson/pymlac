@@ -11,6 +11,9 @@ from Globals import *
 import Trace
 
 
+trace = Trace.Trace(TRACE_FILENAME)
+
+
 class DisplayCPU(object):
 
     # display CPU constants
@@ -40,6 +43,8 @@ class DisplayCPU(object):
         self.display = display
         self.memory = memory
 
+        self.dot = self.DPC
+
     def DEIMdecode(self, byte):
         """Decode a DEIM byte"""
 
@@ -59,7 +64,16 @@ class DisplayCPU(object):
             else:              result += 'A%3.3o' % byte
         return result
 
-    def doDEIMByte(self, byte):
+    def doDEIMByte(self, byte, last=False):
+        """Execute a DEIM instruction byte.
+
+        byte  is the byte to execute in DEIM mode
+        last  True if the last byte in a word
+        """
+
+        trace = DEIMdecode(byte)
+        print('doDEIMByte: trace=%s' % str(trace))
+
         if byte & 0x80:			# increment?
             prevDX = self.DX
             prevDY = self.DY
@@ -78,7 +92,7 @@ class DisplayCPU(object):
                 self.Mode = self.MODE_NORMAL
             if byte & 0x20:		# DRJM
                 if self.DRSindex <= 0:
-                    Trace.comment('\nDRS stack underflow at display address %6.6o'
+                    trace.comment('\nDRS stack underflow at display address %6.6o'
                                   % (self.DPC - 1))
                     self.illegal()
                 self.DRSindex -= 1
@@ -92,23 +106,21 @@ class DisplayCPU(object):
             if byte & 0x01:
                 self.DY &= 0xfff0
 
+        return trace
+
     def execute_one_instruction(self):
         if not self.Running:
-            Trace.dtrace('')
-            return 0
+            return (0, None)
 
+        self.dot = self.DPC
         instruction = self.memory.fetch(self.DPC, False)
         self.DPC = MASK_MEM(self.DPC + 1)
 
         if self.Mode == self.MODE_DEIM:
-            Trace.trace(self.DEIMdecode(instruction >> 8) + '\t')
-            self.doDEIMByte(instruction >> 8)
+            tracestr = self.doDEIMByte(instruction >> 8)
             if self.Mode == self.MODE_DEIM:
-                Trace.trace(self.DEIMdecode(instruction & 0xff) + '\t')
-                self.doDEIMByte(instruction & 0xff)
-            else:
-                Trace.trace('\t')
-            return 1
+                tracestr += ', ' + self.doDEIMByte(instruction & 0xff, True)
+            return (1, tracestr)
 
         opcode = instruction >> 12
         address = instruction & 007777
@@ -125,10 +137,10 @@ class DisplayCPU(object):
 
     def illegal(self, instruction=None):
         if instruction:
-            Trace.comment('Illegal display instruction (%6.6o) at address %6.6o'
+            trace.comment('Illegal display instruction (%6.6o) at address %6.6o'
                           % (instruction, (self.DPC - 1)))
         else:
-            Trace.comment('Illegal display instruction at address %6.6o'
+            trace.comment('Illegal display instruction at address %6.6o'
                           % (self.DPC - 1))
         sys.exit(0)
 
@@ -137,17 +149,18 @@ class DisplayCPU(object):
 
     def i_DDXM(self):
         self.DX -= 040
-        Trace.dtrace('DDXM')
+        tracestr = trace.dtrace(self.dot, 'DDXM', None)
+        return (1, tracestr)
 
     def i_DDYM(self):
         self.DY -= 040
-        Trace.dtrace('DDYM')
+        tracestr = trace.dtrace(self.dot, 'DDYM', None)
+        return (1, tracestr)
 
     def i_DEIM(self, address):
         self.Mode = self.MODE_DEIM
-        Trace.deimtrace('DEIM', self.DEIMdecode(address & 0377))
-        self.doDEIMByte(address & 0377)
-        return 1
+        tracestr += 'DEIM\t' + self.doDEIMByte(address & 0377, last=True)
+        return (1, tracestr)
 
     def i_DHLT(self):
         self.Running = False
