@@ -68,7 +68,8 @@ def write_tty(filename):
     while count < 16:
         while not ttyout.ready():
             ttyout.tick(1)
-        byte = ttyout.write(chr(0))
+        #byte = ttyout.write(chr(0))
+        byte = ttyout.write(0)
         ttyout.clear()
         count += 1
 
@@ -79,7 +80,8 @@ def write_tty(filename):
     while count < 32:
         while not ttyout.ready():
             ttyout.tick(1)
-        ttyout.write(chr(1))
+        #ttyout.write(chr(1))
+        ttyout.write(1)
         ttyout.clear()
         count += 1
     
