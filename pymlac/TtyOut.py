@@ -46,7 +46,7 @@ class TtyOut(object):
         self.state = DEVICE_NOT_READY
 
     def write(self, char):
-        log('TTYOUT: writing byte %03o, .open_file=%s' % (char, self.open_file))
+        log('TTYOUT: writing byte %03o, .open_file=%s' % (char, str(self.open_file)))
         if self.open_file:
             self.open_file.write(chr(char))
             self.state = DEVICE_NOT_READY
