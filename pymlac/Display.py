@@ -58,6 +58,8 @@ class Display(object):
         # 'dirty' flag set after writing
         self.dirty = False
 
+        log('Display: instance created')
+
     def write(self):
         """Write display array to PPM file."""
 
@@ -75,6 +77,8 @@ class Display(object):
                 handle.write('%d\n' % v)
         self.dirty = False
 
+        log('Display: array written to file %s' % filename)
+
     def draw(self, x1, y1, x2, y2, dotted=False):
         """Draw a line on the screen.
 
@@ -83,6 +87,8 @@ class Display(object):
         dotted  True if dotted line, else False (IGNORED)
         """
 
+        log('Display: drawing (%d,%d) to (%d,%d)' % (x1, y1, x2, y2))
+
         self.dirty = True
 
         # draw a straight line using Breshenam
@@ -90,6 +96,8 @@ class Display(object):
 
     def clear(self):
         """Clear the display."""
+
+        log('Display: clearing the display')
 
         # write display to next PPM file first
         if self.dirty:
