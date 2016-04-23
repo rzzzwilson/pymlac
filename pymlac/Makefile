@@ -3,23 +3,23 @@
 # And run the test files.
 #
 
-test:
-	#pymlac -b ptr -c -ptr dumpmem_test_c8lds.ptp -t 040,045:050,052:055,060:065,066:071,077:03700,03767:03772,03777 -r 040 -t 0100,0110 -r 0100
-	pymlac -b tty -c -ttyin dumpmem_test_c8lds.ptp -t 040,045:050,052:055,060:063,077:03700,03767:03772,03777 -r 040 -t 0100,0110 -r 0100
-
-test_debug:	
+test:	
 	rm -f test.ptr test.ptp CPU.test.trace test_CPU.log pymlac.trace
-#	python test_CPU.py dumpmem.test
+	python test_CPU.py dumpmem.test
 	./make_ptr > test.ptr
 	python test_CPU.py CPU.test
 #	#python test_Display.py     # interactive!
-#	@echo "##########  Run 'python test_Display.py' by hand!  ##########"
+	@echo "##########  Run 'python test_Display.py' by hand!  ##########"
 #	#python test_KBD.py                # interactive!
-#	@echo "##########  Run 'python test_KBD.py' by hand!  ##########"
-#	python test_Memory.py
-#	python test_PTR_PTP.py
-#	python test_TTYIN.py
-#	python test_TTYOUT.py
+	@echo "##########  Run 'python test_KBD.py' by hand!  ##########"
+	python test_Memory.py
+	python test_PTR_PTP.py
+	python test_TTYIN.py
+	python test_TTYOUT.py
+
+test_debug:
+	#pymlac -b ptr -c -ptr dumpmem_test_c8lds.ptp -t 040,045:050,052:055,060:065,066:071,077:03700,03767:03772,03777 -r 040 -t 0100,0110 -r 0100
+	pymlac -b tty -c -ttyin dumpmem_test_c8lds.ptp -t 040,045:050,052:055,060:063,077:03700,03767:03772,03777 -r 040 -t 0100,0110 -r 0100
 
 
 %:	%.ptp
