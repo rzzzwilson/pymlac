@@ -78,7 +78,8 @@ allbits data    0377    ; byte of all bits
 ;------------------------
 ; Punch block loader
 ;------------------------
-        org     start+0100 ; 037540 + 0100 = 037640
+;        org     start+0100 ; 037540 + 0100 = 037640
+        org     037640
 pbldr   lwc     0100    ;
         dac     fad     ;
         lwc     076     ;
@@ -93,7 +94,8 @@ pbloop  lac     *fad    ;
 ;------------------------
 ; Punch leader
 ;------------------------
-        org     start+0120 ; 037540 + 0120 = 037660
+;        org     start+0120 ; 037540 + 0120 = 037660
+        org     037660
 pldr    lwc     07      ; we want 16 bytes of leader (8 words)
         dac     wtb     ; store leader count
         cla             ;
@@ -105,7 +107,8 @@ pldr    lwc     07      ; we want 16 bytes of leader (8 words)
 ;------------------------
 ; Punch end code
 ;------------------------
-        org     start+0130 ; 037540 + 0130 = 037670
+;        org     start+0130 ; 037540 + 0130 = 037670
+        org     037670
 pend    law     0377    ;
         jms     pbyte   ;
         jms     pbyte   ;
