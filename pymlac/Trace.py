@@ -46,21 +46,25 @@ class Trace(object):
         self.dcpu = displaycpu
 
         self.trace_map = collections.defaultdict(bool)
+#        print('Trace.__init__: self.tracing=%s, self.tracefile=%s' % (str(self.tracing), str(self.tracefile)))
 
     def set_trace_map(self, trace_map):
         """Set the trace address dict mapping."""
 
         self.trace_map = trace_map
+#        print('Trace.set_trace_map: self.trace_map=%s' % str(trace_map))
 
     def add_maincpu(self, maincpu):
         """Add the main CPU object."""
 
         self.cpu = maincpu
+#        print('Trace.add_maincpu: self.cpu=%s' % str(maincpu))
 
     def add_displaycpu(self, dispcpu):
         """Add the display CPU object."""
 
         self.dcpu = dispcpu
+#        print('Trace.add_displaycpu: self.dcpu=%s' % str(dispcpu))
 
     def close(self):
         """Close trace."""
@@ -68,6 +72,8 @@ class Trace(object):
         self.tracefile.close()
         self.tracing = False
         self.tracefile = None
+        self.dcpu = dispcpu
+#        print('Trace.close: self.tracing=%s' % str(self.tracing))
 
     def deimtrace(self, opcode, code):
         """Trace the DEIM instruction.
@@ -111,6 +117,7 @@ class Trace(object):
         Returns the trace string or None if not tracing.
         """
 
+#        print('Trace.itrace: self.tracing=%s, self.trace_map=%s' % (str(self.tracing), str(self.trace_map)))
         result = None
 
         if self.tracing and self.trace_map[dot]:
@@ -151,3 +158,4 @@ class Trace(object):
         """Set the trace ON or OFF."""
 
         self.tracing = new_tracing
+#        print('Trace.settrace: self.tracing=%s' % str(new_tracing))
