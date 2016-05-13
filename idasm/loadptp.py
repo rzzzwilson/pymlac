@@ -28,6 +28,25 @@ LoaderSize = 0100
 DefaultRemTape = 40
 
 
+def octal_words(s):
+    """Generate a string of octal words.
+
+    s  string to convert (16 bytes or less)
+       (must be an even number of characters)
+
+    Returns a string: 'xxxxxx xxxxxx xxxxxx ...".
+    """
+
+    octs = ''
+    hi = s[0::2]
+    lo = s[1::2]
+    for (h, l) in zip(hi, lo):
+        ordh = ord(h)
+        ordl = ord(l)
+        val = ordh*256 + ordl
+        octs += '%06o ' % val
+    return octs
+
 def str2int(self, s):
     """Convert string to numeric value.
 
@@ -159,7 +178,7 @@ def read_blockloader(ptp_data, index, memsize, memory=None):
     return index
 
 def c8lds_handler(ptp_data, memory, loader=False, body=False,
-                  debugging=False, memsize=DefaultMemSize):
+                  debugging=False, listing=False, memsize=DefaultMemSize):
     """Sees if the PTP data follows the format in "Loading the PDS-1" document.
 
     ptp_data  array of PTP data
@@ -167,10 +186,11 @@ def c8lds_handler(ptp_data, memory, loader=False, body=False,
     loader    True if we put loader code into memory
     body      True if we put body code into memory
     debugging True if we are debugging
+    listing   True if we are to return a listing when recognized
     memsize   size of Imlac memory - limit addresses to this
 
     Returns None if PTP not recognized as 'c8lds'.
-    Returns a tuple (None, None) if recognized.  This tuple is really
+    Returns a tuple (None, None, out_list) if recognized.  This tuple is really
     (start, initialAC) but this format PTP file doesn't cater to those values.
     Note that the 'memory' may have been populated in either case.
 
@@ -202,6 +222,7 @@ def c8lds_handler(ptp_data, memory, loader=False, body=False,
         0177777     # a block load address of 0177777
     """
 
+    out_list = None
     index = 0
 
     if memory is None:
@@ -213,8 +234,10 @@ def c8lds_handler(ptp_data, memory, loader=False, body=False,
         # empty tape
         debug(debugging, 'c8lds: No leader?')
         return None
+    out_list = [' leader: %d bytes' % index]
     debug(debugging, 'c8lds: after zero leader, index=%d' % index)
 
+    index_start = index
     if loader:
         index = read_blockloader(ptp_data, index, memsize, memory=memory)
     else:
@@ -225,6 +248,7 @@ def c8lds_handler(ptp_data, memory, loader=False, body=False,
         # short block loader?
         debug(debugging, 'c8lds: Short leader?')
         return None
+    out_list.append(' loader: %d words' % ((index - index_start)/2))
     debug(debugging, 'c8lds: after blockloader, index=%d' % index)
 
     # now read data blocks
@@ -234,14 +258,17 @@ def c8lds_handler(ptp_data, memory, loader=False, body=False,
 
     while True:
         # with c8lds we can have leading zeros before a data block
+        index_start = index
         index = skipzeros(ptp_data, index)
         if index is None:
             # empty tape
             debug(debugging, 'c8lds: EOT looking for block?')
             return None
+        out_list.append('   skip: %d zero bytes' % (index - index_start))
         debug(debugging, 'c8lds: index before block=%d' % index)
 
         # get data word count
+        index_start = index
         result = get_byte(ptp_data, index)
         if result is None:
             # premature end of tape?
@@ -260,10 +287,14 @@ def c8lds_handler(ptp_data, memory, loader=False, body=False,
         debug(debugging, 'c8lds: load address=%06o' % address)
         if address == 0177777:
             # it's an End-Of-Tape block!
+            out_list.append('  start: <none>')
             if not got_data_block:
                 # if we have no data blocks, probably NOT c8lds
                 return None
-            return (None, None)
+            return (None, None, out_list)
+
+        out_list.append('  block: %d (%04o) words loaded at %06o'
+                        % (count, count, address))
 
         # limit addresses to Imlac memory size
         address = address & (memsize-1)
@@ -272,6 +303,8 @@ def c8lds_handler(ptp_data, memory, loader=False, body=False,
         # read data words, store in memory and calculate checksum
         got_data_block = True       # we got at least one data block
         checksum = 0
+        data_string = ''
+        word_count = 0
         for _ in range(count):
             result = get_word(ptp_data, index)
             if result is None:
@@ -281,6 +314,12 @@ def c8lds_handler(ptp_data, memory, loader=False, body=False,
             (data, index) = result
             memory[address] = data
             debug(debugging, 'c8lds: data word=%06o' % data)
+            data_string += '%06o ' % data
+            word_count += 1
+            if word_count > 7:
+                out_list.append('             %s' % data_string)
+                data_string = ''
+                word_count = 0
 
             address += 1
             checksum += data
@@ -288,6 +327,9 @@ def c8lds_handler(ptp_data, memory, loader=False, body=False,
                 # if overflow, increment before masking
                 checksum += 1
             checksum = checksum & 0177777
+
+        if data_string:
+            out_list.append('             %s' % data_string)
 
         # check block checksum
         result = get_word(ptp_data, index)
@@ -312,7 +354,7 @@ def lc16sd_add_csum(csum, word):
     return result
 
 def lc16sd_handler(ptp_data, memory, loader=False, body=False,
-                   debugging=False, memsize=DefaultMemSize):
+                   debugging=False, listing=False, memsize=DefaultMemSize):
     """Decides if PTP data is in 'lc16sd' format.
 
     ptp_data  array of PTP data
@@ -320,15 +362,12 @@ def lc16sd_handler(ptp_data, memory, loader=False, body=False,
     loader    True if we put loader code into memory
     body      True if we put body code into memory
     debugging True if we are debugging
+    listing   True if a listing is required (and this handler recognizes)
     memsize   size of Imlac memory - limit addresses to this
 
     Returns None if PTP not recognized as 'lc16sd'.
-    Returns a tuple (start, initialAC) if recognized.
+    Returns a tuple (start, initialAC, out_list) if recognized.
     Note that the 'memory' may have been populated in either case.
-
-    Returns False if the PTP is not recognized as 'lc16sd'.
-    Returns True if in 'lc16sd' format, else False.  Note that the 'memory' may
-    have been populated in either case.
 
     Characterized as 'lc16sd' meaning [L]oad address, then a 16bit data word
     [C]ount, then a 16bit check[S]um, followed by one or more [D]ata words.
@@ -347,6 +386,7 @@ def lc16sd_handler(ptp_data, memory, loader=False, body=False,
     is the value put into the AC just before start.
     """
 
+    out_list = None
     index = 0
 
     # skip initial zero leader
@@ -355,7 +395,9 @@ def lc16sd_handler(ptp_data, memory, loader=False, body=False,
         # empty tape
         debug(debugging, 'lc16sd: No leader?')
         return None
+    out_list = [' leader: %d bytes' % index]
 
+    index_start = index
     if loader:
         index = read_blockloader(ptp_data, index, memsize, memory=memory)
     else:
@@ -366,6 +408,7 @@ def lc16sd_handler(ptp_data, memory, loader=False, body=False,
         # short block loader?
         debug(debugging, 'lc16sd: Short blockloader?')
         return None
+    out_list.append(' loader: %d words' % ((index - index_start)/2))
 
     # now read data blocks
     if not body:
@@ -396,8 +439,10 @@ def lc16sd_handler(ptp_data, memory, loader=False, body=False,
                     debug(debugging, 'lc16sd: EOT getting AC value for autostart?')
                     return None     # premature end of tape?
                 (initAC, index) = result
-                return (address & (memsize-1), initAC)
-            return (None, None)
+                out_list.append('  start: %06o initial AC %06o' % (address & (memsize-1), initAC))
+                return (address & (memsize-1), initAC, out_list)
+            out_list.append('  start: <none>')
+            return (None, None, out_list)
 
         # read data block, calculating checksum
         csum = address                      # start checksum with base address
@@ -413,6 +458,9 @@ def lc16sd_handler(ptp_data, memory, loader=False, body=False,
         debug(debugging, 'lc16sd: count=%06o, neg_count=%d' % (count, neg_count))
         csum = lc16sd_add_csum(csum, neg_count)
 
+        out_list.append('  block: %d (%04o) words loaded at %06o'
+                        % (-neg_count, -neg_count, address))
+
         result = get_word(ptp_data, index)
         if result is None:
             debug(debugging, 'lc16sd: EOT getting checksum?')
@@ -423,6 +471,8 @@ def lc16sd_handler(ptp_data, memory, loader=False, body=False,
         csum = lc16sd_add_csum(csum, csum_word)
 
         # read body code, updating memory
+        data_string = ''
+        word_count = 0
         while neg_count < 0:
             result = get_word(ptp_data, index)
             if result is None:
@@ -435,6 +485,16 @@ def lc16sd_handler(ptp_data, memory, loader=False, body=False,
             memory[address] = word
             address += 1
             neg_count += 1
+            data_string += '%06o ' % word
+            word_count += 1
+            if word_count > 7:
+                out_list.append('             %s' % data_string)
+                data_string = ''
+                word_count = 0
+
+        if data_string:
+            out_list.append('             %s' % data_string)
+
         if csum != 0:
             debug(debugging, 'lc16sd: Bad checksum, sum is %06o, expected 0?' % csum)
             return None     # bad block checksum
@@ -450,22 +510,24 @@ Handlers = [
            ]
 
 def load(filename, loader=False, body=False,
-         debugging=False, memsize=DefaultMemSize):
+         debugging=False, listing=False, memsize=DefaultMemSize):
     """Load a PTP file into a memory object after figuring out its format.
 
     filename  path of the PTP file to inspect
     loader    True if the blockloader code is to be loaded
     body      True if the body code is to be loaded
     debugging True if we are debugging
+    listing   True if we list decoded PTP file
     memsize   the Imlac memory size, limit addresses to this size
 
     Returns None if there was a problem, else returns a tuple
-        (name, memory, start, initial_ac)
+        (name, memory, start, initial_ac, list)
     where the 'name'        string wgich identifies the loader used,
               'memory'      is a memory object holding the loaded code:
                             {address: code, ...},
               'start'       is the start addres, if any
               'initial_ac'  is the initial contents of AC, if any
+              'list'        is an array of strings holding the listing (or None)
     """
 
     # get all of PTP file into memory
@@ -491,14 +553,15 @@ def load(filename, loader=False, body=False,
         try:
             memory = {}
             result = handler(ptp_data, memory, loader=loader,
-                             body=body, debugging=debugging, memsize=memsize)
+                             body=body, debugging=debugging, listing=listing,
+                             memsize=memsize)
             debug(debugging, '%s: result=%s' % (name, str(result)))
         except IndexError:
             result = None
 
         if result is not None:
-            (start_addr, initial_ac) = result
-            results.append((name, memory, start_addr, initial_ac))
+            (start_addr, initial_ac, out_list) = result
+            results.append((name, memory, start_addr, initial_ac, out_list))
             handlers.append(name)
 
     # analyse the results
@@ -508,10 +571,10 @@ def load(filename, loader=False, body=False,
             return results[0]
         else:
             names = []
-            for (name, _, _, _) in results:
+            for (name, _, _, out_list) in results:
                 names.append(name)
             names = ','.join(names)
-            return (names, {}, None, None)
+            return (names, {}, None, None, out_list)
 
     return None
 
@@ -526,7 +589,7 @@ if __name__ == '__main__':
             print('*'*60)
             print(msg)
             print('*'*60)
-            print('Usage: loadptp [-d] [-m <memsize>] <file> [ <file> ... ]')
+        print('Usage: loadptp [-d] [-h] [-l] [-m <memsize>] <file> [ <file> ... ]')
         sys.exit(10)
 
     if len(sys.argv) < 2:
@@ -534,35 +597,52 @@ if __name__ == '__main__':
 
     # handle -d option
     debugging = False
+    listing = False
     memsize = DefaultMemSize
     args = sys.argv[1:]
 
-    while args[0][0] == '-':
+    while args and args[0][0] == '-':
         if args[0] == '-d':
             debugging = True
+            args = args[1:]
+        elif args[0] == '-h':
+            usage()
+        elif args[0] == '-l':
+            listing = True
             args = args[1:]
         elif args[0] == '-m':
             if len(args) < 1:
                 usage()
             memsize = str2int(args[1])
             args = args[2:]
+        else:
+            usage('Unrecognized option: %s' % args[0])
 
     if len(args) < 1:
-        usage()
+        usage('Missing filename(s)')
 
     # dump each file
     for filename in args:
         result = load(filename, loader=True, body=True,
-                      debugging=debugging, memsize=memsize)
+                      debugging=debugging, listing=listing, memsize=memsize)
         debug(debugging, 'top: result=%s' % str(result))
         if result is not None:
-            (loader, memory, start, initial_ac) = result
+            (loader, memory, start, initial_ac, out_list) = result
             start_str = ''
             if start:
                 start_str = ', start address is %06o' % start
             initial_ac_str = ''
             if initial_ac:
                 initial_ac_str = ', initial AC is %06o' % initial_ac
-            print('%14s: %s%s%s' % (loader, filename, start_str, initial_ac_str))
+
+            if listing:
+                print(filename)
+                print('       type: %s' % loader)
+                if out_list:
+                    l = '\n    '.join(out_list)
+                    print('    %s' % l)
+
+            else:
+                print('%14s: %s%s%s' % (loader, filename, start_str, initial_ac_str))
         else:
             print('%+14s: %s' % ('UNRECOGNIZED', filename))
