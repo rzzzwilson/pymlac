@@ -176,8 +176,6 @@ def main():
     create_papertape_ptp(ptrptp, PtpFilename)
     read_tape(ptrptp, PtpFilename)
 
-
-
 ################################################################################
 
 if __name__ == '__main__':
