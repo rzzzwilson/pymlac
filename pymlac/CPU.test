@@ -1,5 +1,5 @@
 # check multiple assemblerinstructions in DSL
-setmem 0100 [LAW 1|NOP|NOP|NOP]; setreg pc 0100; RUNUNTIL 0102; checkcycles 2; checkreg pc 0102; checkreg ac 1
+setmem 0100 [LAW 1|NOP|NOP|NOP]; setreg pc 0100; RUNUNTIL 0102; onerror ignore; checkcycles 2; checkreg pc 0102; checkreg ac 1
 
 # LAW
 setreg ac 0177777; setreg l 1; setmem 0100 [LAW 0]; setreg pc 0100; RUN
@@ -382,25 +382,25 @@ setreg l 1; setmem 0100 [LSN]; setreg pc 0100; RUN; checkcycles 1; checkreg pc 0
 # HSF
 setreg ac 0; setreg pc 0100; mount ptr test.ptr
         setmem 0100 [HON|HSF|JMP 0101|LAW 0|HRB|NOP|HSN|JMP 0106|JMP 0101]
-        rununtil 0105; checkreg ac 0; checkreg pc 0105
-        rununtil 0105; checkreg ac 1; checkreg pc 0105
-        rununtil 0105; checkreg ac 2; checkreg pc 0105
-        rununtil 0105; checkreg ac 3; checkreg pc 0105
-        rununtil 0105; checkreg ac 4; checkreg pc 0105
-        rununtil 0105; checkreg ac 5; checkreg pc 0105
-        rununtil 0105; checkreg ac 6; checkreg pc 0105
-        rununtil 0105; checkreg ac 7; checkreg pc 0105
+        RUNUNTIL 0105; checkreg ac 0; checkreg pc 0105
+        RUNUNTIL 0105; checkreg ac 1; checkreg pc 0105
+        RUNUNTIL 0105; checkreg ac 2; checkreg pc 0105
+        RUNUNTIL 0105; checkreg ac 3; checkreg pc 0105
+        RUNUNTIL 0105; checkreg ac 4; checkreg pc 0105
+        RUNUNTIL 0105; checkreg ac 5; checkreg pc 0105
+        RUNUNTIL 0105; checkreg ac 6; checkreg pc 0105
+        RUNUNTIL 0105; checkreg ac 7; checkreg pc 0105
 # HSN
 setreg ac 0; setreg pc 0100; mount ptr test.ptr
         setmem 0100 [HON|HSF|JMP 0101|LAW 0|HRB|NOP|HSN|JMP 0106|JMP 0101]
-        rununtil 0105; checkreg ac 0; checkreg pc 0105
-        rununtil 0105; checkreg ac 1; checkreg pc 0105
-        rununtil 0105; checkreg ac 2; checkreg pc 0105
-        rununtil 0105; checkreg ac 3; checkreg pc 0105
-        rununtil 0105; checkreg ac 4; checkreg pc 0105
-        rununtil 0105; checkreg ac 5; checkreg pc 0105
-        rununtil 0105; checkreg ac 6; checkreg pc 0105
-        rununtil 0105; checkreg ac 7; checkreg pc 0105
+        RUNUNTIL 0105; checkreg ac 0; checkreg pc 0105
+        RUNUNTIL 0105; checkreg ac 1; checkreg pc 0105
+        RUNUNTIL 0105; checkreg ac 2; checkreg pc 0105
+        RUNUNTIL 0105; checkreg ac 3; checkreg pc 0105
+        RUNUNTIL 0105; checkreg ac 4; checkreg pc 0105
+        RUNUNTIL 0105; checkreg ac 5; checkreg pc 0105
+        RUNUNTIL 0105; checkreg ac 6; checkreg pc 0105
+        RUNUNTIL 0105; checkreg ac 7; checkreg pc 0105
 #
 # DLA
 # CTB
@@ -418,14 +418,14 @@ setreg ac 0; setreg pc 0100; mount ptr test.ptr
 # HSF - read 7 bytes (values 0 to 7) from PTR file 'test.ptr'
 setreg ac 0; setreg pc 0100; mount ptr test.ptr
         setmem 0100 [HON|HSF|JMP 0101|LAW 0|HRB|NOP|HSN|JMP 0106|JMP 0101]
-        rununtil 0105; checkreg ac 0
-        rununtil 0105; checkreg ac 1
-        rununtil 0105; checkreg ac 2
-        rununtil 0105; checkreg ac 3
-        rununtil 0105; checkreg ac 4
-        rununtil 0105; checkreg ac 5
-        rununtil 0105; checkreg ac 6
-        rununtil 0105; checkreg ac 7
+        RUNUNTIL 0105; checkreg ac 0
+        RUNUNTIL 0105; checkreg ac 1
+        RUNUNTIL 0105; checkreg ac 2
+        RUNUNTIL 0105; checkreg ac 3
+        RUNUNTIL 0105; checkreg ac 4
+        RUNUNTIL 0105; checkreg ac 5
+        RUNUNTIL 0105; checkreg ac 6
+        RUNUNTIL 0105; checkreg ac 7
         checkreg pc 0105
 # HOF
 # HON
@@ -436,13 +436,13 @@ setreg ac 0; setreg pc 0100; mount ptr test.ptr
 # PPC
 setreg ac 0; setreg pc 0100; mount ptp test_punch_3.ptp
         setmem 0100 [LAW 0|PSF|JMP 0101|PPC|IAC|JMP 0101]
-        rununtil 0104; checkreg ac 0
-        rununtil 0104; checkreg ac 1
-        rununtil 0104; checkreg ac 2; checkreg pc 0104
+        RUNUNTIL 0104; checkreg ac 0
+        RUNUNTIL 0104; checkreg ac 1
+        RUNUNTIL 0104; checkreg ac 2; checkreg pc 0104
 	checkfile test_punch_3.ptp correct/test_punch_3.ptp
 setreg pc 0100; mount ptp test_punch_11.ptp
         setmem 0100 [LWC 10|DAC 1|LAW 0|PSF|JMP 0103|PPC|IAC|ISZ 1|JMP 0103|HLT]
-        rununtil 0111; checkreg ac 012; checkreg pc 0111
+        RUNUNTIL 0111; checkreg ac 012; checkreg pc 0111
 	checkfile test_punch_11.ptp correct/test_punch_11.ptp
 
 # and lots of IOT instructions
