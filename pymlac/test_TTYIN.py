@@ -108,8 +108,7 @@ def main():
     # print number of errors
     print('\n***** %d errors' % ErrorCount)
 
-#    return ErrorCount
-    return 0
+    return ErrorCount
 
 
 ################################################################################
