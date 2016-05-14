@@ -189,6 +189,8 @@ class TestCPU(object):
 #   cmpmem file
 #   trace <range>[:<range>:...]
 #       where <range> ::= <addr>,<addr>
+#   onerror ('ignore'|'abort')
+#       initially, "onerror abort" assumed
 
     def setreg(self, name, value):
         """Set register to a value.
@@ -280,6 +282,8 @@ class TestCPU(object):
         """Execute one or more instructions.
 
         num_instructions  number of instructions to execute
+
+        Also sets self.abort to False.
         """
 
         if num_instructions is None:
@@ -299,7 +303,7 @@ class TestCPU(object):
             self.ptrptp.ptp_tick(cycles)
             self.used_cycles += cycles
             number -= 1
-
+        self.abort = False
 
     def rununtil(self, address, ignore):
         """Execute instructions until PC == address.
@@ -311,6 +315,8 @@ class TestCPU(object):
         stop address.
 
         We also stop if the CPU executes the HLT instruction.
+
+        Also sets self.abort to False.
         """
 
         new_address = self.str2int(address)
@@ -330,6 +336,7 @@ class TestCPU(object):
             self.used_cycles += cycles
             if self.cpu.PC == new_address:
                 break
+        self.abort = False
 
     def checkcycles(self, cycles, ignore):
         """Check that opcode cycles used is correct.
@@ -556,7 +563,20 @@ class TestCPU(object):
                 trace_map[addr] = True
 
         trace.set_trace_map(trace_map)
- 
+
+    def onerror(self, state, ignore):
+        """Set the action upon an error.
+
+        state  either 'ignore' or 'error'
+        """
+
+        if state == 'ignore':
+            self.abort = False
+        elif state == 'error':
+            self.abort = True
+        else:
+            return 'onerror: bad action name: %s' % state
+
 # end of DSL primitives
 
     def check_all_mem(self):
@@ -645,12 +665,14 @@ class TestCPU(object):
         self.ttyout = TtyOut.TtyOut()
         self.cpu = MainCPU.MainCPU(self.memory, None, None,
                                    None, self.ttyin, self.ttyout, self.ptrptp)
-        # turn yrace OFF, initially
+        # turn trace OFF, initially
         trace_map = collections.defaultdict(bool)
         trace.set_trace_map(trace_map)
 
         self.cpu.running = True
         self.display_state = False
+
+        self.abort = True        # abort on errors if True
 
         # prepare the trace
         trace.add_maincpu(self.cpu)
@@ -722,20 +744,24 @@ class TestCPU(object):
                 r = self.cmpmem(fld1, fld2)
             elif opcode == 'trace':
                 r = self.trace(fld1, fld2)
+            elif opcode == 'onerror':
+                r = self.onerror(fld1, fld2)
             else:
                 print("Unrecognized opcode '%s' in: %s" % (opcode, test))
                 raise Exception("Unrecognized opcode '%s' in: %s" % (opcode, test))
 
             if r is not None:
                 result.append(r)
+                if self.abort:
+                    break
 
         # now check all memory and regs for changes
         r = self.check_all_mem()
-        if r:
+        if r is not None:
             result.append(r)
 
         r = self.check_all_regs()
-        if r:
+        if r is not None:
             result.extend(r)
 
         if result:
