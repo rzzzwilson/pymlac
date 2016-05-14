@@ -19,7 +19,7 @@ class PtrPtp(object):
 
     # number of chars per second we want
     PtrCharsPerSecond = 300
-    PtpCharsPerSecond = 30
+    PtpCharsPerSecond = 300
 
     # duty cycle for PTR is 30% ready and 70% not ready
     PtrReadyCycles = int((CYCLES_PER_SECOND / PtrCharsPerSecond) / 0.7) / 25
@@ -53,8 +53,6 @@ class PtrPtp(object):
     def reset(self):
         """Reset device to a known state."""
 
-        log("Resetting the PTR/PTP device")
-
         self.device_use = None
         self.device_motor_on = False
         self.device_open_file = None
@@ -81,7 +79,6 @@ class PtrPtp(object):
             raise RuntimeError("ptr_mount: Can't mount PTR file, being used as PTP")
 
         if self.device_open_file:
-            log('ptr_mount: closing %s' % str(self.device_open_file))
             self.device_open_file.close()
 
         self.device_use = self.InUsePTR
@@ -93,16 +90,11 @@ class PtrPtp(object):
         self.ptr_at_eof = False
         self.ptr_value = None
 
-        log("Mounting '%s' onto PTR, .device_filename=%s, .device_open_file=%s"
-            % (fname, self.device_filename, str(self.device_open_file)))
-
     def ptr_dismount(self):
         """Dismount a papertape file."""
 
         if self.device_use == self.InUsePTP:
             raise RuntimeError("ptr_dismount: Can't dismount PTR file, being used as PTP")
-
-        log("Dismounting '%s' from PTR" % self.device_filename)
 
         if self.device_open_file:
             self.device_open_file.close()
@@ -120,16 +112,11 @@ class PtrPtp(object):
         self.device_ready = False
         self.device_cycle_count = self.PtrReadyCycles
 
-        log("Starting PTR, .device_motor_on=%s, .device_ready=%s, .device_cycle_count=%d"
-            % (str(self.device_motor_on), str(self.device_ready), self.device_cycle_count))
-
     def stop(self):
         """Stop reader motor."""
 
         if self.device_use == self.InUsePTP:
             raise RuntimeError("stop: Can't stop PTR motor, being used as PTP")
-
-        log("Stopping PTR")
 
         self.device_motor_on = False
         self.device_ready = False
@@ -157,15 +144,11 @@ class PtrPtp(object):
         cycles  number of cycles passed since last tick
         """
 
-        log('ptr_tick: cycles=%d, .device_cycle_count=%d, .device_filename=%s, .device_open_file=%s'
-            % (cycles, self.device_cycle_count, self.device_filename, str(self.device_open_file)))
-
         if self.device_use != self.InUsePTR:
             return
 
         # if end of tape or motor off, do nothing, state remains unchanged
         if self.ptr_at_eof or not self.device_motor_on:
-            log('ptr_tick: EOT or motor off')
             return
 
         self.device_cycle_count -= cycles
@@ -174,22 +157,16 @@ class PtrPtp(object):
             if self.device_ready:
                 self.device_ready = False
                 self.device_cycle_count += self.PtrNotReadyCycles
-                log('ptr_tick: device going not ready')
             else:
                 self.device_ready = True
                 self.device_cycle_count += self.PtrReadyCycles
-                log('ptr_tick: reading from file %s' % str(self.device_open_file))
                 self.ptr_value = self.device_open_file.read(1)
-                log('ptr_tick: .ptr_value=%s' % str(self.ptr_value))
                 if len(self.ptr_value) < 1:
                     # EOF on input file, pretend end of tape
                     self.ptr_at_eof = True
                     self.ptr_value = self.PtrEOF
-                    log('ptr_tick: device went EOT')
                 else:
                     self.ptr_value = ord(self.ptr_value)
-                    log('ptr_tick: device going ready, value=%03o' % self.ptr_value)
-        log('ptr_tick: --------------------------')
 
     ###############
     # Interface routines for punch
@@ -206,8 +183,8 @@ class PtrPtp(object):
         self.device_motor_on = False
         self.device_ready = False
         self.device_cycle_count = self.PtrNotReadyCycles
-        self.ptp_filename = fname
-        self.device_open_file = open(self.ptp_filename, 'wb')
+        self.device_filename = fname
+        self.device_open_file = open(self.device_filename, 'wb')
         self.ptp_at_eof = False
         self.ptp_value = None
 
@@ -217,7 +194,7 @@ class PtrPtp(object):
         if self.device_use == self.InUsePTR:
             raise RuntimeError("ptp_dismount: Can't dismount PTP file, being used as PTR")
 
-        if self.ptp_filename:
+        if self.device_filename:
             self.device_open_file.close()
 
         self.reset()
@@ -247,5 +224,4 @@ class PtrPtp(object):
         self.device_cycle_count -= cycles
         if self.device_cycle_count <= 0:
             self.device_ready = True
-            self.device_cycle_count += self.PtrNotReadyCycles
-
+            self.device_cycle_count += self.PtpNotReadyCycles
