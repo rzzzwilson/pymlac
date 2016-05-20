@@ -91,7 +91,7 @@ class Display(object):
 
         self.dirty = True
 
-        # draw a straight line using Breshenam
+        # draw a straight line using Bresenam
         self.bresenham(x1, y1, x2, y2)
 
     def clear(self):
@@ -177,12 +177,14 @@ class Display(object):
 
         # Rotate line
         if is_steep:
+            log('steep: switching X and Y')
             x1, y1 = y1, x1
             x2, y2 = y2, x2
 
         # Swap start and end points if necessary and store swap state
         swapped = False
         if x1 > x2:
+            log('direction: swapping ?1 and ?2')
             x1, x2 = x2, x1
             y1, y2 = y2, y1
             swapped = True
@@ -191,6 +193,7 @@ class Display(object):
         dx = x2 - x1
         dy = y2 - y1
 
+        log('bresenham, final: (%d,%d) to (%d,%d)' % (x1, y1, x2, y2))
         # Calculate error
         error = int(dx / 2.0)
         ystep = 1 if y1 < y2 else -1
@@ -200,7 +203,6 @@ class Display(object):
         for x in range(x1, x2 + 1):
             (x, y) = (y, x) if is_steep else (x, y)
             self.array[y*self.ScaleMaxX + x] = 1
-            log('bresenham: setting point (%d, %d)' % (x, y))
             error -= abs(dy)
             if error < 0:
                 y += ystep
@@ -209,7 +211,9 @@ class Display(object):
 
 if __name__ == '__main__':
     d = Display()
-    for v in range(0, 1024, 10):
-        d.draw(v, 0, v, 1023)
-        d.draw(0, v, 1023, v)
+#    d.draw(0, 0, 1023, 1023)
+    d.draw(255, 0, 1023-255, 1023)
+#    d.draw(0, 1023, 1023, 0)
+#    for x in range(0, 1024, 256):
+#        d.draw(x, 0, 1023-x, 1023)
     d.close()
