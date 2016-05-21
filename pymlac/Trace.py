@@ -100,7 +100,7 @@ class Trace(object):
 
         if self.tracing:
             if address is None:
-                result = '%04o: %s\t' % (ddot, opcode)
+                result = '%s: %s\t' % (ddot, opcode)
             else:
                 result = '%04o: %s\t%5.5o' % (ddot, opcode, address)
 

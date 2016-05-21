@@ -104,8 +104,9 @@ def main():
     imlac_ttyin = TtyIn.TtyIn()
     imlac_ttyout = TtyOut.TtyOut()
     imlac_display = Display.Display()
+    log('pymlac.main: imlac_display=%s' % str(imlac_display))
     imlac_dcpu = DisplayCPU.DisplayCPU(imlac_display, imlac_memory)
-    imlac_cpu = MainCPU.MainCPU(imlac_memory, imlac_dcpu, None,
+    imlac_cpu = MainCPU.MainCPU(imlac_memory, imlac_display, imlac_dcpu,
                                 None, imlac_ttyin, imlac_ttyout, imlac_ptrptp)
     imlac_cpu.running = True
     imlac_display_state = False

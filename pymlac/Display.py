@@ -91,7 +91,7 @@ class Display(object):
         dotted  True if dotted line, else False (IGNORED)
         """
 
-#        log('Display: drawing (%d,%d) to (%d,%d)' % (x1, y1, x2, y2))
+        log('Display: drawing (%d,%d) to (%d,%d)' % (x1, y1, x2, y2))
 
         self.dirty = True
 
