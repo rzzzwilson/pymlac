@@ -32,11 +32,14 @@ DisplayStop = 1
 
 class Display(object):
 
-    BackgroundColour = 'black'
-    DrawColour = '#ffff88'
+#    BackgroundColour = 'black'
+#    DrawColour = '#ffff88'
 
     SYNC_HZ = 40
     SYNC_40HZ_CYCLE_COUNT = int(CYCLES_PER_SECOND / SYNC_HZ)
+
+    BackgroundColour = 1
+    DrawColour = 0
 
     # max coordinates of pymlac display
 #    ScaleMaxX = 2048
@@ -48,7 +51,7 @@ class Display(object):
     def __init__(self):
         # create and initialise the image array
         # reference .array[y*ScaleMaxX + x]
-        self.array = [1] * self.ScaleMaxY * self.ScaleMaxX
+        self.array = [self.BackgroundColour] * self.ScaleMaxY * self.ScaleMaxX
 
         # set internal state
         self.running = 0
@@ -103,7 +106,7 @@ class Display(object):
         # write display to next PPM file first
         if self.dirty:
             self.write()
-            self.array = [0] * self.ScaleMaxY * self.ScaleMaxX
+            self.array = [self.BackgroundColour] * self.ScaleMaxY * self.ScaleMaxX
             self.dirty = False
 
     def syncclear(self):
@@ -179,7 +182,7 @@ class Display(object):
         y = y1
         for x in range(x1, x2 + 1):
             (xx, yy) = (y, x) if is_steep else (x, y)
-            self.array[yy*self.ScaleMaxX + xx] = 0
+            self.array[yy*self.ScaleMaxX + xx] = self.DrawColour
             error -= abs(dy)
             if error < 0:
                 y += ystep
@@ -190,6 +193,15 @@ if __name__ == '__main__':
     """Test case - draw radial lines."""
 
     d = Display()
+    d.draw(0, 0, 1023, 1023)
+    d.draw(255, 0, 1023-255, 1023)
+    d.draw(511, 0, 1023-511, 1023)
+    d.draw(767, 0, 1023-767, 1023)
+    d.draw(1023, 0, 0, 1023)
+    d.draw(0, 255, 1023, 1023-255)
+    d.draw(0, 511, 1023, 1023-511)
+    d.draw(0, 767, 1023, 1023-767)
+    d.clear()
     d.draw(0, 0, 1023, 1023)
     d.draw(255, 0, 1023-255, 1023)
     d.draw(511, 0, 1023-511, 1023)
