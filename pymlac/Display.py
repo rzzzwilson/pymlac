@@ -26,7 +26,8 @@ DisplayStop = 1
 
 
 ################################################################################
-# The actual pymlc display widget.
+# The actual pymlac display widget.
+# This version is just a debug version that creates PPM files.
 ################################################################################
 
 class Display(object):
@@ -70,11 +71,11 @@ class Display(object):
             handle.write('P1\n')
             handle.write('# created by pymlac %s\n' % __version__)
             handle.write('%d %d\n' % (self.ScaleMaxX, self.ScaleMaxY))
-            handle.write('1\n')
 
             # output graphics data
             for v in self.array:
                 handle.write('%d\n' % v)
+
         self.dirty = False
 
         log('Display: array written to file %s' % filename)
@@ -87,7 +88,7 @@ class Display(object):
         dotted  True if dotted line, else False (IGNORED)
         """
 
-        log('Display: drawing (%d,%d) to (%d,%d)' % (x1, y1, x2, y2))
+#        log('Display: drawing (%d,%d) to (%d,%d)' % (x1, y1, x2, y2))
 
         self.dirty = True
 
@@ -126,15 +127,7 @@ class Display(object):
         if self.dirty:
             self.write()
 
-    def bresenham_orig(self, x1, y1, x2, y2):
-        """Draw a straight line on the graphics array.
-
-        Only works for one octant.
-        """
-
-        log('bresenham_orig: (%d,%d) to (%d,%d)' % (x1, y1, x2, y2))
-
-# algorithm from:
+# original algorithm from:
 # http://www.idav.ucdavis.edu/education/GraphicsNotes/Bresenhams-Algorithm.pdf
 #       Let ∆x = x2 − x1
 #       Let ∆y = y2 − y1
@@ -153,21 +146,8 @@ class Display(object):
 #
 #       finish
 
-        dx = x2 - x1
-        dy = y2 - y1
-        j = y1
-        sigma = dy - dx
-
-        for i in range(x1, x2):
-            self.array[j*self.ScaleMaxX + i] = 1
-            log('bresenham: setting (%d,%d), sigma=%s, dy=%s' % (i, j, str(sigma), str(dy)))
-            if sigma >= 0:
-                j += 1
-                sigma -= dx
-            sigma += dy
-
     def bresenham(self, x1, y1, x2, y2):
-        log('bresenham: (%d,%d) to (%d,%d)' % (x1, y1, x2, y2))
+        """Bresenham algorithm to draw from (x1,y1) to (x2,y2)."""
 
         dx = x2 - x1
         dy = y2 - y1
@@ -177,14 +157,12 @@ class Display(object):
 
         # Rotate line
         if is_steep:
-            log('steep: switching X and Y')
             x1, y1 = y1, x1
             x2, y2 = y2, x2
 
         # Swap start and end points if necessary and store swap state
         swapped = False
         if x1 > x2:
-            log('direction: swapping ?1 and ?2')
             x1, x2 = x2, x1
             y1, y2 = y2, y1
             swapped = True
@@ -193,7 +171,6 @@ class Display(object):
         dx = x2 - x1
         dy = y2 - y1
 
-        log('bresenham, final: (%d,%d) to (%d,%d)' % (x1, y1, x2, y2))
         # Calculate error
         error = int(dx / 2.0)
         ystep = 1 if y1 < y2 else -1
@@ -201,8 +178,8 @@ class Display(object):
         # Iterate over bounding box generating points between start and end
         y = y1
         for x in range(x1, x2 + 1):
-            (x, y) = (y, x) if is_steep else (x, y)
-            self.array[y*self.ScaleMaxX + x] = 1
+            (xx, yy) = (y, x) if is_steep else (x, y)
+            self.array[yy*self.ScaleMaxX + xx] = 1
             error -= abs(dy)
             if error < 0:
                 y += ystep
@@ -210,10 +187,15 @@ class Display(object):
 
 
 if __name__ == '__main__':
+    """Test case - draw radial lines."""
+
     d = Display()
-#    d.draw(0, 0, 1023, 1023)
+    d.draw(0, 0, 1023, 1023)
     d.draw(255, 0, 1023-255, 1023)
-#    d.draw(0, 1023, 1023, 0)
-#    for x in range(0, 1024, 256):
-#        d.draw(x, 0, 1023-x, 1023)
+    d.draw(511, 0, 1023-511, 1023)
+    d.draw(767, 0, 1023-767, 1023)
+    d.draw(1023, 0, 0, 1023)
+    d.draw(0, 255, 1023, 1023-255)
+    d.draw(0, 511, 1023, 1023-511)
+    d.draw(0, 767, 1023, 1023-767)
     d.close()
