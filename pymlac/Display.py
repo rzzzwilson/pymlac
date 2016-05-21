@@ -48,7 +48,7 @@ class Display(object):
     def __init__(self):
         # create and initialise the image array
         # reference .array[y*ScaleMaxX + x]
-        self.array = [0] * self.ScaleMaxY * self.ScaleMaxX
+        self.array = [1] * self.ScaleMaxY * self.ScaleMaxX
 
         # set internal state
         self.running = 0
@@ -179,7 +179,7 @@ class Display(object):
         y = y1
         for x in range(x1, x2 + 1):
             (xx, yy) = (y, x) if is_steep else (x, y)
-            self.array[yy*self.ScaleMaxX + xx] = 1
+            self.array[yy*self.ScaleMaxX + xx] = 0
             error -= abs(dy)
             if error < 0:
                 y += ystep
