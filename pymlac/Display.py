@@ -182,7 +182,8 @@ class Display(object):
         y = y1
         for x in range(x1, x2 + 1):
             (xx, yy) = (y, x) if is_steep else (x, y)
-            self.array[yy*self.ScaleMaxX + xx] = self.DrawColour
+            yyy = self.ScaleMaxX - yy
+            self.array[yyy*self.ScaleMaxX + xx] = self.DrawColour
             error -= abs(dy)
             if error < 0:
                 y += ystep
