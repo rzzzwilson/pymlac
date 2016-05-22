@@ -78,16 +78,18 @@ class DisplayCPU(object):
         log('doDEIMByte: trace=%s' % str(trace))
 
         if byte & 0x80:			# increment?
+            dx = (byte & 0x18) >> 3
+            dy = (byte & 0x03)
             prevDX = self.DX
             prevDY = self.DY
             if byte & 0x20:
-                self.DX -= (byte & 0x18) >> 3
+                self.DX -= dx
             else:
-                self.DX += (byte & 0x18) >> 3
+                self.DX += dx
             if byte & 0x04:
-                self.DY -= (byte & 0x03)
+                self.DY -= dy
             else:
-                self.DY += (byte & 0x03)
+                self.DY += dy
             if byte & 0x40:
                 self.display.draw(prevDX, prevDY, self.DX, self.DY)
         else:				# micro instructions
@@ -101,7 +103,7 @@ class DisplayCPU(object):
                 self.DRSindex -= 1
                 self.DPC = self.DRS[self.DRSindex]
             if byte & 0x10:
-                self.DX += 0x08
+                self.DX += 0010
             if byte & 0x08:
                 self.DX &= 0xfff8
             if byte & 0x02:
@@ -161,33 +163,27 @@ class DisplayCPU(object):
         return (1, tracestr)
 
     def i_DEIM(self, address):
-        log('i_DEIM: %3o' % (address & 0377))
         self.Mode = self.MODE_DEIM
         tracestr = 'DEIM\t' + self.doDEIMByte(address & 0377, last=True)
         return (1, tracestr)
 
     def i_DHLT(self):
         self.Running = False
-#        trace.dtrace('DHLT')
         return (1, trace.dtrace(self.dot, 'DHLT', None))
 
     def i_DHVC(self):
-#        trace.dtrace('DHVC')
         return (1, trace.dtrace(self.dot, 'DHVC', None))
 
     def i_DIXM(self):
         self.DX += 04000
-#        trace.dtrace('DIXM')
         return (1, trace.dtrace(self.dot, 'DIXM', None))
 
     def i_DIYM(self):
         self.DY += 04000
-#        trace.dtrace('DIYM')
         return (1, trace.dtrace(self.dot, 'DIYM', None))
 
     def i_DJMP(self, address):
         self.DPC = MASK_MEM(address + (self.DIB << 12))
-#        trace.dtrace('DJMP', address)
         return (1, trace.dtrace(self.dot, 'DJMP', address))
 
     def i_DJMS(self, address):
@@ -198,17 +194,14 @@ class DisplayCPU(object):
         self.DRS[self.DRSindex] = self.DPC
         self.DRSindex += 1
         self.DPC = MASK_MEM(address + (self.DIB << 12))
-#        trace.dtrace('DJMS', address)
         return (1, trace.dtrace(self.dot, 'DJMS', address))
 
     def i_DLXA(self, address):
         self.DX = address
-#        trace.dtrace('DLXA', address)
         return (1, trace.dtrace(self.dot, 'DLXA', address))
 
     def i_DLYA(self, address):
         self.DY = address
-#        trace.dtrace('DLYA', address)
         return (1, trace.dtrace(self.dot, 'DLXA', address))
 
     def i_DLVH(self, word1):
@@ -249,7 +242,6 @@ class DisplayCPU(object):
                 self.DY += N
 
             self.display.draw(prevDX, prevDY, self.DX, self.DY, dotted)
-#        trace.dtrace('DLVH')
         return (3, trace.dtrace(self.dot, 'DLVH', None))
 
     def i_DRJM(self):
@@ -259,7 +251,6 @@ class DisplayCPU(object):
            self.illegal()
         self.DRSindex -= 1
         self.DPC = self.DRS[self.DRSindex]
-#        trace.dtrace('DRJM')
         return (1, trace.dtrace(self.dot, 'DRJM', None)) # FIXME check # cycles used
 
     def i_DSTB(self, block):
@@ -278,7 +269,6 @@ class DisplayCPU(object):
             self.Scale = 3.0
         else:
             self.illegal()
-#        trace.dtrace('DSTS', scale)
         return (1, trace.dtrace('DSTS\t%d' % scale, None)) # FIXME check # cycles used
 
     def page00(self, instruction):
