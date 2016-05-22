@@ -1,12 +1,17 @@
 STATUS
 ======
 
-Development is occurring mainly in the *pymlac* subdirectory.  Occasionally
-the python code is mirrored into the *vimlac* subdirectory (translated to C).
+Development is occurring mainly in the *pymlac* subdirectory.  Some development
+of tools occurs in the *pyasm* directory.
 
-The current state of the CPU testing is nearing completion.  That is, all
-of the pure-CPU instructions are tested and working.  I/O instructions and
-conditionals on device state are being tested at the moment.
+The CPU has been tested.  The papertape reader/punch device and the TTY devices
+(input and output) seem to work.  The display instructions and device are now
+being tested.
+
+Testing is stalled a little as the chosen GUIs (wxpython or pyQt) have problems
+being installed on OSX.  Testing continues with the display being simulated by
+writing a PPM graphics file for each refresh of the display.  Slow, but it
+means testing can proceed.
 
 The Imlac
 =========
