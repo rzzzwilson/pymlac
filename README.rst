@@ -1,8 +1,8 @@
 STATUS
 ======
 
-Development is occurring mainly in the *pymlac* subdirectory.  Some development
-of tools occurs in the *pyasm* directory.
+Development is occurring mainly in the **pymlac** subdirectory.  Some
+development of tools occurs in the **pyasm** directory.
 
 The CPU has been tested.  The papertape reader/punch device and the TTY devices
 (input and output) seem to work.  The display instructions and device are now
@@ -12,6 +12,11 @@ Testing is stalled a little as the chosen GUIs (wxpython or pyQt) have problems
 being installed on OSX.  Testing continues with the display being simulated by
 writing a PPM graphics file for each refresh of the display.  Slow, but it
 means testing can proceed.
+
+I'm still thinking about what graphics framework to use for the display.  I may
+just choose something simple that just shows the screen and forget about
+anything showing the address lights, etc.  This fits in with the CLI approach
+used in **pymlac**.
 
 The Imlac
 =========
