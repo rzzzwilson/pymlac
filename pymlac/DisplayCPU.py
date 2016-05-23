@@ -2,6 +2,13 @@
 
 """
 The Imlac display CPU.
+
+The Imlac dislay X and Y registers are of size 11 bits.  The most significant
+6 bits are the MSB and the least significant 5 bits are the LSB.  A DLXA (or
+DLYA) loads the display X (or Y) register from the 10 bits of valu, with bit
+10 of the X/Y register being set to 0.
+
+The display is 2048x2048 pixels.
 """
 
 
@@ -17,9 +24,23 @@ import log
 log = log.Log('test.log', log.Log.DEBUG)
 
 
+# constants
+MSBBITS = 6
+LSBBITS = 5
+
+MSBMASK = 03740
+LSBMASK = 037
+
+
 class DisplayCPU(object):
 
-    # display CPU constants
+    # mask for display address
+    DMASK = 03777                       # full 11 bits of display addressing
+    BITS10 = 01777                      # AC bits that set DX or DY
+    DMSB = 03740
+    DLSB = 037
+
+    # display CPU constants - modes
     MODE_NORMAL = 0
     MODE_DEIM = 1
 
@@ -33,6 +54,7 @@ class DisplayCPU(object):
     DIB = 0				# display CPU ???
     DX = 0				# display CPU draw X register
     DY = 0				# display CPU draw Y register
+    DScale = 4                          # display scale (1, 2, 4, 8)
 
     # global state variables
     Mode = MODE_NORMAL
@@ -77,24 +99,29 @@ class DisplayCPU(object):
         trace = self.DEIMdecode(byte)
         log('doDEIMByte: trace=%s' % str(trace))
 
-        if byte & 0x80:			# increment?
-            dx = (byte & 0x18) >> 3
+        if byte & 0x80:			# increment mode
+            dx = (byte & 0x18) >> 3     # extract X/Y deltas
             dy = (byte & 0x03)
-            prevDX = self.DX
+
+            prevDX = self.DX            # save previous position
             prevDY = self.DY
-            if byte & 0x20:
-                self.DX -= dx
+
+            if byte & 0x20:             # get dx sign and move X
+                self.DX -= dx * self.DScale
             else:
-                self.DX += dx
-            if byte & 0x04:
-                self.DY -= dy
+                self.DX += dx * self.DScale
+
+            if byte & 0x04:             # get dy sign and move Y
+                self.DY -= dy * self.DScale
             else:
-                self.DY += dy
-            if byte & 0x40:
+                self.DY += dy * self.DScale
+
+            if byte & 0x40:             # if beam on
                 self.display.draw(prevDX, prevDY, self.DX, self.DY)
-        else:				# micro instructions
-            if byte & 0x40:
+        else:				# control instructions
+            if byte & 0x40:             # escape DEIM mode
                 self.Mode = self.MODE_NORMAL
+
             if byte & 0x20:		# DRJM
                 if self.DRSindex <= 0:
                     trace.comment('\nDRS stack underflow at display address %6.6o'
@@ -102,14 +129,26 @@ class DisplayCPU(object):
                     self.illegal()
                 self.DRSindex -= 1
                 self.DPC = self.DRS[self.DRSindex]
-            if byte & 0x10:
-                self.DX += 0010
-            if byte & 0x08:
-                self.DX &= 0xfff8
-            if byte & 0x02:
-                self.DY += 0x10
-            if byte & 0x01:
-                self.DY &= 0xfff0
+
+            if byte & 0x10:             # inc X MSB
+                log('**** inc X MSB: before .DX=%d' % self.DX)
+                self.DX += (1 << LSBBITS)
+                log('**** inc X MSB:  after .DX=%d' % self.DX)
+
+            if byte & 0x08:             # clear X LSB
+                log('**** clear X LSB: before .DX=%d' % self.DX)
+                self.DX &= MSBMASK
+                log('**** clear X LSB:  after .DX=%d' % self.DX)
+
+            if byte & 0x02:             # inc Y MSB
+                log('**** inc Y MSB: before .DY=%d' % self.DY)
+                self.DY += (1 << LSBBITS)
+                log('**** inc Y MSB:  after .DY=%d' % self.DY)
+
+            if byte & 0x01:             # clear Y LSB
+                log('**** clear Y LSB: before .DY=%d' % self.DY)
+                self.DY &= MSBMASK
+                log('**** clear Y LSB:  after .DY=%d' % self.DY)
 
         return trace
 
@@ -197,11 +236,11 @@ class DisplayCPU(object):
         return (1, trace.dtrace(self.dot, 'DJMS', address))
 
     def i_DLXA(self, address):
-        self.DX = address
+        self.DX = (address & self.BITS10) << 1
         return (1, trace.dtrace(self.dot, 'DLXA', address))
 
     def i_DLYA(self, address):
-        self.DY = address
+        self.DY = (address & self.BITS10) << 1
         return (1, trace.dtrace(self.dot, 'DLXA', address))
 
     def i_DLVH(self, word1):

@@ -5,6 +5,13 @@
 The Imlac display.
 
 A temporary version that outputs a PPM graphics image.
+
+The Imlac dislay X and Y registers are of size 11 bits.  The most significant
+6 bits are the MSB and the least significant 5 bits are the LSB.  A DLXA (or
+DLYA) loads the display X (or Y) register from the 10 bits of valu, with bit
+10 of the X/Y register being set to 0.
+
+The display is 2048x2048 pixels.
 """
 
 
@@ -42,10 +49,8 @@ class Display(object):
     DrawColour = 0
 
     # max coordinates of pymlac display
-#    ScaleMaxX = 2048
-#    ScaleMaxY = 2048
-    ScaleMaxX = 1024
-    ScaleMaxY = 1024
+    ScaleMaxX = 2048
+    ScaleMaxY = 2048
 
 
     def __init__(self):
