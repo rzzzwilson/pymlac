@@ -627,8 +627,6 @@ def eval_expr(expr):
     if expr is None:
         return None
 
-    print('eval_expr: initial expr=%s' % expr)
-
     # replace any "." value with "dot" defined in the symbol table
     expr = string.replace(expr, '.', '_D_O_T_')
     globs = copy.deepcopy(SymTable)
