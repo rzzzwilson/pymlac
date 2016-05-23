@@ -1,6 +1,11 @@
 ; a very simple 'smoke-test' file
-        org     0100
+        org     02
 
-start   hlt
+dot     equ     01
+
+        org     0200
+
+start   jmp     dot
+        hlt
 
         end     start
