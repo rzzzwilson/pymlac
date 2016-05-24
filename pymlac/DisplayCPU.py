@@ -164,6 +164,7 @@ class DisplayCPU(object):
             tracestr = self.doDEIMByte(instruction >> 8)
             if self.Mode == self.MODE_DEIM:
                 tracestr += ', ' + self.doDEIMByte(instruction & 0xff, True)
+            log('execute_one_instruction: tracestr=%s' % tracestr)
             return (1, tracestr)
 
         opcode = instruction >> 12
