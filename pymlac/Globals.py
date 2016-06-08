@@ -23,7 +23,7 @@ CANVAS_HEIGHT = 1024
 # 'core' size (words) and save filename
 CORE_FILENAME = 'pymlac.core'
 #MEMORY_SIZE = 040000	# 16K words memory size
-MEMORY_SIZE = 04000	# 2K words memory size - while debugging
+MEMORY_SIZE = 0o4000	# 2K words memory size - while debugging
                         # removes some block address bugs
 PCMASK = MEMORY_SIZE - 1
 
@@ -46,7 +46,7 @@ OVERFLOWMASK = 0xffff0000
 WORDMASK = 0xffff
 HIGHBITMASK = 0x8000
 #ADDRMASK = 0x7fff
-ADDRMASK = 037777
+ADDRMASK = 0o37777
 
 # global instruction cycle counter
 #instruction_cycles = 0
@@ -67,6 +67,6 @@ def MASK_MEM(address):
 
 # A function to decide if an address is an auto-increment address
 def ISAUTOINC(address):
-    maskaddr = address & 03777
-    return (maskaddr >= 010) and (maskaddr <= 017)
+    maskaddr = address & 0o3777
+    return (maskaddr >= 0o10) and (maskaddr <= 0o17)
 

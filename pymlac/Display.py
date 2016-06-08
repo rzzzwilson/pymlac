@@ -76,13 +76,13 @@ class Display(object):
         filename = 'pymlac_%06d.ppm' % self.next_file_num
         with open(filename, 'wb') as handle:
             # output header data
-            handle.write('P1\n')
-            handle.write('# created by pymlac %s\n' % __version__)
-            handle.write('%d %d\n' % (self.ScaleMaxX, self.ScaleMaxY))
+            handle.write(bytes('P1\n', 'utf-8'))
+            handle.write(bytes('# created by pymlac %s\n' % __version__, 'utf-8'))
+            handle.write(bytes('%d %d\n' % (self.ScaleMaxX, self.ScaleMaxY), 'utf-8'))
 
             # output graphics data
             for v in self.array:
-                handle.write('%d\n' % v)
+                handle.write(bytes('%d\n' % v, 'utf-8'))
 
         self.dirty = False
 

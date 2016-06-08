@@ -27,7 +27,7 @@ class PtrPtp(object):
     PtpNotReadyCycles = int(CYCLES_PER_SECOND / PtpCharsPerSecond)
 
     # no tape in reader, return 0377 (all holes see light)
-    PtrEOF = 0377
+    PtrEOF = 0xff
 
     # module-level state variables
     device_use = None

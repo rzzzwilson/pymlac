@@ -40,7 +40,8 @@ class Trace(object):
         except:
             pass
         self.tracefile = open(filename, 'wb')
-        self.tracefile.write('%s trace\n%s\n' % (PYMLAC_VERSION, '-'*60))
+        s = bytes('%s trace\n%s\n' % (PYMLAC_VERSION, '-'*60), 'utf-8')
+        self.tracefile.write(s)
 
         self.cpu = maincpu
         self.dcpu = displaycpu

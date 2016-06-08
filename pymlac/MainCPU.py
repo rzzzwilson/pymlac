@@ -58,110 +58,110 @@ class MainCPU(object):
         self.ptrptp = ptrptp
 
         # main dispatch dictionary for decoding opcodes in bits 1-4
-        self.main_decode = {000: self.page_00,	# secondary decode
-                            001: self.i_LAW_LWC,
-                            002: self.i_JMP,
-        #                   003: self.illegal,
-                            004: self.i_DAC,
-                            005: self.i_XAM,
-                            006: self.i_ISZ,
-                            007: self.i_JMS,
-        #                   010: self.illegal
-                            011: self.i_AND,
-                            012: self.i_IOR,
-                            013: self.i_XOR,
-                            014: self.i_LAC,
-                            015: self.i_ADD,
-                            016: self.i_SUB,
-                            017: self.i_SAM}
+        self.main_decode = {0o00: self.page_00,	# secondary decode
+                            0o01: self.i_LAW_LWC,
+                            0o02: self.i_JMP,
+        #                   0o03: self.illegal,
+                            0o04: self.i_DAC,
+                            0o05: self.i_XAM,
+                            0o06: self.i_ISZ,
+                            0o07: self.i_JMS,
+        #                   0o10: self.illegal
+                            0o11: self.i_AND,
+                            0o12: self.i_IOR,
+                            0o13: self.i_XOR,
+                            0o14: self.i_LAC,
+                            0o15: self.i_ADD,
+                            0o16: self.i_SUB,
+                            0o17: self.i_SAM}
 
         # page_00 dispatch dictionary for decoding opcodes
         # HLT may be handled specially
-        self.page_00_decode = {001003: self.i_DLA,
-                               001011: self.i_CTB,
-                               001012: self.i_DOF,
-                               001021: self.i_KRB,
-                               001022: self.i_KCF,
-                               001023: self.i_KRC,
-                               001031: self.i_RRB,
-                               001032: self.i_RCF,
-                               001033: self.i_RRC,
-                               001041: self.i_TPR,
-                               001042: self.i_TCF,
-                               001043: self.i_TPC,
-                               001051: self.i_HRB,
-                               001052: self.i_HOF,
-                               001061: self.i_HON,
-                               001062: self.i_STB,
-                               001071: self.i_SCF,
-                               001072: self.i_IOS,
-                               001101: self.i_IOT101,
-                               001111: self.i_IOT111,
-                               001131: self.i_IOT131,
-                               001132: self.i_IOT132,
-                               001134: self.i_IOT134,
-                               001141: self.i_IOT141,
-                               001161: self.i_IOF,
-                               001162: self.i_ION,
-                               001271: self.i_PPC,
-                               001274: self.i_PSF,
-             #                 003000: self.illegal RAL0
-                               003001: self.i_RAL1,
-                               003002: self.i_RAL2,
-                               003003: self.i_RAL3,
-             #                 003020: self.illegal RAR0,
-                               003021: self.i_RAR1,
-                               003022: self.i_RAR2,
-                               003023: self.i_RAR3,
-             #                 003040: self.illegal SAL0,
-                               003041: self.i_SAL1,
-                               003042: self.i_SAL2,
-                               003043: self.i_SAL3,
-             #                 003060: self.illegal SAR0,
-                               003061: self.i_SAR1,
-                               003062: self.i_SAR2,
-                               003063: self.i_SAR3,
-                               003100: self.i_DON}
+        self.page_00_decode = {0o01003: self.i_DLA,
+                               0o01011: self.i_CTB,
+                               0o01012: self.i_DOF,
+                               0o01021: self.i_KRB,
+                               0o01022: self.i_KCF,
+                               0o01023: self.i_KRC,
+                               0o01031: self.i_RRB,
+                               0o01032: self.i_RCF,
+                               0o01033: self.i_RRC,
+                               0o01041: self.i_TPR,
+                               0o01042: self.i_TCF,
+                               0o01043: self.i_TPC,
+                               0o01051: self.i_HRB,
+                               0o01052: self.i_HOF,
+                               0o01061: self.i_HON,
+                               0o01062: self.i_STB,
+                               0o01071: self.i_SCF,
+                               0o01072: self.i_IOS,
+                               0o01101: self.i_IOT101,
+                               0o01111: self.i_IOT111,
+                               0o01131: self.i_IOT131,
+                               0o01132: self.i_IOT132,
+                               0o01134: self.i_IOT134,
+                               0o01141: self.i_IOT141,
+                               0o01161: self.i_IOF,
+                               0o01162: self.i_ION,
+                               0o01271: self.i_PPC,
+                               0o01274: self.i_PSF,
+             #                 0o03000: self.illegal RAL0
+                               0o03001: self.i_RAL1,
+                               0o03002: self.i_RAL2,
+                               0o03003: self.i_RAL3,
+             #                 0o03020: self.illegal RAR0,
+                               0o03021: self.i_RAR1,
+                               0o03022: self.i_RAR2,
+                               0o03023: self.i_RAR3,
+             #                 0o03040: self.illegal SAL0,
+                               0o03041: self.i_SAL1,
+                               0o03042: self.i_SAL2,
+                               0o03043: self.i_SAL3,
+             #                 0o03060: self.illegal SAR0,
+                               0o03061: self.i_SAR1,
+                               0o03062: self.i_SAR2,
+                               0o03063: self.i_SAR3,
+                               0o03100: self.i_DON}
 
-        self.page02_decode = {0002001: self.i_ASZ,
-                              0102001: self.i_ASN,
-                              0002002: self.i_ASP,
-                              0102002: self.i_ASM,
-                              0002004: self.i_LSZ,
-                              0102004: self.i_LSN,
-                              0002010: self.i_DSF,
-                              0102010: self.i_DSN,
-                              0002020: self.i_KSF,
-                              0102020: self.i_KSN,
-                              0002040: self.i_RSF,
-                              0102040: self.i_RSN,
-                              0002100: self.i_TSF,
-                              0102100: self.i_TSN,
-                              0002200: self.i_SSF,
-                              0102200: self.i_SSN,
-                              0002400: self.i_HSF,
-                              0102400: self.i_HSN}
+        self.page02_decode = {0o002001: self.i_ASZ,
+                              0o102001: self.i_ASN,
+                              0o002002: self.i_ASP,
+                              0o102002: self.i_ASM,
+                              0o002004: self.i_LSZ,
+                              0o102004: self.i_LSN,
+                              0o002010: self.i_DSF,
+                              0o102010: self.i_DSN,
+                              0o002020: self.i_KSF,
+                              0o102020: self.i_KSN,
+                              0o002040: self.i_RSF,
+                              0o102040: self.i_RSN,
+                              0o002100: self.i_TSF,
+                              0o102100: self.i_TSN,
+                              0o002200: self.i_SSF,
+                              0o102200: self.i_SSN,
+                              0o002400: self.i_HSF,
+                              0o102400: self.i_HSN}
 
-        self.micro_opcodes = {0100000: 'NOP',
-                              0100001: 'CLA',
-                              0100002: 'CMA',
-                              0100003: 'STA',
-                              0100004: 'IAC',
-                              0100005: 'COA',
-                              0100006: 'CIA',
-                              0100010: 'CLL',
-                              0100011: 'CAL',
-                              0100020: 'CML',
-                              0100030: 'STL',
-                              0100040: 'ODA',
-                              0100041: 'LDA'}
+        self.micro_opcodes = {0o100000: 'NOP',
+                              0o100001: 'CLA',
+                              0o100002: 'CMA',
+                              0o100003: 'STA',
+                              0o100004: 'IAC',
+                              0o100005: 'COA',
+                              0o100006: 'CIA',
+                              0o100010: 'CLL',
+                              0o100011: 'CAL',
+                              0o100020: 'CML',
+                              0o100030: 'STL',
+                              0o100040: 'ODA',
+                              0o100041: 'LDA'}
 
-        self.micro_singles = {0100001: 'CLA',
-                              0100002: 'CMA',
-                              0100004: 'IAC',
-                              0100010: 'CLL',
-                              0100020: 'CML',
-                              0100040: 'ODA'}
+        self.micro_singles = {0o100001: 'CLA',
+                              0o100002: 'CMA',
+                              0o100004: 'IAC',
+                              0o100010: 'CLL',
+                              0o100020: 'CML',
+                              0o100040: 'ODA'}
 
 
         self.running = False
@@ -189,9 +189,9 @@ class MainCPU(object):
         self.PC = MASK_MEM(self.PC + 1)
 
         # get instruction opcode, indirect bit and address
-        opcode = (instruction >> 11) & 017
-        indirect = bool(instruction & 0100000)
-        address = (instruction & 03777)
+        opcode = (instruction >> 11) & 0o17
+        indirect = bool(instruction & 0o100000)
+        address = (instruction & 0o3777)
 
         return self.main_decode.get(opcode, self.illegal)(indirect,
                                                           address,
@@ -208,9 +208,9 @@ class MainCPU(object):
         raise RuntimeError(msg)
 
     def page_00(self, indirect, address, instruction):
-        if (instruction & 0077700) == 000000:
+        if (instruction & 0o077700) == 0o00000:
             return self.microcode(instruction)
-        elif (instruction & 0077000) == 002000:
+        elif (instruction & 0o077000) == 0o02000:
             return self.page02_decode.get(instruction, self.illegal)()
 
         return self.page_00_decode.get(instruction, self.illegal)(indirect,
@@ -310,24 +310,24 @@ class MainCPU(object):
 
     def microcode(self, instruction):
         # T1
-        if instruction & 001:
+        if instruction & 0o01:
             self.AC = 0
-        if instruction & 010:
+        if instruction & 0o10:
             self.L = 0
 
         # T2
-        if instruction & 002:
+        if instruction & 0o02:
             self.AC = (~self.AC) & WORDMASK
-        if instruction & 020:
+        if instruction & 0o20:
             self.L = 0 if self.L else 1
 
         # T3
-        if instruction & 004:
+        if instruction & 0o04:
             self.AC += 1
             if self.AC & OVERFLOWMASK:
                 self.L = 0 if self.L else 1
             self.AC &= WORDMASK
-        if instruction & 040:
+        if instruction & 0o40:
             self.AC |= self.DS
 
         # do some sort of trace
@@ -338,7 +338,7 @@ class MainCPU(object):
 
         if not combine:
             # nothing so far, we have HLT or unknown microcode
-            if not instruction & 0100000:
+            if not instruction & 0o100000:
                 # bit 0 is clear, it's HLT
                 self.running = False
                 combine.append('HLT')
@@ -558,21 +558,21 @@ class MainCPU(object):
 
     def i_SAL1(self, indirect, address, instruction):
         high_bit = self.AC & HIGHBITMASK
-        value = self.AC & 037777
+        value = self.AC & 0o37777
         self.AC = (value << 1) | high_bit
         tracestr = trace.itrace(self.dot, 'SAL', False, 1)
         return (1, tracestr)
 
     def i_SAL2(self, indirect, address, instruction):
         high_bit = self.AC & HIGHBITMASK
-        value = self.AC & 017777
+        value = self.AC & 0o17777
         self.AC = (value << 2) | high_bit
         tracestr = trace.itrace(self.dot, 'SAL', False, 2)
         return (1, tracestr)
 
     def i_SAL3(self, indirect, address, instruction):
         high_bit = self.AC & HIGHBITMASK
-        value = self.AC & 007777
+        value = self.AC & 0o07777
         self.AC = (value << 3) | high_bit
         tracestr = trace.itrace(self.dot, 'SAL', False, 3)
         return (1, tracestr)
