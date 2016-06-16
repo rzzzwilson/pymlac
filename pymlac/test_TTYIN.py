@@ -32,7 +32,7 @@ def create_tty_file(filename):
     """Create a TTY file."""
 
     # create a test file
-    with open(filename, 'wb') as fd:
+    with open(filename, 'w') as fd:
         # leader
         for _ in range(16):
             fd.write(chr(0))
@@ -45,7 +45,7 @@ def no_mounted_file():
 
     # read without mounting
     val = ttyin.read()
-    expected = 0377
+    expected = 0o377
     if val != expected:
         error('No mounted file: read() returned %d, expected %d' % (val, expected))
 

@@ -29,7 +29,7 @@ Logfile = 'test_PTR_PTP.log'
 
 def logger(*args):
     msg = ' '.join(args)
-    with open(Logfile, 'ab') as fd:
+    with open(Logfile, 'a') as fd:
         fd.write(msg + '\n')
 
 def read_no_tape(ptr):
@@ -37,22 +37,22 @@ def read_no_tape(ptr):
 
     # read before turning on
     byte = ptr.read()
-    if byte != 0377:
+    if byte != 0o377:
         print('Error')
     ptr.ptr_tick(1000000)     # wait a long time
     byte = ptr.read()
-    if byte != 0377:
+    if byte != 0o377:
         print('Error')
 
     # turn device on, still no tape
     ptr.start()
     ptr.ptr_tick(1000000)     # wait a long time
     byte = ptr.read()
-    if byte != 0377:
+    if byte != 0o377:
         print('Error')
     ptr.ptr_tick(1000000)     # wait a long time
     byte = ptr.read()
-    if byte != 0377:
+    if byte != 0o377:
         print('Error')
     ptr.stop()
     ptr.ptr_dismount()
@@ -61,7 +61,7 @@ def create_papertape(filename):
     """Create a PTP file."""
 
     # create a test papertape
-    with open(filename, 'wb') as fd:
+    with open(filename, 'w') as fd:
         # leader
         for _ in range(128):
             fd.write(chr(0))

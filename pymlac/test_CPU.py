@@ -83,7 +83,7 @@ class TestCPU(object):
     def show_progress(self):
         """Show progress to stdout.  A spinning line."""
 
-        print '%s\r' % self.ProgressChar[self.ProgressCount],
+        print('%s\r' % self.ProgressChar[self.ProgressCount], end='')
         self.ProgressCount += 1
         if self.ProgressCount >= len(self.ProgressChar):
             self.ProgressCount = 0
@@ -143,7 +143,7 @@ class TestCPU(object):
         opcodes = opcodes.split('|')
 
         # create ASM file with instruction
-        with open(self.AsmFilename+'.asm', 'wb') as fd:
+        with open(self.AsmFilename+'.asm', 'w') as fd:
             fd.write('\torg\t%07o\n' % addr)
             for line in opcodes:
                 fd.write('\t%s\n' % line)
@@ -155,7 +155,7 @@ class TestCPU(object):
         res = os.system(cmd)
 
         # read the listing file to get assembled opcode (second line)
-        with open(self.AsmFilename+'.lst', 'rb') as fd:
+        with open(self.AsmFilename+'.lst', 'r') as fd:
             lines = fd.readlines()
 
         result = []
@@ -493,7 +493,7 @@ class TestCPU(object):
                 return "dumpmem: dump limits are bad: %s" % addresses
 
         # create octdump-like text file with required memory locations
-        with open(filename, 'wb') as handle:
+        with open(filename, 'w') as handle:
             addr = begin
             offset = addr
             chunk = []
@@ -521,7 +521,7 @@ class TestCPU(object):
 
         # get file contents into memory
         try:
-            with open(filename, 'rb') as handle:
+            with open(filename, 'r') as handle:
                 lines = handle.readlines()
         except IOError as e:
             return "Error opening file '%s': %s" % (filename, e.strerror)
@@ -772,7 +772,7 @@ class TestCPU(object):
     def memdump(self, filename, start, number):
         """Dump memory from 'start' into 'filename', 'number' words dumped."""
 
-        with open(filename, 'wb') as fd:
+        with open(filename, 'w') as fd:
             for addr in range(start, start+number, 8):
                 a = addr
                 llen = min(8, start+number - addr)
@@ -786,7 +786,7 @@ class TestCPU(object):
         """Execute CPU tests from 'filename'."""
 
         # get all tests from file
-        with open(filename, 'rb') as fd:
+        with open(filename, 'r') as fd:
             lines = fd.readlines()
 
         # read lines, join continued, get complete tests

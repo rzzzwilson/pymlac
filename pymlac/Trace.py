@@ -152,7 +152,8 @@ class Trace(object):
     def comment(self, msg):
         """Write a line to the trace file."""
 
-        self.tracefile.write(msg+'\n')
+        msg = bytes(msg+'\n', 'utf-8')
+        self.tracefile.write(msg)
         self.tracefile.flush()
 
     def settrace(self, new_tracing):

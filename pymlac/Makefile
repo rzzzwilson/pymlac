@@ -2,20 +2,21 @@
 # Simple make file just to clean this directory.
 # And run the test files.
 #
+PYTHON=python3
 
 test:	
 	rm -f test.ptr test.ptp CPU.test.trace test_CPU.log pymlac.trace
-	python test_CPU.py dumpmem.test
+	$(PYTHON) test_CPU.py dumpmem.test
 	./make_ptr > test.ptr
-	python test_CPU.py CPU.test
-#	#python test_Display.py     # interactive!
-	@echo "##########  Run 'python test_Display.py' by hand!  ##########"
-#	#python test_KBD.py                # interactive!
-	@echo "##########  Run 'python test_KBD.py' by hand!  ##########"
-	python test_Memory.py
-	python test_PTR_PTP.py
-	python test_TTYIN.py
-	python test_TTYOUT.py
+	$(PYTHON) test_CPU.py CPU.test
+#	#$(PYTHON) test_Display.py     # interactive!
+	@echo "##########  Run '$(PYTHON) test_Display.py' by hand!  ##########"
+#	#$(PYTHON) test_KBD.py                # interactive!
+	@echo "##########  Run '$(PYTHON) test_KBD.py' by hand!  ##########"
+	$(PYTHON) test_Memory.py
+	$(PYTHON) test_PTR_PTP.py
+	$(PYTHON) test_TTYIN.py
+	$(PYTHON) test_TTYOUT.py
 	@echo "*********************"
 	@echo "* Tests successful! *"
 	@echo "*********************"
