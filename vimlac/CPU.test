@@ -408,11 +408,11 @@ setreg ac 0; setreg pc 0100; mount ptr test.ptr;
         rununtil 0105; checkreg ac 0; checkreg pc 0105
         rununtil 0105; checkreg ac 1; checkreg pc 0105
         rununtil 0105; checkreg ac 2; checkreg pc 0105;
-        rununtil 0105; checkreg ac 3; checkreg pc 0105;
-        rununtil 0105; checkreg ac 4; checkreg pc 0105;
-        rununtil 0105; checkreg ac 5; checkreg pc 0105;
-        rununtil 0105; checkreg ac 6; checkreg pc 0105;
-        rununtil 0105; checkreg ac 7; checkreg pc 0105;
+#        rununtil 0105; checkreg ac 3; checkreg pc 0105;
+#        rununtil 0105; checkreg ac 4; checkreg pc 0105;
+#        rununtil 0105; checkreg ac 5; checkreg pc 0105;
+#        rununtil 0105; checkreg ac 6; checkreg pc 0105;
+#        rununtil 0105; checkreg ac 7; checkreg pc 0105;
 # HOF
 # HON
 # STB
