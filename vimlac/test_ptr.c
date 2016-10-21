@@ -3,7 +3,7 @@
  */
 
 #include "vimlac.h"
-#include "ptr.h"
+#include "ptrptp.h"
 
 #define TIMEOUT 5000
 

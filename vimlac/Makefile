@@ -14,8 +14,9 @@ test_cpu:	test_cpu.c $(DEVFILES) Makefile
 vimlac:	${OFILES} Makefile
 	gcc -o vimlac ${CFLAGS} ${OFILES}
 
-test_ptr:	test_ptr.c ptrptp.c Makefile
-	gcc -o test_ptr ${CFLAGS} ptrptp.c test_ptr.c
+test_ptr:	test_ptr.c ptrptp.c error.c Makefile
+	gcc -o test_ptr ${CFLAGS} error.c ptrptp.c test_ptr.c
+	./test_ptr
 
 test_plist:	test_plist.c $(DEVFILES) Makefile
 	gcc -o test_plist ${CFLAGS} -lcunit $(DEVFILES) test_plist.c
