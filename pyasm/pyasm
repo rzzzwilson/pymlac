@@ -33,19 +33,9 @@ import string
 import getopt
 import traceback
 
-
-
-
 ######
 # Globals
 ######
-
-# list of Reloc blocks
-RelocList = []
-
-# the next literal block number
-# used to generate literal labels like '$L1'
-Literal = 0
 
 # the input assembler filename
 AsmFile = None
@@ -114,132 +104,6 @@ ListFileExtension = '.lst'
 
 # number of bytes in the 'zero' leader
 ZeroLeaderSize = 16
-
-#################################
-
-######
-# The Reloc class
-######
-
-class Reloc(object):
-    """A Reloc object holding attributes of a block of code:
-        .base   the base address of the block (may be None)
-        .code   a list of generated code words
-        .reloc  a list of relocation tuples:
-                  (offset, label)
-                  where offset is the offset from the block base to the word
-                               to be relocated
-                  and   label  is the symtab label of the value to relocate with
-        .label  is the symbolic label for the block, only used for literals
-    """
-
-    def __init__(self, base=None, label=None):
-        """Initialize a Reloc object
-
-        base   is the base address of the block (None for literals)
-        label  is the symbolic label for the literal start adress
-        """
-
-        self.base = base
-        self.label = label
-        self.code = []
-        self.reloc = []
-
-    def add_code(self, code):
-        """Add a code word to the internal code list.
-
-        code  the binary value to add
-        """
-
-        self.code.append(code)
-
-    def add_reloc(self, reloc):
-        """Add a relocation tuple to the Reloc object.
-
-        reloc  the relocation tuple to add:
-                 (offset, label)
-        """
-
-        self.reloc.append(reloc)
-
-######
-# Utility functions
-######
-
-def next_lit_label():
-    """Generate the next literal label string.
-
-    Returns a string like '$L25'.  This label is not legally
-    usable by the user.
-    """
-
-    global Literal
-
-    Literal += 1
-    return '$L%d' % Literal
-
-def assemble_source_block(base, code, start_line, indent=0, label=None):
-    """Assemble a source block.
-
-    base        base address of the block, may be None
-    code        list of source lines to assemble
-    start_line  line number of first code line
-    indent      column number to be considered leftmost column
-                only non-zero for a literal block
-    label       label for a literal block if defined
-
-    Appends zero or more Reloc blocks to the global Reloc list.  Zero blocks
-    because the source block may contain only comments.
-    """
-
-    # if indent is non-zero, strip leading space
-    # raise an error if leading chars not all whitespace
-    if indent > 0:
-        new_code = []
-        for (loffset, line) in enumerate(code):
-            leader = line[:indent]
-            rest = line[indent:]
-            if leader.strip():
-                fatal('%s\n%d: None-blank indent in literal'
-                      % (line, start_line+loffset))
-            new_code.append(rest)
-        code = new_code
-
-    # assemble the source, line by line
-    code_reloc = Reloc(base, label)
-    for line in code:
-        result = assemble_line(line)
-        if result is None:
-            # no code generated
-            continue
-        (word, reloc) = result
-        code_reloc.add_code(word)
-        if reloc:
-            code_reloc.add_reloc(reloc)
-
-    # maybe add the Reloc block to the global list
-    if code_reloc.code:
-        global RelocList
-        RelocList.append(code_reloc)
-
-def assemble_line(line, block_base, offset):
-    """Assemble one line of code.
-
-    line        the line of code to assemble
-    block_base  base address of the block this line is in (may be None)
-    offset      offset of this word from the block_base address
-
-    Returns a tuple of generated word and reloc value (if any):
-        (word, label)
-
-    Note, the relocation value may be:
-        . string - the undefined label
-        . integer - the offset from the base address for operand expressions
-                    like '.+4'
-    """
-
-    pass
-
 
 ######
 # dict mapping opcode to generated word, address opts, address mask & indirect allowed
