@@ -63,7 +63,7 @@ class TestMemory(unittest.TestCase):
 
         # check various locations
         last_value = None
-        for address in [0, 0o40] + range(0o100, MEMORY_SIZE, 0o100):
+        for address in [0, 0o40] + list(range(0o100, MEMORY_SIZE, 0o100)):
             for value in range(0, WORDMASK, 0o10):
                 memory.put(value=value, address=address, indirect=False)
                 fetch_value = memory.fetch(address=address, indirect=False)
@@ -72,7 +72,7 @@ class TestMemory(unittest.TestCase):
                 last_value = fetch_value
 
         # now check again that last value still in all those locations
-        for address in [0, 0o40] + range(0o100, MEMORY_SIZE, 0o100):
+        for address in [0, 0o40] + list(range(0o100, MEMORY_SIZE, 0o100)):
             fetch_value = memory.fetch(address=address, indirect=False)
             msg = 'Fetch from %07o got %07o, expected %07o' % (address, fetch_value, last_value)
             self.assertTrue(last_value == fetch_value, msg)
