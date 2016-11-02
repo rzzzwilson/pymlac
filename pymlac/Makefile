@@ -17,9 +17,6 @@ test:
 	$(PYTHON) test_PTR_PTP.py
 	$(PYTHON) test_TTYIN.py
 	$(PYTHON) test_TTYOUT.py
-	@echo "*********************"
-	@echo "* Tests successful! *"
-	@echo "*********************"
 
 test_debug:
 	#pymlac -b ptr -c -ptr dumpmem_test_c8lds.ptp -t 040,045:050,052:055,060:065,066:071,077:03700,03767:03772,03777 -r 040 -t 0100,0110 -r 0100
