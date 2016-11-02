@@ -10,6 +10,7 @@ iasm
 _#ASM#_.*
 *.log
 *.OLD
+*.NEW
 *.txt
 *.core
 *.out
