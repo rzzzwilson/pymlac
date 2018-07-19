@@ -183,11 +183,11 @@ PlistDump(PLIST plist, FILE *output)
     while (hdr->next)
     {
         hdr = hdr->next;
-        fprintf(output, "\n address: %p\n", hdr);
+        fprintf(output, "\n address: %p\n", (void *) hdr);
         fprintf(output, "----------------+-----------------\n");
-        fprintf(output, " %p | %s\n", hdr->name, hdr->name);
-        fprintf(output, " %p | %s\n", hdr->value, hdr->value);
+        fprintf(output, " %p | %s\n", (void *) hdr->name, hdr->name);
+        fprintf(output, " %p | %s\n", (void *) hdr->value, hdr->value);
         fprintf(output, "----------------+-----------------\n");
-        fprintf(output, " next: %p\n", hdr->next);
+        fprintf(output, " next: %p\n", (void *) hdr->next);
     }
 }

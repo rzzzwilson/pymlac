@@ -211,7 +211,7 @@ void
 dump_cmd(Command *cmd)
 {
     printf("\n~ Command ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
-    printf("address: %p   next: %p\n", cmd, cmd->next);
+    printf("address: %p   next: %p\n", (void *) cmd, (void *) cmd->next);
     printf("opcode:  %s   field1: %s   field2: %s\n",
             cmd->opcode, cmd->field1, cmd->field2);
     printf("original: %s\n", cmd->orig2);
