@@ -1,0 +1,4 @@
+Maybe decode instructions into LAC and ILAC (for example).  That is, don't
+decode instruction bit - include it in the opcode.  The code for LAC and ILAC
+will be almost identical except for extra indirect code.
+
