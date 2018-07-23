@@ -21,7 +21,7 @@ required. The options are:
     -ptr <file>                   loads a file on to the papertape reader device
     -r (<address> | pc)           executes from <address> or the current PC contents
     -s <setfile>                  sets memory adress values from <setfile>
-    -t (<range>[:<range>] | off) controls the execution trace:
+    -t (<range>[:<range>] | off)  controls the execution trace:
                                       -t 0100,0200            trace from 0100 octal to 200 decimal
                                       -t 0100,0200:0210,0300  trace from 0100 to 0200 and 0210 to 0300
                                       -t off                  turns trace off
@@ -73,6 +73,7 @@ def str2int(s):
 
     return value
 
+
 def usage(msg=None):
     if msg:
         print('*'*60)
@@ -95,6 +96,7 @@ def start_running(cpu, dcpu, memory, ptrptp, ttyin):
         ptrptp.ptr_tick(cycles)
         ptrptp.ptp_tick(cycles)
         ttyin.tick(cycles)
+
 
 def main():
     """Main function of the simulator.  Mostly interpret CLI args."""
@@ -258,5 +260,4 @@ def main():
             imlac_memory.set_ROM_writable(state)
 
 
-if __name__ == '__main__':
-    main()
+main()
