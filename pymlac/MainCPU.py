@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 """
 The Imlac main CPU.
 """

@@ -1,6 +1,3 @@
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
-
 """
 Emulate the imlac Paper Tape Reader/Punch (PTR/PTP).
 
@@ -86,7 +83,7 @@ class PtrPtp(object):
         self.device_motor_on = False
         self.device_filename = fname
         self.device_open_file = open(self.device_filename, 'rb')
-        print('Opening PTR file: %s' % fname)
+        log('Opening PTR file: %s' % fname)
         self.device_ready = False
         self.device_cycle_count = self.PtrNotReadyCycles
         self.ptr_at_eof = False

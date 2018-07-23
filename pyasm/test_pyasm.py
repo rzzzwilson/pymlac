@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """
 Test the pyasm functions.
@@ -25,14 +24,14 @@ class TestPyasm(unittest.TestCase):
 
         # define tests: (test, dot, symtable, expected, undefined, raises)
         tests = (
-                 ('A', 0100, {'A': 1}, 1, None, False),
-                 ('.', 0100, {}, 0100, None, False),
-                 ('B', 0100, {}, None, 'B', True),
+                 ('A', 0o100, {'A': 1}, 1, None, False),
+                 ('.', 0o100, {}, 0o100, None, False),
+                 ('B', 0o100, {}, None, 'B', True),
                  ('A+1', 0100, {'A': 1}, 2, None, False),
                  ('A+B', 0, {'A': 1, 'B': 2}, 3, None, False),
                  ('A + B', 0, {'A': 1, 'B': 2}, 3, None, False),
                  ('A / B', 0, {'A': 4, 'B': 2}, 2, None, False),
-                 ('. + 0100', 0100, {}, 0200, None, False),
+                 ('. + 0o100', 0o100, {}, 0o200, None, False),
                 )
 
         # now run them
@@ -98,7 +97,7 @@ class TestPyasm(unittest.TestCase):
         # define tests: (label, address, lnum, expected_symtab, expected_symtabline
         tests = (
                  ('A', 1, 2, {'A': 1}, {'A': 2}),
-                 ('B', 0100, 5, {'B': 0100}, {'B': 5}),
+                 ('B', 0o100, 5, {'B': 0o100}, {'B': 5}),
                 )
 
         # now run them

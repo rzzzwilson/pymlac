@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 """
 Test the pymlac display widget.
 
@@ -129,7 +126,7 @@ if __name__ == '__main__':
         msg += '\nUncaught exception:\n'
         msg += ''.join(traceback.format_exception(type, value, tb))
         msg += '=' * 80 + '\n'
-        print msg
+        print(msg)
         sys.exit(1)
 
     # plug our handler into the python system

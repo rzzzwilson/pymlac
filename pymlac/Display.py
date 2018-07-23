@@ -1,6 +1,3 @@
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
-
 """
 The Imlac display.
 
@@ -11,7 +8,8 @@ The Imlac dislay X and Y registers are of size 11 bits.  The most significant
 DLYA) loads the display X (or Y) register from the 10 bits of valu, with bit
 10 of the X/Y register being set to 0.
 
-The display is 2048x2048 pixels.
+The virtual display is 2048x2048 pixels, but the physical display is
+1024x1024 pixels.
 """
 
 
@@ -48,9 +46,9 @@ class Display(object):
     BackgroundColour = 1
     DrawColour = 0
 
-    # max coordinates of pymlac display
-    ScaleMaxX = 2048
-    ScaleMaxY = 2048
+    # max coordinates of pymlac physical display
+    ScaleMaxX = 1024
+    ScaleMaxY = 1024
 
 
     def __init__(self):
@@ -73,7 +71,7 @@ class Display(object):
         """Write display array to PPM file."""
 
         self.next_file_num += 1
-        filename = 'pymlac_%06d.ppm' % self.next_file_num
+        filename = 'pymlac_%06d.pbm' % self.next_file_num
         with open(filename, 'wb') as handle:
             # output header data
             handle.write(bytes('P1\n', 'utf-8'))
@@ -94,14 +92,51 @@ class Display(object):
         x1, y1  start coordinates
         x2, y2  end coordinates
         dotted  True if dotted line, else False (IGNORED)
+
+        Algorithm from:
+            http://csourcecodes.blogspot.com/2016/06/bresenhams-line-drawing-algorithm-generalized-c-program.html
         """
 
-        log('Display: drawing (%d,%d) to (%d,%d)' % (x1, y1, x2, y2))
+        # convert virtual coords to physical
+        x1 = x1 // 2
+        y1 = y1 // 2
+        x2 = x2 // 2
+        y2 = y2 // 2
 
+        # invert the Y axis
+        y1 = self.ScaleMaxY - y1
+        y2 = self.ScaleMaxY - y2
+
+        # draw the line (Bresenham algorithm)
+        x = x1
+        y = y1
+        dx = abs(x2 - x1)
+        dy = abs(y2 - y1)
+        s1 = 1 if x2 > x1 else -1       # sign(x2 - x1)
+        s2 = 1 if y2 > y1 else -1       # sign(y2 - y1)
+        swap = False
+        self.array[(y-1)*self.ScaleMaxX + x - 1] = self.DrawColour
+        if dy > dx:
+            (dx, dy) = (dy, dx)
+            swap = True
+        p = 2*dy - dx
+        for i in range(0, dx):
+            self.array[(y-1)*self.ScaleMaxX + x - 1] = self.DrawColour
+            while p >= 0:
+                p = p - 2*dx
+                if swap:
+                    x += s1
+                else:
+                    y += s2
+            p = p + 2*dy
+            if swap:
+                y += s2
+            else:
+                x += s1
+            i += 1
+
+        # set display flag to "changed"
         self.dirty = True
-
-        # draw a straight line using Bresenam
-        self.bresenham(x1, y1, x2, y2)
 
     def clear(self):
         """Clear the display."""
@@ -135,85 +170,19 @@ class Display(object):
         if self.dirty:
             self.write()
 
-# original algorithm from:
-# http://www.idav.ucdavis.edu/education/GraphicsNotes/Bresenhams-Algorithm.pdf
-#       Let ∆x = x2 − x1
-#       Let ∆y = y2 − y1
-#       Let j = y1
-#       Let ε = ∆y − ∆x
-#
-#       for i = x1 to x2−1
-#           illuminate (i, j)
-#           if (ε ≥ 0)
-#               j += 1
-#               ε −= ∆x
-#           end if
-#           i += 1
-#           ε += ∆y
-#       next i
-#
-#       finish
-
-    def bresenham(self, x1, y1, x2, y2):
-        """Bresenham algorithm to draw from (x1,y1) to (x2,y2)."""
-
-        dx = x2 - x1
-        dy = y2 - y1
-
-        # Determine how steep the line is
-        is_steep = abs(dy) > abs(dx)
-
-        # Rotate line
-        if is_steep:
-            x1, y1 = y1, x1
-            x2, y2 = y2, x2
-
-        # Swap start and end points if necessary and store swap state
-        swapped = False
-        if x1 > x2:
-            x1, x2 = x2, x1
-            y1, y2 = y2, y1
-            swapped = True
-
-        # Recalculate differentials
-        dx = x2 - x1
-        dy = y2 - y1
-
-        # Calculate error
-        error = int(dx / 2.0)
-        ystep = 1 if y1 < y2 else -1
-
-        # Iterate over bounding box generating points between start and end
-        y = y1
-        for x in range(x1, x2 + 1):
-            (xx, yy) = (y, x) if is_steep else (x, y)
-            yyy = self.ScaleMaxX - yy
-            self.array[yyy*self.ScaleMaxX + xx] = self.DrawColour
-            error -= abs(dy)
-            if error < 0:
-                y += ystep
-                error += dx
-
 
 if __name__ == '__main__':
     """Test case - draw radial lines."""
 
     d = Display()
-    d.draw(0, 0, 1023, 1023)
-    d.draw(255, 0, 1023-255, 1023)
-    d.draw(511, 0, 1023-511, 1023)
-    d.draw(767, 0, 1023-767, 1023)
-    d.draw(1023, 0, 0, 1023)
-    d.draw(0, 255, 1023, 1023-255)
-    d.draw(0, 511, 1023, 1023-511)
-    d.draw(0, 767, 1023, 1023-767)
+    granularity = 32
+    for x in range(0, 2048, granularity):
+        d.draw(x, 0, 1023, 1023)
+    for y in range(0, 2048, granularity):
+        d.draw(2048, y, 1023, 1023)
+    for x in range(2048, 0, -granularity):
+        d.draw(x, 2048, 1023, 1023)
+    for y in range(2048, 0, -granularity):
+        d.draw(0, y, 1023, 1023)
     d.clear()
-    d.draw(0, 0, 1023, 1023)
-    d.draw(255, 0, 1023-255, 1023)
-    d.draw(511, 0, 1023-511, 1023)
-    d.draw(767, 0, 1023-767, 1023)
-    d.draw(1023, 0, 0, 1023)
-    d.draw(0, 255, 1023, 1023-255)
-    d.draw(0, 511, 1023, 1023-511)
-    d.draw(0, 767, 1023, 1023-767)
     d.close()

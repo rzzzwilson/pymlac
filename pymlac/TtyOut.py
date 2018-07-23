@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 """
 Emulate the Output TTY (TTYOUT).
 """

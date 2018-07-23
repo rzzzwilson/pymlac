@@ -640,8 +640,8 @@ def eval_expr(expr):
         if 'is not defined' in e.message:
             Undefined = e.message[len("name '"):-len("' is not defined")]
             msg = "Opcode expression has '%s' undefined" % Undefined
-            error(msg)
-            #raise NameError(msg)
+            #error(msg)
+            raise NameError(msg)
         error("Opcode expression has an error")
 
     return result

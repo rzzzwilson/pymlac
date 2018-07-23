@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 """
 The Imlac trace stuff.
 
@@ -15,6 +13,9 @@ import os
 import collections
 
 from Globals import *
+
+import log
+log = log.Log('test.log', log.Log.DEBUG)
 
 
 class Trace(object):
@@ -47,25 +48,25 @@ class Trace(object):
         self.dcpu = displaycpu
 
         self.trace_map = collections.defaultdict(bool)
-#        print('Trace.__init__: self.tracing=%s, self.tracefile=%s' % (str(self.tracing), str(self.tracefile)))
+        log(f'Trace.__init__: self.tracing={self.tracing}, self.tracefile={self.tracefile}')
 
     def set_trace_map(self, trace_map):
         """Set the trace address dict mapping."""
 
         self.trace_map = trace_map
-#        print('Trace.set_trace_map: self.trace_map=%s' % str(trace_map))
+        log(f'Trace.set_trace_map: self.trace_map={trace_map}')
 
     def add_maincpu(self, maincpu):
         """Add the main CPU object."""
 
         self.cpu = maincpu
-#        print('Trace.add_maincpu: self.cpu=%s' % str(maincpu))
+        log(f'Trace.add_maincpu: self.cpu={maincpu}')
 
     def add_displaycpu(self, dispcpu):
         """Add the display CPU object."""
 
         self.dcpu = dispcpu
-#        print('Trace.add_displaycpu: self.dcpu=%s' % str(dispcpu))
+        log(f'Trace.add_displaycpu: self.dcpu={dispcpu}')
 
     def close(self):
         """Close trace."""
@@ -74,7 +75,7 @@ class Trace(object):
         self.tracing = False
         self.tracefile = None
         self.dcpu = dispcpu
-#        print('Trace.close: self.tracing=%s' % str(self.tracing))
+        log(f'Trace.close: self.tracing={self.tracing}')
 
     def deimtrace(self, opcode, code):
         """Trace the DEIM instruction.
@@ -83,6 +84,7 @@ class Trace(object):
         code    the operation
         """
 
+        log(f"deimtrace: self.tracing={self.tracing}, writing '{opcode} {code}'")
         if self.tracing:
             self.tracefile.write('%s\t%s\t' % (opcode, code))
             self.tracefile.flush()
@@ -97,6 +99,7 @@ class Trace(object):
         Returns the trace string or None if not tracing.
         """
 
+        log(f'Trace.dtrace: self.tracing={self.tracing}')
         result = None
 
         if self.tracing:
@@ -105,6 +108,7 @@ class Trace(object):
             else:
                 result = '%04o: %s\t%5.5o' % (ddot, opcode, address)
 
+        log(f"dtrace: result='{result}'")
         return result
 
     def itrace(self, dot, opcode, indirect=False, address=None):
@@ -118,7 +122,7 @@ class Trace(object):
         Returns the trace string or None if not tracing.
         """
 
-#        print('Trace.itrace: self.tracing=%s, self.trace_map=%s' % (str(self.tracing), str(self.trace_map)))
+#        log(f'Trace.itrace: self.tracing={self.tracing}, self.trace_map={self.trace_map}')
         result = None
 
         if self.tracing and self.trace_map[dot]:
@@ -160,4 +164,4 @@ class Trace(object):
         """Set the trace ON or OFF."""
 
         self.tracing = new_tracing
-#        print('Trace.settrace: self.tracing=%s' % str(new_tracing))
+        log(f'Trace.settrace: self.tracing={new_tracing}')

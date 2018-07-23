@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 """
 A simulator for an Imlac PDS-1 or PDS-4.
 
@@ -47,6 +44,9 @@ import PtrPtp
 import TtyIn
 import TtyOut
 import Trace
+
+import log
+log = log.Log('test.log', log.Log.DEBUG)
 
 
 class Imlac(object):
@@ -100,15 +100,18 @@ class Imlac(object):
             Trace.settrace(MainCPU.PC >= self.tracestart
                            and MainCPU.PC <= self.traceend)
 
+        log(f'execute_once: self.dcpu.ison() returns {self.dcpu.ison()}')
         if self.dcpu.ison():
             Trace.trace('%6.6o' % DisplayCPU.DPC)
         Trace.trace('\t')
 
-        instruction_cycles = self.dcpu.execute_one_instruction()
+        (instruction_cycles, dtrace_str) = self.dcpu.execute_one_instruction()
+        log(f"execute_once: at {DisplayCPU.PC:6.6o}, returned cycles {instruction_cycles} and dtrace_str='{dtrace_str}'")
 
         Trace.trace('%6.6o\t' % MainCPU.PC)
 
-        instruction_cycles += self.cpu.execute_one_instruction()
+        (instruction_cycles, trace_str) += self.cpu.execute_one_instruction()
+        log(f"execute_once: at {MainCPU.PC:6.6o}, returned cycles {instruction_cycles} and trace_str='{trace_str}'")
 
         Trace.itraceend(DisplayCPU.ison())
 

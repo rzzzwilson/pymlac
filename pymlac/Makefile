@@ -36,3 +36,5 @@ lst:	$(TESTS)
 
 clean:
 	rm -Rf *.pyc *~ *.out test_*.ptp *.lst test_*.trace _#*#_.* CPU.test.trace.* test.ptr
+	rm -f test.log *.pbm pymlac.trace
+

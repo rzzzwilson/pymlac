@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 """A 'floatslider' widget for ELoss.
 
 As the wxPython slider widget works only with integers, we need

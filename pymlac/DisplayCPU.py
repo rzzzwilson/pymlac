@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 """
 The Imlac display CPU.
 
@@ -131,24 +129,24 @@ class DisplayCPU(object):
                 self.DPC = self.DRS[self.DRSindex]
 
             if byte & 0x10:             # inc X MSB
-                log('**** inc X MSB: before .DX=%d' % self.DX)
+                log(f'**** inc X MSB: before .DX={self.DX:06o}')
                 self.DX += (1 << LSBBITS)
-                log('**** inc X MSB:  after .DX=%d' % self.DX)
+                log(f'**** inc X MSB:  after .DX={self.DX:06o}')
 
             if byte & 0x08:             # clear X LSB
-                log('**** clear X LSB: before .DX=%d' % self.DX)
+                log(f'**** clear X LSB: before .DX={self.DX:06o}')
                 self.DX &= MSBMASK
-                log('**** clear X LSB:  after .DX=%d' % self.DX)
+                log(f'**** clear X LSB:  after .DX={self.DX:06o}')
 
             if byte & 0x02:             # inc Y MSB
-                log('**** inc Y MSB: before .DY=%d' % self.DY)
+                log(f'**** inc Y MSB: before .DY={self.DY:06o}')
                 self.DY += (1 << LSBBITS)
-                log('**** inc Y MSB:  after .DY=%d' % self.DY)
+                log(f'**** inc Y MSB:  after .DY={self.DY:06o}')
 
             if byte & 0x01:             # clear Y LSB
-                log('**** clear Y LSB: before .DY=%d' % self.DY)
+                log(f'**** clear Y LSB: before .DY={self.DY:06o}')
                 self.DY &= MSBMASK
-                log('**** clear Y LSB:  after .DY=%d' % self.DY)
+                log(f'**** clear Y LSB:  after .DY={self.DY:06o}')
 
         return trace
 

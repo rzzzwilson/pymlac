@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
 """
 A simulator for an Imlac PDS-1 or PDS-4.
@@ -88,9 +87,11 @@ def start_running(cpu, dcpu, memory, ptrptp, ttyin):
     cpu.running = True
     while cpu.running:
         (cycles, tracestr) = cpu.execute_one_instruction()
+        log(f"start_running: cpu.execute_one_instruction returned ({cycles}, '{tracestr}')")
         if tracestr:
             endstr = trace.itraceend(False)
-        dcpu.execute_one_instruction()
+        (dcycles, dtracestr) = dcpu.execute_one_instruction()
+        log(f"start_running: dcpu.execute_one_instruction returned ({dcycles}, '{dtracestr}')")
         ptrptp.ptr_tick(cycles)
         ptrptp.ptp_tick(cycles)
         ttyin.tick(cycles)
