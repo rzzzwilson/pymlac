@@ -148,7 +148,7 @@ class DisplayCPU(object):
 
     def execute_one_instruction(self):
         if not self.Running:
-            return (0, None)
+            return 0
 
         self.dot = self.DPC
         instruction = self.memory.fetch(self.DPC, False)
@@ -157,9 +157,10 @@ class DisplayCPU(object):
         if self.Mode == self.MODE_DEIM:
             tracestr = self.doDEIMByte(instruction >> 8)
             if self.Mode == self.MODE_DEIM:
-                tracestr += ', ' + self.doDEIMByte(instruction & 0xff, True)
+                tracestr += ',' + self.doDEIMByte(instruction & 0xff, True)
             log('execute_one_instruction: tracestr=%s' % tracestr)
-            return (1, tracestr)
+            Trace.dtrace(self.dot, 'INC ', tracestr)
+            return 1
 
         opcode = instruction >> 12
         address = instruction & 0o07777
@@ -188,37 +189,42 @@ class DisplayCPU(object):
 
     def i_DDXM(self):
         self.DX -= 0o40
-        tracestr = Trace.dtrace(self.dot, 'DDXM', None)
-        return (1, tracestr)
+        Trace.dtrace(self.dot, 'DDXM', None)
+        return 1
 
     def i_DDYM(self):
         self.DY -= 0o40
-        tracestr = Trace.dtrace(self.dot, 'DDYM', None)
-        return (1, tracestr)
+        Trace.dtrace(self.dot, 'DDYM', None)
+        return 1
 
     def i_DEIM(self, address):
         self.Mode = self.MODE_DEIM
-        tracestr = 'DEIM\t' + self.doDEIMByte(address & 0o377, last=True)
-        return (1, tracestr)
+        Trace.dtrace(self.dot, 'DEIM', self.doDEIMByte(address & 0o377, last=True))
+        return 1
 
     def i_DHLT(self):
         self.Running = False
-        return (1, Trace.dtrace(self.dot, 'DHLT', None))
+        Trace.dtrace(self.dot, 'DHLT', None)
+        return 1
 
     def i_DHVC(self):
-        return (1, Trace.dtrace(self.dot, 'DHVC', None))
+        Trace.dtrace(self.dot, 'DHVC', None)
+        return 1
 
     def i_DIXM(self):
         self.DX += 0o4000
-        return (1, Trace.dtrace(self.dot, 'DIXM', None))
+        Trace.dtrace(self.dot, 'DIXM', None)
+        return 1
 
     def i_DIYM(self):
         self.DY += 0o4000
-        return (1, Trace.dtrace(self.dot, 'DIYM', None))
+        Trace.dtrace(self.dot, 'DIYM', None)
+        return 1
 
     def i_DJMP(self, address):
         self.DPC = MASK_MEM(address + (self.DIB << 12))
-        return (1, Trace.dtrace(self.dot, 'DJMP', address))
+        Trace.dtrace(self.dot, 'DJMP', address)
+        return 1
 
     def i_DJMS(self, address):
         if self.DRSindex >= 8:
@@ -228,15 +234,18 @@ class DisplayCPU(object):
         self.DRS[self.DRSindex] = self.DPC
         self.DRSindex += 1
         self.DPC = MASK_MEM(address + (self.DIB << 12))
-        return (1, Trace.dtrace(self.dot, 'DJMS', address))
+        Trace.dtrace(self.dot, 'DJMS', address)
+        return 1
 
     def i_DLXA(self, address):
         self.DX = (address & self.BITS10) << 1
-        return (1, Trace.dtrace(self.dot, 'DLXA', address))
+        Trace.dtrace(self.dot, 'DLXA', address)
+        return 1
 
     def i_DLYA(self, address):
         self.DY = (address & self.BITS10) << 1
-        return (1, Trace.dtrace(self.dot, 'DLXA', address))
+        Trace.dtrace(self.dot, 'DLXA', address)
+        return 1
 
     def i_DLVH(self, word1):
         word2 = self.memory.get(self, DPC, 0)
@@ -276,21 +285,22 @@ class DisplayCPU(object):
                 self.DY += N
 
             self.display.draw(prevDX, prevDY, self.DX, self.DY, dotted)
-        return (3, Trace.dtrace(self.dot, 'DLVH', None))
+        Trace.dtrace(self.dot, 'DLVH', None)
+        return 3
 
     def i_DRJM(self):
         if self.DRSindex <= 0:
-           Trace.comment('DRS stack underflow at display address %6.6o'
-                         % (self.DPC - 1))
-           self.illegal()
+            Trace.comment(f'DRS stack underflow at display address {self.DPC - 1:6.6o}')
+            self.illegal()
         self.DRSindex -= 1
         self.DPC = self.DRS[self.DRSindex]
-        return (1, Trace.dtrace(self.dot, 'DRJM', None)) # FIXME check # cycles used
+        Trace.dtrace(self.dot, 'DRJM', None)
+        return 1            # FIXME check # cycles used
 
     def i_DSTB(self, block):
         self.DIB = block
-        Trace.dtrace('DSTB\t%d' % block)
-        return (1, Trace.dtrace('DSTB\t%d' % block, None))
+        Trace.dtrace(self.dot, f'DSTB {block}', None)
+        return 1
 
     def i_DSTS(self, scale):
         if scale == 0:
@@ -303,41 +313,42 @@ class DisplayCPU(object):
             self.Scale = 3.0
         else:
             self.illegal()
-        return (1, Trace.dtrace('DSTS\t%d' % scale, None)) # FIXME check # cycles used
+        Trace.dtrace(self.dot, f'DSTS {scale}', None)
+        return 1                # FIXME check # cycles used
 
     def page00(self, instruction):
         if instruction == 0o00000:		# DHLT
-            (cycles, tracestr) = self.i_DHLT()
+            cycles = self.i_DHLT()
         elif instruction == 0o04000:		# DNOP
             cycles = 1
-            tracestr = Trace.dtrace('DNOP')
+            Trace.dtrace(self.dot, 'DNOP')
         elif instruction == 0o04004:		# DSTS 0
-            (cycles, tracestr) = self.i_DSTS(0)
+            cycles = self.i_DSTS(0)
         elif instruction == 0o04005:		# DSTS 1
-            (cycles, tracestr) = self.i_DSTS(1)
+            cycles = self.i_DSTS(1)
         elif instruction == 0o04006:		# DSTS 2
-            (cycles, tracestr) = self.i_DSTS(2)
+            cycles = self.i_DSTS(2)
         elif instruction == 0o04007:		# DSTS 3
-            (cycles, tracestr) = self.i_DSTS(3)
+            cycles = self.i_DSTS(3)
         elif instruction == 0o04010:		# DSTB 0
-            (cycles, tracestr) = self.i_DSTB(0)
+            cycles = self.i_DSTB(0)
         elif instruction == 0o04011:		# DSTB 1
-            (cycles, tracestr) = self.i_DSTB(1)
+            cycles = self.i_DSTB(1)
         elif instruction == 0o04040:		# DRJM
-            (cycles, tracestr) = self.i_DRJM()
+            cycles = self.i_DRJM()
         elif instruction == 0o04100:		# DDYM
-            (cycles, tracestr) = self.i_DDYM()
+            cycles = self.i_DDYM()
         elif instruction == 0o04200:		# DDXM
-            (cycles, tracestr) = self.i_DDXM()
+            cycles = self.i_DDXM()
         elif instruction == 0o04400:		# DIYM
-            (cycles, tracestr) = self.i_DIYM()
+            cycles = self.i_DIYM()
         elif instruction == 0o05000:		# DIXM
-            (cycles, tracestr) = self.i_DIXM()
+            cycles = self.i_DIXM()
         elif instruction == 0o06000:		# DHVC
-            (cycles, tracestr) = self.i_DHVC()
+            cycles = self.i_DHVC()
         else:
             self.illegal(instruction)
-        return (cycles, tracestr)
+        return cycles
 
     def start(self):
         self.Running = True

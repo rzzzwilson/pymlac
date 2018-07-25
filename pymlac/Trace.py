@@ -31,9 +31,9 @@ TrafeFilename = None
 TraceFile = None
 CPU = None
 DCPU = None
-TraceMap = None
-CPUInst = None
-DCPUInst = None
+TraceMap = collections.defaultdict(bool)
+CPUInst = ''
+DCPUInst = ''
 CPU_PC = None
 DCPU_PC = None
 
@@ -46,8 +46,8 @@ def init(filename, maincpu=None, displaycpu=None):
     displaycpu  the display CPU object (may be added later)
     """
 
-    global CPU, DCPU, TraceMap, CPUInst, DCPUInst
-    global TraceFile, TraceFilename
+    global Tracing, TraceFile, TraceFilename, TraceMap
+    global CPU, DCPU, CPUInst, DCPUInst
 
     # set internal state
     Tracing = True
@@ -57,24 +57,18 @@ def init(filename, maincpu=None, displaycpu=None):
     except:
         pass
     TraceFile = open(filename, 'w')
-    TraceFile.write(f"{PYMLAC_VERSION} trace\n{'-'*60}\n")
+    TraceFile.write(f"{PYMLAC_VERSION} trace\n{'-'*97}\n")
 
     CPU = maincpu
     DCPU = displaycpu
-
-    TraceMap = collections.defaultdict(bool)
-    log(f'Trace.init: Tracing={Tracing}, TraceFilename={TraceFilename}')
-
-    CPUInst = None
-    DCPUInst = None
 
 def start():
     """Prepare trace system for new execution."""
 
     global CPU_PC, DCPU_PC, CPUInst, DCPUInst
 
-    CPUInst = None
-    DCPUInst = None
+    CPUInst = ''
+    DCPUInst = ''
     CPU_PC = CPU.PC
     DCPU_PC = DCPU.DPC
 
@@ -108,17 +102,17 @@ def close():
     TraceFile = None
     Tracing = False
 
-def deimtrace(opcode, code):
-    """Trace the DEIM instruction.
-
-    opcode  DEIM opcode
-    code    the operation
-    """
-
-    log(f"deimtrace: Tracing={Tracing}, writing '{opcode} {code}'")
-    if Tracing:
-        TraceFile.write('%s\t%s\t' % (opcode, code))
-        TraceFile.flush()
+#def deimtrace(opcode, code):
+#    """Trace the DEIM instruction.
+#
+#    opcode  DEIM opcode
+#    code    the operation
+#    """
+#
+#    log(f"deimtrace: Tracing={Tracing}, writing '{opcode} {code}'")
+#    if Tracing:
+#        TraceFile.write('%s %s\t' % (opcode, code))
+#        TraceFile.flush()
 
 def dtrace(ddot, opcode, address=None):
     """Trace the display CPU.
@@ -127,21 +121,24 @@ def dtrace(ddot, opcode, address=None):
     opcode   display opcode
     address  address for the opcode
 
-    Returns the trace string or None if not tracing.
+    Places the final trace string into DCPUInst.
     """
 
-    log(f'Trace.dtrace: Tracing={Tracing}')
-    result = None
+    global DCPUInst
+
+    log(f'Trace.dtrace: ddot={ddot}, opcode={opcode}, address={address}')
+
+    # convert an int address to a string
+    if isinstance(address, int):
+        address = f'{address:05o}'
 
     if Tracing:
         if address is None:
-            result = '%s: %s\t' % (ddot, opcode)
+            DCPUInst = '%04o    %s' % (ddot, opcode)
         else:
-            result = '%04o: %s\t%5.5o' % (ddot, opcode, address)
+            DCPUInst = '%04o    %s %s' % (ddot, opcode, address)
 
-    log(f"dtrace: result='{result}'")
-    DCPUInst = result
-    return result
+    log(f"dtrace: DCPUInst='{DCPUInst}'")
 
 def itrace(dot, opcode, indirect=False, address=None):
     """Main CPU trace.
@@ -151,53 +148,50 @@ def itrace(dot, opcode, indirect=False, address=None):
     indirect  True if instruction was indirect
     address   address for the instruction (if any)
 
-    Returns the trace string or None if not tracing.
+    Places the final trace string in CPUInst.
     """
 
-    result = None
+    global CPUInst
+
+    log(f'itrace: dot={dot}, opcode={opcode}, indirect={indirect}, address={address}')
+    log(f'itrace: Tracing={Tracing}, TraceMap[dot]={TraceMap[dot]}')
 
     if Tracing and TraceMap[dot]:
         char = '*' if indirect else ''
         if address is None:
-            result = '%04o\t%s\t%s' % (dot, opcode, char)
+            CPUInst = '%04o     %s %s' % (dot, opcode, char)
         else:
-            result = '%04o\t%s\t%s%5.5o' % (dot, opcode, char, address)
+            CPUInst = '%04o     %s %s%5.5o' % (dot, opcode, char, address)
 
-    log(f"itrace: result='{result}'")
-    CPUInst = result
-    return result
+    log(f"itrace: CPUInst='{CPUInst}'")
 
-def itraceend(dispon):
-    """Trace at the end of one execution cycle.
-
-    dispon  True if the display was on
-
-    Returns the trace string.
-    """
-
-    result = ('L=%1.1o AC=%6.6o PC=%6.6o' % (CPU.L, CPU.AC, CPU.PC))
-
-    if dispon:
-        result += ' DX=%5.5o DY=%5.5o' % (DCPU.DX, DCPU.DY)
-
-    return result
+#def itraceend(dispon):
+#    """Trace at the end of one execution cycle.
+#
+#    dispon  True if the display was on
+#
+#    Places the final trace string in DCPUInst.
+#    """
+#
+#    global DCPUInst
+#
+#    DCPUInst = f'L={CPU.L:1.1o} AC={CPU.AC:6.6oi} PC={CPU.PC:6.6o}'
+#
+#    if dispon:
+#        DCPUInst += ' DX=%5.5o DY=%5.5o' % (DCPU.DX, DCPU.DY)
 
 def end_line():
     """Write the line for this set of I/D instructions."""
 
-    registers = ('L=%1.1o AC=%6.6o PC=%6.6o' % (CPU.L, CPU.AC, CPU.PC))
+    registers = f'L={CPU.L:1o} AC={CPU.AC:6o} PC={CPU.PC:6o}'
 
     if DCPU.Running:
-        registers += ' DX=%5.5o DY=%5.5o' % (DCPU.DX, DCPU.DY)
+        registers += f' DX={DCPU.DX:5o} DY={DCPU.DY:5o}'
 
-    CPUInst = None
-    DCPUInst = None
+    TraceFile.write('%-25s %-30s%s\n' % (CPUInst, DCPUInst, registers))
 
-    #TraceFile.write(f'{CPUInst:-50s}{DCPUInst:-40s}  {registers}\n')
-    TraceFile.write('%-50s %-40s  %s\n' % (CPUInst, DCPUInst, registers))
-
-#def flush(self):
-#    TraceFile.flush()
+def flush():
+    TraceFile.flush()
 
 def comment(msg):
     """Write a line to the trace file."""

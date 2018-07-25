@@ -90,17 +90,16 @@ def start_running(cpu, dcpu, memory, ptrptp, ttyin):
         Trace.start()
 
         log(f'cpu.PC={cpu.PC}')
-        (cycles, tracestr) = cpu.execute_one_instruction()
-        log(f"start_running: cpu.execute_one_instruction returned ({cycles}, '{tracestr}')")
-        #Trace.itrace(tracestr)
-        (dcycles, dtracestr) = dcpu.execute_one_instruction()
-        log(f"start_running: dcpu.execute_one_instruction returned ({dcycles}, '{dtracestr}')")
-        #Trace.dtrace(dtracestr)
+        cycles = cpu.execute_one_instruction()
+        log(f'start_running: cpu.execute_one_instruction returned {cycles}')
+        dcycles = dcpu.execute_one_instruction()
+        log(f'start_running: dcpu.execute_one_instruction returned {dcycles}')
         ptrptp.ptr_tick(cycles)
         ptrptp.ptp_tick(cycles)
         ttyin.tick(cycles)
 
         Trace.end_line()
+        Trace.flush()
 
     Trace.close()
 
