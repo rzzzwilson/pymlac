@@ -15,6 +15,8 @@
 #include "error.h"
 
 
+#define VIMLAC_VERSION  "0.1"
+
 typedef unsigned int	WORD;
 typedef unsigned char	BYTE;
 
