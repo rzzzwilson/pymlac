@@ -4,7 +4,7 @@
  * Usage: vimlac [ <option> ]*
  *
  * That is, the user may specify zero or more options interspersed in any manner
- * required. The options are:
+ * required. The options are executed from left to right and can be any of:
  * 
  *     -b (ptr | tty | none)         sets the bootstrap ROM code:
  *                                       ptr   uses the papertape bootstrap ROM
@@ -23,6 +23,10 @@
  *                                       -t 0100,0200            trace from 0100 octal to 200 decimal
  *                                       -t 0100,0200:0210,0300  trace from 0100 to 0200 and 0210 to 0300
  *                                       -t off                  turns trace off
+ *     -ttyin <file>                 loads <file> on to the teletype reader device
+ *     -ttyout <file>                loads <file> on to the teletype writer device
+ *     -v <file>                     write contents of core to <file>
+ *     -w (on | off)                 set ROM write-protect to "on" or "off"
  */
 
 #include <stdio.h>
@@ -96,7 +100,7 @@ usage(char *msg)
     }
     printf("Usage: vimlac [ <option> ]*\n\n");
     printf("That is, the user may specify zero or more options interspersed in any manner\n");
-    printf("required. The options are:\n");
+    printf("required. The options are executed from left to right and can be any of:\n");
     printf("\n");
     printf("    -b (ptr | tty | none)         sets the bootstrap ROM code:\n");
     printf("                                      ptr   uses the papertape bootstrap ROM\n");
@@ -115,7 +119,10 @@ usage(char *msg)
     printf("                                      -t 0100,0200            trace from 0100 octal to 200 decimal\n");
     printf("                                      -t 0100,0200:0210,0300  trace from 0100 to 0200 and 0210 to 0300\n");
     printf("                                      -t off                  turns trace off\n");
-
+    printf("    -ttyin <file>                 loads <file> on to the teletype reader device\n");
+    printf("    -ttyout <file>                loads <file> on to the teletype writer device\n");
+    printf("    -v <file>                     write contents of core to <file>\n");
+    printf("    -w (on | off)                 set ROM write-protect to 'on' or 'off'\n");
     exit(1);
 }
 
@@ -125,6 +132,8 @@ main(int argc, char *argv[])
 {
     int ndx = 1;    // index into argv[]
     char *opt;      // pointer to command arg
+
+    vlog("vimlac %s", VIMLAC_VERSION);
 
     while (ndx < argc)
     {
@@ -243,6 +252,121 @@ main(int argc, char *argv[])
 //            Trace.set_TraceMap(trace_map);
 //            start_running(imlac_cpu, imlac_dcpu, imlac_memory, imlac_ptrptp, imlac_ttyin);
         }
+        else if (STREQ(opt, "-s"))
+        {
+            char *filename;         // pointer to filename to load memory from
+
+            if (ndx >= argc)
+            {
+                usage("'-s' option needs a following data filename");
+            }
+
+            filename = argv[ndx];
+            ndx += 1;
+            mem_load_core(filename);
+        }
+#ifdef JUNK
+        else if (STREQ(opt, "-t"))
+        {
+            char *t;                // pointer to trace limits string
+
+            if (ndx >= argc)
+            {
+                usage("'-t' option needs following address ranges or 'off'");
+            }
+            r = argv[ndx];
+            ndx += 1;
+//            trace_map = collections.defaultdict(bool)
+            if (!STREQ(r, "off"))
+            {
+                for rng in r.split(":"):
+                    be = rng.split(",")
+                    if len(be) != 2:
+                        usage("'-t' ranges must have form 'begin,end'")
+                        sys.exit(10)
+                    (begin, end) = be
+                    begin = str2int(begin)
+                    end = str2int(end)
+                    for addr in range(begin, end+1):
+                        trace_map[addr] = True
+            }
+            else
+            {
+            }
+        }
+#endif
+        else if (STREQ(opt, "-ttyin"))
+        {
+            char *filename;         // pointer to filename to mount on TTYIN
+
+            if (ndx >= argc)
+            {
+                usage("'-ttyin' option needs a following data filename");
+            }
+            filename = argv[ndx];
+            ndx += 1;
+//            imlac_ttyin.mount(filename)
+        }
+        else if (STREQ(opt, "-ttyout"))
+        {
+            char *filename;         // pointer to filename to mount on TTYOUT
+
+            if (ndx >= argc)
+            {
+                usage("'-ttyout' option needs a following data filename");
+            }
+
+            filename = argv[ndx];
+            ndx += 1;
+//            imlac_ttyout.mount(filename)
+        }
+        else if (STREQ(opt, "-v"))
+        {
+            char *filename;         // pointer to filename to write mem info to
+
+            if (ndx >= argc)
+            {
+                usage("'-v' option needs a following address filename");
+            }
+
+            filename = argv[ndx];
+            ndx += 1;
+//            view_mem(filename)
+        }
+        else if (STREQ(opt, "-w"))
+        {
+            char *state_str;        // pointer to ROM state string
+            bool state = true;      // ROM write-protect state
+
+            if (ndx >= argc)
+            {
+                usage("'-v' option needs a following 'on' or 'off'");
+            }
+
+            state_str = argv[ndx];
+            ndx += 1;
+            if (STREQ(state_str, "on"))
+            {
+                state = true;
+            }
+            else if (STREQ(state_str, "off"))
+            {
+                state = false;
+            }
+            else
+            {
+                usage("'-v' option needs a following 'on' or 'off'");
+            }
+            mem_set_rom_readonly(state);
+        }
+        else
+        {
+            char buff[1024];
+
+            sprintf(buff, "Unrecognized option '%s'", opt);
+            usage(buff);
+        }
+
 
 
     }
