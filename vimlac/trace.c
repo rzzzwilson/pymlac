@@ -128,7 +128,7 @@ trace(char *fmt, ...)
         vsprintf(outbuff, fmt, ap);
         va_end(ap);
         Emit("0%6.6o\t%s", cpu_get_prev_PC(), outbuff);
-	traceRegs();
+        traceRegs();
         Emit("\n");
     }
 }
