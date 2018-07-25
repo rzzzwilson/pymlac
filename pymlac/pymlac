@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-A simulator for an Imlac PDS-1 or PDS-4.
+A simulator for an Imlac PDS-1.
 
 Usage: pymlac [ <option> ]*
 
@@ -50,8 +50,6 @@ import Trace
 import log
 log = log.Log('test.log', log.Log.DEBUG)
 
-trace = Trace.Trace(TRACE_FILENAME)
-
 
 def str2int(s):
     """Convert a string to an integer value.
@@ -85,17 +83,26 @@ def usage(msg=None):
 def start_running(cpu, dcpu, memory, ptrptp, ttyin):
     """Run the Imlac machine until it stops."""
 
+    Trace.init('pymlac.trace', cpu, dcpu)
+
     cpu.running = True
     while cpu.running:
+        Trace.start()
+
+        log(f'cpu.PC={cpu.PC}')
         (cycles, tracestr) = cpu.execute_one_instruction()
         log(f"start_running: cpu.execute_one_instruction returned ({cycles}, '{tracestr}')")
-        if tracestr:
-            endstr = trace.itraceend(False)
+        #Trace.itrace(tracestr)
         (dcycles, dtracestr) = dcpu.execute_one_instruction()
         log(f"start_running: dcpu.execute_one_instruction returned ({dcycles}, '{dtracestr}')")
+        #Trace.dtrace(dtracestr)
         ptrptp.ptr_tick(cycles)
         ptrptp.ptp_tick(cycles)
         ttyin.tick(cycles)
+
+        Trace.end_line()
+
+    Trace.close()
 
 
 def main():
@@ -115,8 +122,8 @@ def main():
     imlac_display_state = False
 
     # prepare the trace
-    trace.add_maincpu(imlac_cpu)
-    trace.add_displaycpu(imlac_dcpu)
+    Trace.add_CPU(imlac_cpu)
+    Trace.add_DCPU(imlac_dcpu)
 
     # trace_map defines addresses we are tracing at
     # initially, no tracing
@@ -196,7 +203,7 @@ def main():
                 log('Running from address %06o' % addr_value)
             else:
                 log('Running from current PC %06o' % imlac_cpu.PC)
-            trace.set_trace_map(trace_map)
+            Trace.set_TraceMap(trace_map)
             start_running(imlac_cpu, imlac_dcpu, imlac_memory, imlac_ptrptp, imlac_ttyin)
         elif opt == '-s':
             if ndx >= len_sys_argv:

@@ -3,10 +3,18 @@ The Imlac trace stuff.
 
 Simple usage:
     import Trace
-    trace = Trace.Trace('my_log.log', maincpu, dispcpu)
-    trace.itrace(msg)
+    Trace.init('my_log.log', maincpu, dispcpu)
+    Trace.set_trace_map(map)
+    while running:
+        Trace.start()
+        Trace.itrace(inst_str)
+        Trace.dtrace(inst_str)
+        Trace.end()
 
-Based on the 'borg' recipe from [http://code.activestate.com/recipes/66531/].
+The idea is that trace system will handle formatting and writing trace data to
+the trace file and the "main" code will perform the above steps.  The
+.endtrace() method will grab the register values after the instructions and
+format the trace data and write it to the file.
 """
 
 import os
@@ -18,150 +26,189 @@ import log
 log = log.Log('test.log', log.Log.DEBUG)
 
 
-class Trace(object):
+Tracing = False
+TrafeFilename = None
+TraceFile = None
+CPU = None
+DCPU = None
+TraceMap = None
+CPUInst = None
+DCPUInst = None
+CPU_PC = None
+DCPU_PC = None
 
-    __shared_state = {}                # this __dict__ shared by ALL instances
 
-    def __init__(self, filename, maincpu=None, displaycpu=None):
-        """Initialize the trace:
+def init(filename, maincpu=None, displaycpu=None):
+    """Initialize the trace:
 
-        filename   name of the trace file
-        maincpu    the main CPU object (may be added later)
-        displaycpu  the display CPU object (may be added later)
-        """
+    filename    name of the trace file
+    maincpu     the main CPU object (may be added later)
+    displaycpu  the display CPU object (may be added later)
+    """
 
-        # ensure same state as all other instances
-        self.__dict__ = Trace.__shared_state
+    global CPU, DCPU, TraceMap, CPUInst, DCPUInst
+    global TraceFile, TraceFilename
 
-        # set internal state
-        self.tracing = True
-        self.tracefile = filename
-        try:
-            os.remove(filename)
-        except:
-            pass
-        self.tracefile = open(filename, 'wb')
-        s = bytes('%s trace\n%s\n' % (PYMLAC_VERSION, '-'*60), 'utf-8')
-        self.tracefile.write(s)
+    # set internal state
+    Tracing = True
+    TraceFilename = filename
+    try:
+        os.remove(filename)
+    except:
+        pass
+    TraceFile = open(filename, 'w')
+    TraceFile.write(f"{PYMLAC_VERSION} trace\n{'-'*60}\n")
 
-        self.cpu = maincpu
-        self.dcpu = displaycpu
+    CPU = maincpu
+    DCPU = displaycpu
 
-        self.trace_map = collections.defaultdict(bool)
-        log(f'Trace.__init__: self.tracing={self.tracing}, self.tracefile={self.tracefile}')
+    TraceMap = collections.defaultdict(bool)
+    log(f'Trace.init: Tracing={Tracing}, TraceFilename={TraceFilename}')
 
-    def set_trace_map(self, trace_map):
-        """Set the trace address dict mapping."""
+    CPUInst = None
+    DCPUInst = None
 
-        self.trace_map = trace_map
-        log(f'Trace.set_trace_map: self.trace_map={trace_map}')
+def start():
+    """Prepare trace system for new execution."""
 
-    def add_maincpu(self, maincpu):
-        """Add the main CPU object."""
+    global CPU_PC, DCPU_PC, CPUInst, DCPUInst
 
-        self.cpu = maincpu
-        log(f'Trace.add_maincpu: self.cpu={maincpu}')
+    CPUInst = None
+    DCPUInst = None
+    CPU_PC = CPU.PC
+    DCPU_PC = DCPU.DPC
 
-    def add_displaycpu(self, dispcpu):
-        """Add the display CPU object."""
+def set_TraceMap(trace_map):
+    """Set the trace address dict mapping."""
 
-        self.dcpu = dispcpu
-        log(f'Trace.add_displaycpu: self.dcpu={dispcpu}')
+    global TraceMap
 
-    def close(self):
-        """Close trace."""
+    TraceMap = trace_map
+    log(f'Trace.set_TraceMap: TraceMap={TraceMap}')
 
-        self.tracefile.close()
-        self.tracing = False
-        self.tracefile = None
-        self.dcpu = dispcpu
-        log(f'Trace.close: self.tracing={self.tracing}')
+def add_CPU(maincpu):
+    """Add the main CPU object."""
 
-    def deimtrace(self, opcode, code):
-        """Trace the DEIM instruction.
+    global CPU
 
-        opcode  DEIM opcode
-        code    the operation
-        """
+    CPU = maincpu
 
-        log(f"deimtrace: self.tracing={self.tracing}, writing '{opcode} {code}'")
-        if self.tracing:
-            self.tracefile.write('%s\t%s\t' % (opcode, code))
-            self.tracefile.flush()
+def add_DCPU(dispcpu):
+    """Add the display CPU object."""
 
-    def dtrace(self, ddot, opcode, address=None):
-        """Trace the display CPU.
+    global DCPU
+    DCPU = dispcpu
 
-        ddot     address of instruction being traced
-        opcode   display opcode
-        address  address for the opcode
+def close():
+    """Close trace."""
 
-        Returns the trace string or None if not tracing.
-        """
+    global TraceFile, Tracing
 
-        log(f'Trace.dtrace: self.tracing={self.tracing}')
-        result = None
+#    TraceFile.close()
+    TraceFile = None
+    Tracing = False
 
-        if self.tracing:
-            if address is None:
-                result = '%s: %s\t' % (ddot, opcode)
-            else:
-                result = '%04o: %s\t%5.5o' % (ddot, opcode, address)
+def deimtrace(opcode, code):
+    """Trace the DEIM instruction.
 
-        log(f"dtrace: result='{result}'")
-        return result
+    opcode  DEIM opcode
+    code    the operation
+    """
 
-    def itrace(self, dot, opcode, indirect=False, address=None):
-        """Main CPU trace.
+    log(f"deimtrace: Tracing={Tracing}, writing '{opcode} {code}'")
+    if Tracing:
+        TraceFile.write('%s\t%s\t' % (opcode, code))
+        TraceFile.flush()
 
-        dot       address of instruction being traced
-        opcode    the main CPU opcode
-        indirect  True if instruction was indirect
-        address   address for the instruction (if any)
+def dtrace(ddot, opcode, address=None):
+    """Trace the display CPU.
 
-        Returns the trace string or None if not tracing.
-        """
+    ddot     address of instruction being traced
+    opcode   display opcode
+    address  address for the opcode
 
-#        log(f'Trace.itrace: self.tracing={self.tracing}, self.trace_map={self.trace_map}')
-        result = None
+    Returns the trace string or None if not tracing.
+    """
 
-        if self.tracing and self.trace_map[dot]:
-            char = '*' if indirect else ''
-            if address is None:
-                result = '%04o\t%s\t%s' % (dot, opcode, char)
-            else:
-                result = '%04o\t%s\t%s%5.5o' % (dot, opcode, char, address)
+    log(f'Trace.dtrace: Tracing={Tracing}')
+    result = None
 
-        return result
+    if Tracing:
+        if address is None:
+            result = '%s: %s\t' % (ddot, opcode)
+        else:
+            result = '%04o: %s\t%5.5o' % (ddot, opcode, address)
 
-    def itraceend(self, dispon):
-        """Trace at the end of one execution cycle.
+    log(f"dtrace: result='{result}'")
+    DCPUInst = result
+    return result
 
-        dispon  True if the display was on
+def itrace(dot, opcode, indirect=False, address=None):
+    """Main CPU trace.
 
-        Returns the trace string.
-        """
+    dot       address of instruction being traced
+    opcode    the main CPU opcode
+    indirect  True if instruction was indirect
+    address   address for the instruction (if any)
 
-        result = ('L=%1.1o AC=%6.6o PC=%6.6o'
-                  % (self.cpu.L, self.cpu.AC, self.cpu.PC))
+    Returns the trace string or None if not tracing.
+    """
 
-        if dispon:
-            result += ' DX=%5.5o DY=%5.5o' % (self.dcpu.DX, self.dcpu.DY)
+    result = None
 
-        return result
+    if Tracing and TraceMap[dot]:
+        char = '*' if indirect else ''
+        if address is None:
+            result = '%04o\t%s\t%s' % (dot, opcode, char)
+        else:
+            result = '%04o\t%s\t%s%5.5o' % (dot, opcode, char, address)
 
-    def flush(self):
-        self.tracefile.flush()
+    log(f"itrace: result='{result}'")
+    CPUInst = result
+    return result
 
-    def comment(self, msg):
-        """Write a line to the trace file."""
+def itraceend(dispon):
+    """Trace at the end of one execution cycle.
 
-        msg = bytes(msg+'\n', 'utf-8')
-        self.tracefile.write(msg)
-        self.tracefile.flush()
+    dispon  True if the display was on
 
-    def settrace(self, new_tracing):
-        """Set the trace ON or OFF."""
+    Returns the trace string.
+    """
 
-        self.tracing = new_tracing
-        log(f'Trace.settrace: self.tracing={new_tracing}')
+    result = ('L=%1.1o AC=%6.6o PC=%6.6o' % (CPU.L, CPU.AC, CPU.PC))
+
+    if dispon:
+        result += ' DX=%5.5o DY=%5.5o' % (DCPU.DX, DCPU.DY)
+
+    return result
+
+def end_line():
+    """Write the line for this set of I/D instructions."""
+
+    registers = ('L=%1.1o AC=%6.6o PC=%6.6o' % (CPU.L, CPU.AC, CPU.PC))
+
+    if DCPU.Running:
+        registers += ' DX=%5.5o DY=%5.5o' % (DCPU.DX, DCPU.DY)
+
+    CPUInst = None
+    DCPUInst = None
+
+    #TraceFile.write(f'{CPUInst:-50s}{DCPUInst:-40s}  {registers}\n')
+    TraceFile.write('%-50s %-40s  %s\n' % (CPUInst, DCPUInst, registers))
+
+#def flush(self):
+#    TraceFile.flush()
+
+def comment(msg):
+    """Write a line to the trace file."""
+
+    TraceFile.write(msg + '\n')
+    TraceFile.flush()
+
+def settrace(new_tracing):
+    """Set the trace ON or OFF."""
+
+    global Tracing
+
+    Tracing = new_tracing
+    log(f'Trace.settrace: Tracing={Tracing}')
