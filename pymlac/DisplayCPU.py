@@ -244,7 +244,7 @@ class DisplayCPU(object):
 
     def i_DLYA(self, address):
         self.DY = (address & self.BITS10) << 1
-        Trace.dtrace(self.dot, 'DLXA', address)
+        Trace.dtrace(self.dot, 'DLYA', address)
         return 1
 
     def i_DLVH(self, word1):
