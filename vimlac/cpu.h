@@ -6,7 +6,7 @@
 #ifndef CPU_H
 #define CPU_H
 
-#include "vimlac.h"
+//#include "vimlac.h"
 
 /******
  * Exported functions.

@@ -20,6 +20,8 @@
 typedef unsigned int	WORD;
 typedef unsigned char	BYTE;
 
+#define MEMORY_SIZE     04000
+
 #define CPU_HERZ	1800000
 #define MEMMASK		0xffff
 #define HIGHBITMASK	0x8000
@@ -32,6 +34,9 @@ typedef unsigned char	BYTE;
 
 // macro to more reliably compare strings
 #define STREQ(a, b) ((a) && (strcmp((a), (b)) == 0))
+
+// macro to mask an address to the address space limits
+#define MASK_MEM(addr) (addr & (MEMORY_SIZE - 1))
 
 
 #endif

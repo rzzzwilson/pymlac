@@ -6,11 +6,17 @@
 
 #include "vimlac.h"
 #include "cpu.h"
+#include "dcpu.h"
+#include "log.h"
 
 
-bool TraceFlag = false;
+bool TraceFlag = true;
 static char *TraceFile = "trace.out";
 static FILE *trace_fp = NULL;
+static char CPU_trace[64];
+static char DCPU_trace[64];
+static char CPU_reg_trace[64];
+static char DCPU_reg_trace[64];
 
 
 /******************************************************************************
@@ -44,91 +50,120 @@ trace_close(void)
 
 
 /******************************************************************************
- * Description : printf()-style output routine to RAW screen.
- *  Parameters : like printf()
+ * Description : Prepare a new trace outut.
+ *  Parameters : 
  *     Returns : 
  *    Comments : 
  ******************************************************************************/
 void
-Emit(char *fmt, ...)
+trace_start_line(void)
 {
-    va_list ap;
-    char    buff[512];
-    char    *chptr;
-            
-    va_start(ap, fmt);
-    vsprintf(buff, fmt, ap);
-    va_end(ap);
-                
-    for (chptr = buff; *chptr != '\0'; ++chptr)
-        fprintf(trace_fp, "%c", *chptr);
-                    
-    fflush(trace_fp);
-}
-
-
-void
-DumpRegs(char *buff)
-{
-    sprintf(buff, "AC=0%6.6o\tL=%1.1o", cpu_get_AC(), cpu_get_L());
-}
-
-void
-trace_delim(char *fmt, ...)
-{
-    va_list ap;
-    char    buff[1024];
-
-    va_start(ap, fmt);
-    vsprintf(buff, fmt, ap);
-    va_end(ap);
-
-    Emit("%s\n", buff);
+    // set output buffer to empty
+    CPU_trace[0] = 0;
+    DCPU_trace[0] = 0;
+    CPU_reg_trace[0] = 0;
+    DCPU_reg_trace[0] = 0;
 }
 
 
 /******************************************************************************
-Description : printf()-style trace routine to dump registers.
+ * Description : Write stored data to the trace file.
+ *  Parameters : 
+ *     Returns : 
+ *    Comments : 
+ ******************************************************************************/
+void
+trace_end_line(void)
+{
+    fprintf(trace_fp, "%06o:     %-20s%-20s   %-s %-s\n",
+                      cpu_get_prev_PC(), CPU_trace, DCPU_trace,
+                                         CPU_reg_trace, DCPU_reg_trace);
+    fflush(trace_fp);
+}
+
+
+/******************************************************************************
+Description : printf()-style trace routine to dump main CPU registers.
  Parameters : 
     Returns : 
    Comments :
  ******************************************************************************/
 void
-traceRegs(void)
+trace_regs(void)
 {
-    static char outbuff[512];
+    TraceFlag = true;       // DEBUG
 
     if (TraceFlag != false)
     {
-        char emitbuff[512];
-
-        DumpRegs(outbuff);
-        sprintf(emitbuff, "\t;%s", outbuff);
-        Emit(emitbuff);
+        sprintf(CPU_reg_trace, "AC=%06.6o L=%1.1o", cpu_get_AC(), cpu_get_L());
+        vlog(CPU_reg_trace);
     }
 }
 
 
 /******************************************************************************
-Description : printf()-style trace routine.
+Description : printf()-style trace routine to dump dislpay CPU registers.
+ Parameters : 
+    Returns : 
+   Comments :
+ ******************************************************************************/
+void
+trace_dregs(void)
+{
+    TraceFlag = true;       // DEBUG
+
+    if (TraceFlag != false)
+    {
+        sprintf(DCPU_reg_trace, "DPC=%06o X=%04o, Y=%04o",
+                                dcpu_get_PC(), dcpu_get_x(), dcpu_get_y());
+        vlog(DCPU_reg_trace);
+    }
+}
+
+
+/******************************************************************************
+Description : printf()-style trace routine for the CPU.
  Parameters : like printf()
     Returns : 
    Comments :
  ******************************************************************************/
 void
-trace(char *fmt, ...)
+trace_cpu(char *fmt, ...)
 {
-    static char outbuff[512];
+    TraceFlag = true;       // DEBUG
 
     if (TraceFlag != false)
     {
         va_list ap;
 
         va_start(ap, fmt);
-        vsprintf(outbuff, fmt, ap);
+        vsprintf(CPU_trace, fmt, ap);
         va_end(ap);
-        Emit("0%6.6o\t%s", cpu_get_prev_PC(), outbuff);
-        traceRegs();
-        Emit("\n");
+
+        trace_regs();
     }
 }
+
+/******************************************************************************
+Description : printf()-style trace routine for the display CPU.
+ Parameters : like printf()
+    Returns :
+   Comments :
+ ******************************************************************************/
+void
+trace_dcpu(char *fmt, ...)
+{
+    TraceFlag = true;       // DEBUG
+
+    if (TraceFlag != false)
+    {
+        va_list ap;
+
+        va_start(ap, fmt);
+        vsprintf(DCPU_trace, fmt, ap);
+        va_end(ap);
+
+        trace_dregs();
+    }
+}
+

@@ -38,9 +38,18 @@
 #include "memory.h"
 #include "ptrptp.h"
 #include "cpu.h"
+#include "dcpu.h"
+#include "trace.h"
 #include "log.h"
 
 
+//*********************************************************
+// Conevrt a string to all lower case.
+//
+//     s  the string to convert (in situ)
+//
+// Returns the original string pointer.
+//*********************************************************
 char *
 strtolower(char *s)
 {
@@ -53,11 +62,13 @@ strtolower(char *s)
 }
 
 
+//*********************************************************
 // Convert a string to an integer value.
 // 
-// s  the string to convert
+//     s  the string to convert
 // 
 // The string may indicate a decimal or octal value.
+//*********************************************************
 
 int
 str2int(char *s)
@@ -73,20 +84,62 @@ str2int(char *s)
 }
 
 
+//*********************************************************
+// Run the emulator until the main/display CPU have
+// both stopped.
+//*********************************************************
+
+//    Trace.init('pymlac.trace', cpu, dcpu)
+//
+//    cpu.running = True
+//    while cpu.running:
+//        Trace.start()
+//
+//        log(f'cpu.PC={cpu.PC}')
+//        cycles = cpu.execute_one_instruction()
+//        log(f'start_running: cpu.execute_one_instruction returned {cycles}')
+//        dcycles = dcpu.execute_one_instruction()
+//        log(f'start_running: dcpu.execute_one_instruction returned {dcycles}')
+//        ptrptp.ptr_tick(cycles)
+//        ptrptp.ptp_tick(cycles)
+//        ttyin.tick(cycles)
+//
+//        Trace.end_line()
+//        Trace.flush()
+//
+//    Trace.close()
+
 void
 run(WORD pc)
 {
     cpu_set_PC(pc);
     cpu_start();
-    while (true)
+    trace_open();
+
+    //while (cpu_running() && dcpu_running())
+    while (cpu_running())
     {
-       int cycles = cpu_execute_one();
-       if (cycles < 1)
-	   break;
-       ptr_tick(cycles);
+        vlog("run: loop, PC=%06o", cpu_get_PC());
+        trace_start_line();
+
+        int cycles = cpu_execute_one();
+        int dcycles = dcpu_execute_one();
+
+        ptr_tick(cycles+dcycles);
+        ptp_tick(cycles+dcycles);
+//        ttyin_tick(cycles);
+
+        trace_end_line();
     }
+
+    trace_close();
 }
 
+
+//*********************************************************
+// Print some help for the befuddled user.
+//     msg  a message to print
+//*********************************************************
 
 void
 usage(char *msg)
@@ -126,6 +179,10 @@ usage(char *msg)
     exit(1);
 }
 
+
+//*********************************************************
+// Start the emulator.
+//*********************************************************
 
 int
 main(int argc, char *argv[])
@@ -240,17 +297,21 @@ main(int argc, char *argv[])
             }
             address = strtolower(argv[ndx]);
             ndx += 1;
+            WORD run_pc;
             if (!STREQ(address, "pc"))
             {
                 cpu_set_PC(str2int(address));
                 vlog("Running from address %s", address);
+                run_pc = str2int(address);
             }
             else
             {
                 vlog("Running from current PC %06o", cpu_get_PC());
+                run_pc = cpu_get_PC();
             }
 //            Trace.set_TraceMap(trace_map);
 //            start_running(imlac_cpu, imlac_dcpu, imlac_memory, imlac_ptrptp, imlac_ttyin);
+            run(run_pc);
         }
         else if (STREQ(opt, "-s"))
         {
@@ -366,17 +427,5 @@ main(int argc, char *argv[])
             sprintf(buff, "Unrecognized option '%s'", opt);
             usage(buff);
         }
-
-
-
     }
-
-//    mem_clear(0);
-//    mem_set_rom(PtrROMImage);
-//    ptr_mount("test_add.ptp");
-//    run(040);
-//    run(0100);
-//    mem_save_core("vimlac.core");
 }
-
-

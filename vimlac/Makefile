@@ -1,9 +1,9 @@
-DEVFILES = cpu.o dcpu.o ptrptp.o memory.o kb.o ttyin.o ttyout.o trace.o error.o log.o plist.o bootstrap.o
-CFILES = cpu.c dcpu.c ptrptp.c memory.c kb.c ttyin.c ttyout.c trace.c error.c log.c plist.c bootstrap.c
-HFILES = cpu.h dcpu.h ptrptp.h memory.h kb.h ttyin.h ttyout.h trace.h error.h log.h plist.h bootstrap.h
+DEVFILES = cpu.o dcpu.o ptrptp.o memory.o kb.o ttyin.o ttyout.o trace.o error.o log.o plist.o bootstrap.o display_pbm.o
+CFILES = cpu.c dcpu.c ptrptp.c memory.c kb.c ttyin.c ttyout.c trace.c error.c log.c plist.c bootstrap.c display_pbm.c
+HFILES = cpu.h dcpu.h ptrptp.h memory.h kb.h ttyin.h ttyout.h trace.h error.h log.h plist.h bootstrap.h display_pbm.h
 OFILES = vimlac.o $(DEVFILES)
 
-CFLAGS=-O2 -Wall -ansi -pedantic -std=c99 -g
+CFLAGS=-O2 -Wall -pedantic -std=c99 -g
 
 test:	test_cpu
 	rm -f vimlac.log trace.out
@@ -26,8 +26,9 @@ test_plist:	test_plist.c $(DEVFILES) Makefile
 test_memory:	test_memory.c memory.c memory.h Makefile
 	gcc -o test_memory ${CFLAGS} memory.c test_memory.c
 
-vimlac:	 $(CFILES)
-	gcc -o vimlac ${CFLAGS} $(DEVFILES) vimlac.c
+#vimlac:	 $(CFILES)
+#	gcc -o vimlac ${CFLAGS} $(DEVFILES) vimlac.c
 
 clean:
 	rm -f *.pyc *.o vimlac test_ptr test_memory *~ _#*#_.*
+	rm -Rf *.dSYM
