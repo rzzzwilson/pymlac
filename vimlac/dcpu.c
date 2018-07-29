@@ -10,6 +10,7 @@
 #include "dcpu.h"
 #include "memory.h"
 #include "display_pbm.h"
+#include "log.h"
 #include "trace.h"
 
 
@@ -58,7 +59,7 @@ int DIB = 0;                                    // ????
 static BYTE Mode = MODE_NORMAL;                 // DEIM mode
 static bool Running = false;                    // true if display processor is running
 
-static char DEIM_result[10];                    // holds DEIM_decode() result
+static char DEIM_result[100];                   // holds DEIM_decode() result
 
 
 /******************************************************************************
@@ -201,6 +202,7 @@ Description : Execute a DEIM instruction byte.
 static
 char *doDEIMByte(BYTE byte, bool last)
 {
+    vlog("doDEIMByte: entered, last=%s", last ? "true" : "false");
 
     char *trace = DEIMdecode(byte);
 
@@ -214,6 +216,7 @@ char *doDEIMByte(BYTE byte, bool last)
 
         if (byte & 0x20)                // get dx sign and move X
         {
+            vlog("doDEIMByte: -x move");
             DX -= dx * DScale;
         }
         else
@@ -223,6 +226,7 @@ char *doDEIMByte(BYTE byte, bool last)
 
         if (byte & 0x04)                // get dy sign and move Y
         {
+            vlog("doDEIMByte: -y move");
             DY -= dy * DScale;
         }
         else
@@ -273,6 +277,8 @@ char *doDEIMByte(BYTE byte, bool last)
         }
     }
 
+    vlog("doDEIMByte: finished, trace='%s'", trace);
+
     return trace;
 }
 
@@ -303,8 +309,12 @@ int i_DDYM(void)
 static
 int i_DEIM(WORD address)
 {
+    vlog("i_DEIM: entered");
+
     Mode = MODE_DEIM;
+    vlog("i_DEIM: just before doDEIMByte+trace_dcpu");
     trace_dcpu("DEIM %s", doDEIMByte(address & 0377, true));
+    vlog("i_DEIM: returning 1");
     return 1;
 }
 
@@ -365,14 +375,16 @@ int i_DJMS(WORD address)
 static
 int i_DLXA(WORD address)
 {
-    DX = (address & BITS10) << 1;
+    //DX = (address & BITS10) << 1;
+    DX = address & BITS10;
     trace_dcpu("DLXA %04o", address);
     return 1;
 }
 static
 int i_DLYA(WORD address)
 {
-    DY = (address & BITS10) << 1;
+    //DY = (address & BITS10) << 1;
+    DY = address & BITS10;
     trace_dcpu("DLYA %04o", address);
     return 1;
 }
@@ -520,6 +532,8 @@ Description : Function to execute one display processor instruction.
 int
 dcpu_execute_one(void)
 {
+    vlog("dcpu_execute_one: entered");
+
     if (!Running)
     {
         return 0;
@@ -532,14 +546,20 @@ dcpu_execute_one(void)
 
     if (Mode == MODE_DEIM)
     {
-        char *tracestr = doDEIMByte(instruction >> 8, false);
+        static char tmp_buff[100];
+
+        strcpy(tmp_buff, doDEIMByte(instruction >> 8, false));
+        vlog("dcpu_execute_one: after first doDEIMByte()");
 
         if (Mode == MODE_DEIM)
         {
-            strcat(tracestr, ",");
-            strcat(tracestr, doDEIMByte(instruction & 0xff, true));
+            strcat(tmp_buff, ",");
+            strcat(tmp_buff, doDEIMByte(instruction & 0xff, true));
+            vlog("dcpu_execute_one: after second doDEIMByte()");
         }
-        trace_dcpu("INC %s", tracestr);
+
+        trace_dcpu("INC %s", tmp_buff);
+
         return 1;
     }
 
@@ -560,7 +580,10 @@ dcpu_execute_one(void)
     }
     else if (opcode == 003)
     {
-        return i_DEIM(address);
+        vlog("dcpu_execute_one: calling i_DEIM()");
+        int result = i_DEIM(address);
+        vlog("dcpu_execute_one: returning %d", result);
+        return result;
     }
     else if (opcode == 004)
     {

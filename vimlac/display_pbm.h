@@ -12,6 +12,7 @@ void display_write(void);
 void display_draw(int x1, int y1, int x2, int y2);
 void display_clear(void);
 void display_close(void);
+bool display_dirty(void);
 
 
 #endif

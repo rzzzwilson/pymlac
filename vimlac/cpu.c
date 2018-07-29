@@ -961,7 +961,7 @@ i_SSF(void)
     if (cpu_sync_on)
         r_PC = (r_PC + 1) & WORD_MASK;
 
-    trace_cpu("SSF\t");
+    trace_cpu("SSF");
 
     return 1;
 }
@@ -979,7 +979,7 @@ i_SSN(void)
     if (!cpu_sync_on)
         r_PC = (r_PC + 1) & WORD_MASK;
 
-    trace_cpu("SSN\t");
+    trace_cpu("SSN");
 
     return 1;
 }

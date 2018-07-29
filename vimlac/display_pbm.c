@@ -24,18 +24,27 @@
  * State variables for the display
  ******/
 
-static char *pbm_display;          // pointer to display array of chars
+static BYTE *pbm_display;          // pointer to display array of chars
 static bool pbm_running = false;   // true if display is ON
 static int pbm_cyclecount = 0;     // number of cycles for one instruction execution
 static int pbm_sync40 = 0;         // counter for 40Hz flag
 static int pbm_file_num = 0;       // number of next PBM file to write
 static bool pbm_dirty = false;     // 'true' if buffer unsaved
 
+
+bool
+display_dirty(void)
+{
+    return pbm_dirty;
+}
+
+
 void
 display_reset(void)
 {
     for (int i = 0; i < SCALE_MAX_X * SCALE_MAX_Y; ++i)
         pbm_display[i] = 0;
+    vlog("Max display cell is at %d", SCALE_MAX_X * SCALE_MAX_Y -1);
 
     // set internal state
     pbm_running = 0;
@@ -49,13 +58,17 @@ display_reset(void)
 void
 display_init(void)
 {
-    pbm_display = (char *) malloc(sizeof(bool) * SCALE_MAX_X * SCALE_MAX_Y);
+    pbm_display = malloc(sizeof(BYTE) * SCALE_MAX_X * SCALE_MAX_Y);
     display_reset();
+
+    vlog("display_init: done");
 }
 
 void
 display_write(void)
 {
+    vlog("display_write:");
+
     char fname[1024];
 
     pbm_file_num += 1;
@@ -70,6 +83,8 @@ display_write(void)
     fclose(fd);
 
     pbm_dirty = false;
+
+    vlog("display_write: done");
 }
 
 
@@ -88,13 +103,15 @@ void
 //draw(int x1, int y1, int x2, int y2, dotted=False)
 display_draw(int x1, int y1, int x2, int y2)
 {
-    // convert virtual coords to physical
-    x1 /= 2;
-    y1 /= 2;
-    x2 /= 2;
-    y2 /= 2;
+    vlog("display_draw: x1=%d, y1=%d, x2=%d, y2=%d", x1, y1, x2, y2);
 
-    // invert the Y axis
+//    // convert virtual coords to physical
+//    x1 /= 2;
+//    y1 /= 2;
+//    x2 /= 2;
+//    y2 /= 2;
+
+    // invert the Y axes
     y1 = SCALE_MAX_Y - y1;
     y2 = SCALE_MAX_Y - y2;
 
@@ -113,7 +130,8 @@ display_draw(int x1, int y1, int x2, int y2)
     else
         s2 = -1;
     bool swap = false;
-    pbm_display[(y-1)*SCALE_MAX_X + x - 1] = 1;
+//    vlog("display_draw: setting pixel (%d,%d)", x, y);
+//    pbm_display[(y-1)*SCALE_MAX_X + (x-1)] = 1;
     if (dy > dx)
     {
         int temp = dx;
@@ -125,6 +143,7 @@ display_draw(int x1, int y1, int x2, int y2)
     int p = 2*dy - dx;
     for (int i = 0; i < dx;  ++i)
     {
+        vlog("display_draw: setting pixel (%d,%d)", x, y);
         pbm_display[(y-1)*SCALE_MAX_X + x - 1] = 1 ;
         while (p >= 0)
         {
@@ -141,7 +160,13 @@ display_draw(int x1, int y1, int x2, int y2)
             x += s1;
     }
 
+    // draw the final point
+    vlog("display_draw: setting pixel (%d,%d)", x, y);
+    pbm_display[(y-1)*SCALE_MAX_X + x - 1] = 1 ;
+
     pbm_dirty = true;
+
+    vlog("display_draw: finished");
 }
 
 

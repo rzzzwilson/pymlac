@@ -37,6 +37,7 @@
 #include "bootstrap.h"
 #include "memory.h"
 #include "ptrptp.h"
+#include "display_pbm.h"
 #include "cpu.h"
 #include "dcpu.h"
 #include "trace.h"
@@ -112,6 +113,7 @@ str2int(char *s)
 void
 run(WORD pc)
 {
+    display_init();
     cpu_set_PC(pc);
     cpu_start();
     trace_open();
@@ -130,6 +132,9 @@ run(WORD pc)
 //        ttyin_tick(cycles);
 
         trace_end_line();
+
+        if (!dcpu_running() && display_dirty())
+            display_write();
     }
 
     trace_close();

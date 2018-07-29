@@ -22,7 +22,8 @@ typedef unsigned char	BYTE;
 
 #define MEMORY_SIZE     04000
 
-#define CPU_HERZ	1800000
+// number of machine cycles per second (1000000 / 1.8us)
+#define CPU_HERZ	55555
 #define MEMMASK		0xffff
 #define HIGHBITMASK	0x8000
 #define WORD_MASK	0xffff
