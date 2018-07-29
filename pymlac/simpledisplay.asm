@@ -3,8 +3,8 @@
         dof             ; turn display off
 wdoff   dsn             ;
         jmp    wdoff    ; wait until display off
-w40hz   ssf             ;
-        jmp    w40hz    ; wait for 40Hz synch
+;w40hz   ssf             ;
+;        jmp    w40hz    ; wait for 40Hz synch
         scf             ; 
         law    hello    ; start display
         dla             ; 
