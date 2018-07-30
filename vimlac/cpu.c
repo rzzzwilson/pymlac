@@ -198,8 +198,6 @@ Description : Emulate the IMLAC LAW/LWC instructions.
 static int
 i_LAW_LWC(bool indirect, WORD address)
 {
-    vlog("i_LAW_LWC");
-
     /* here 'indirect' selects between LWC and LAW */
     if (indirect)
     {

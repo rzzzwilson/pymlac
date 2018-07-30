@@ -5,10 +5,10 @@
         org     0100           ; 
         dof                    ; 
 loop    dsn                    ; wait until display is off
-        jmp     .-1            ; 
-        ssf                    ; wait until 40 Hz sync is set
-        jmp     .-1            ; 
-        scf                    ; 
+        jmp     loop           ; 
+;        ssf                    ; wait until 40 Hz sync is set
+;        jmp     .-1            ; 
+;        scf                    ; 
 ;        lda                    ; get data switches
 ;        and     hbit           ; save only high bit (NOP or HLT)
 ;        dac     .+1            ; save and ...
@@ -16,29 +16,31 @@ loop    dsn                    ; wait until display is off
         law     dsub           ; start display
         dla                    ; 
         don                    ; 
-;        hlt                   ; DEBUG
+;        hlt                    ; DEBUG
         jmp     loop           ; keep going
-hbit    data    0100000        ; high bit mask
+;hbit    data    0100000        ; high bit mask
 ;-------------------------------
 ; Display list subroutine - show all ASCII chars
 ;-------------------------------
-dsub    dsts    1              ;
-        dlxa    020            ; 
-        dlya    0200           ; 
-        dsts    0              ;
-        djms    dlist0         ;
-;        dlxa    020            ; 
-;        dlya    0160           ; 
-;        djms    dlist1         ;
-;        dlxa    020            ; 
-;        dlya    0140           ; 
-;        djms    dlist2         ;
-;        dlxa    020            ; 
-;        dlya    0120           ; 
-;        djms    dlist3         ;
-;        dlxa    020            ; 
-;        dlya    0100           ; 
-;        djms    dlist4         ;
+dsub 
+;         dsts    1              ;
+         dsts    2              ;
+         dhvc                   ;
+         dlxa    004            ;
+         dlya    0400           ;
+         djms    dlist0         ;
+         dlxa    0004            ; 
+         dlya    0340           ; 
+         djms    dlist1         ;
+         dlxa    0004           ; 
+         dlya    0300           ; 
+         djms    dlist2         ;
+         dlxa    0004           ; 
+         dlya    0240           ; 
+         djms    dlist3         ;
+;         dlxa    0004           ; 
+;         dlya    0200           ; 
+;         djms    dlist4         ;
 
 ;        dsts    1              ; 
 ;        dlxa    020            ; 
@@ -97,7 +99,8 @@ dsub    dsts    1              ;
 ;-------------------------------
 ; Display list subroutine - show all ASCII chars
 ;-------------------------------
-dlist0  djms    space          ; space
+dlist0                         ;
+        djms    space          ; space
         djms    exclam         ; !
         djms    dquote         ; "
         djms    hash           ; #
@@ -114,7 +117,8 @@ dlist0  djms    space          ; space
         djms    dot            ; .
         djms    slash          ; /
         drjm                   ; 
-dlist1  djms    zero           ; 0
+dlist1                         ;
+        djms    zero           ; 0
         djms    one            ; 1
         djms    two            ; 2
         djms    three          ; 3

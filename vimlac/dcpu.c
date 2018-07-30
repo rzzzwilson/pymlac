@@ -139,24 +139,25 @@ DEIMdecode(BYTE byte)
         {
             strcat(bptr, "D");
             *++bptr = '\0';
-            if (byte & 0x20)
-            {
-                strcat(bptr, "-");
-                *++bptr = '\0';
-            }
-
-            sprintf(bptr, "%d", (byte >> 3) & 0x03);
-            bptr = DEIM_result + strlen(DEIM_result);
-
-            if (byte & 0x04)
-            {
-                strcat(bptr, "-");
-                *++bptr = '\0';
-            }
-
-            sprintf(bptr, "%d", byte & 0x03);
-            bptr = DEIM_result + strlen(DEIM_result);
         }
+
+        if (byte & 0x20)
+        {
+            strcat(bptr, "-");
+            *++bptr = '\0';
+        }
+
+        sprintf(bptr, "%d", (byte >> 3) & 0x03);
+        bptr = DEIM_result + strlen(DEIM_result);
+
+        if (byte & 0x04)
+        {
+            strcat(bptr, "-");
+            *++bptr = '\0';
+        }
+
+        sprintf(bptr, "%d", byte & 0x03);
+        bptr = DEIM_result + strlen(DEIM_result);
     }
     else
     {
@@ -558,7 +559,7 @@ dcpu_execute_one(void)
             vlog("dcpu_execute_one: after second doDEIMByte()");
         }
 
-        trace_dcpu("INC %s", tmp_buff);
+        trace_dcpu("INC  %s", tmp_buff);
 
         return 1;
     }

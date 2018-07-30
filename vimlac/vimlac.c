@@ -121,11 +121,15 @@ run(WORD pc)
     //while (cpu_running() && dcpu_running())
     while (cpu_running())
     {
+        int cycles;
+        int dcycles;
+
         vlog("run: loop, PC=%06o", cpu_get_PC());
+
         trace_start_line();
 
-        int cycles = cpu_execute_one();
-        int dcycles = dcpu_execute_one();
+        cycles = cpu_execute_one();
+        dcycles = dcpu_execute_one();
 
         ptr_tick(cycles+dcycles);
         ptp_tick(cycles+dcycles);
