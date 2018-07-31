@@ -54,7 +54,7 @@ static WORD DRS[] = {0, 0, 0, 0, 0, 0, 0, 0};   // display CPU stack
 static int DRSindex;                            //
 static int DX;                                  //
 static int DY;                                  //
-static float DScale = 4;                        // display scale (1, 2, 4, 8)
+static int DScale = 1;                          // display scale (1, 2, 4, 8)
 int DIB = 0;                                    // ????
 static BYTE Mode = MODE_NORMAL;                 // DEIM mode
 static bool Running = false;                    // true if display processor is running
@@ -469,16 +469,17 @@ static
 int i_DSTS(int scale)
 {
     if (scale == 0)
-        DScale = 0.5;
+        DScale = 1;
     else if (scale == 1)
-        DScale = 1.0;
+        DScale = 2;
     else if (scale == 2)
-        DScale = 2.0;
+        DScale = 4;
     else if (scale == 3)
-        DScale = 3.0;
+        DScale = 8;
     else
         illegal();
     trace_dcpu("DSTS %d", scale);
+    vlog("i_DSTS: scale=%d, DScale set to %d", scale, DScale);
     return 1;                   // FIXME check # cycles used
 }
 

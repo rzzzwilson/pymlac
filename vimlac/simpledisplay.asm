@@ -13,10 +13,34 @@ wdoff   dsn             ;
 
 hbit    data    0100000
 
-hello   dlxa    0100
+hello   dhvc
+        dlxa    0040
         dlya    0100
+        dsts    0
+        djms    upperh
+        djms    uppere
+        djms    upperl
+        djms    upperl
+        djms    uppero
+        dlxa    0040
+        dlya    0140
+        dsts    1
+        djms    upperh
+        djms    uppere
+        djms    upperl
+        djms    upperl
+        djms    uppero
+        dlxa    0040
+        dlya    0200
         dsts    2
-        dhvc
+        djms    upperh
+        djms    uppere
+        djms    upperl
+        djms    upperl
+        djms    uppero
+        dlxa    0040
+        dlya    0240
+        dsts    3
         djms    upperh
         djms    uppere
         djms    upperl

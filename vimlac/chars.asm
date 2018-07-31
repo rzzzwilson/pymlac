@@ -23,21 +23,24 @@ loop    dsn                    ; wait until display is off
 ; Display list subroutine - show all ASCII chars
 ;-------------------------------
 dsub 
-;         dsts    1              ;
-         dsts    2              ;
          dhvc                   ;
+         dsts    0              ;
          dlxa    004            ;
          dlya    0400           ;
          djms    dlist0         ;
-         dlxa    0004            ; 
+         dsts    1              ;
+         dlxa    0004           ; 
          dlya    0340           ; 
          djms    dlist1         ;
+         dsts    2              ;
          dlxa    0004           ; 
          dlya    0300           ; 
          djms    dlist2         ;
+         dsts    3              ;
          dlxa    0004           ; 
          dlya    0240           ; 
          djms    dlist3         ;
+;         dsts    0              ;
 ;         dlxa    0004           ; 
 ;         dlya    0200           ; 
 ;         djms    dlist4         ;

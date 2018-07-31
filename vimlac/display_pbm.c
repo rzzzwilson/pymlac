@@ -8,6 +8,7 @@
 
 #include "vimlac.h"
 #include "display_pbm.h"
+#include "dcpu.h"
 #include "log.h"
 
 
@@ -16,8 +17,8 @@
  ******/
 
 #define PBM_EXTENSION               "pbm"
-#define SCALE_MAX_X                 1024
-#define SCALE_MAX_Y                 1024
+#define SCALE_MAX_X                 2048
+#define SCALE_MAX_Y                 2048
 
 
 /*****
@@ -143,6 +144,7 @@ display_draw(int x1, int y1, int x2, int y2)
     for (int i = 0; i < dx;  ++i)
     {
         vlog("display_draw: setting pixel (%d,%d)", x, y);
+//        pbm_display[y*SCALE_MAX_X + x] = 0;
         pbm_display[y*SCALE_MAX_X + x] = 0;
         while (p >= 0)
         {
@@ -161,6 +163,7 @@ display_draw(int x1, int y1, int x2, int y2)
 
     // draw the final point
     vlog("display_draw: setting pixel (%d,%d)", x, y);
+//    pbm_display[y*SCALE_MAX_X + x] = 0;
     pbm_display[y*SCALE_MAX_X + x] = 0;
 
     pbm_dirty = true;

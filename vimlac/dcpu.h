@@ -6,8 +6,6 @@
 #ifndef DCPU_H
 #define DCPU_H
 
-//#include "vimlac.h"
-
 WORD dcpu_get_PC(void);
 void dcpu_set_PC(WORD value);
 void dcpu_set_DRSindex(int value);
