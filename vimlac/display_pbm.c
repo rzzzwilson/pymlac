@@ -68,7 +68,7 @@ display_init(void)
 
     display_reset();
 
-    vlog("display_init: done");
+    vlog("display_init: PBM done");
 
     return true;
 }
