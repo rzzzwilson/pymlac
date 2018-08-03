@@ -1,9 +1,9 @@
-DEVFILES = cpu.o dcpu.o ptrptp.o memory.o kb.o ttyin.o ttyout.o trace.o error.o log.o plist.o bootstrap.o display_pbm.o
-CFILES = cpu.c dcpu.c ptrptp.c memory.c kb.c ttyin.c ttyout.c trace.c error.c log.c plist.c bootstrap.c display_pbm.c
-HFILES = cpu.h dcpu.h ptrptp.h memory.h kb.h ttyin.h ttyout.h trace.h error.h log.h plist.h bootstrap.h display_pbm.h
+DEVFILES = cpu.o dcpu.o ptrptp.o memory.o kb.o ttyin.o ttyout.o trace.o error.o log.o plist.o bootstrap.o display_sdl.o
+CFILES = cpu.c dcpu.c ptrptp.c memory.c kb.c ttyin.c ttyout.c trace.c error.c log.c plist.c bootstrap.c display_sdl.c
+HFILES = cpu.h dcpu.h ptrptp.h memory.h kb.h ttyin.h ttyout.h trace.h error.h log.h plist.h bootstrap.h display_sdl.h
 OFILES = vimlac.o $(DEVFILES)
 
-CFLAGS=-O2 -Wall -pedantic -std=c99 -g
+CFLAGS=-O2 -Wall -pedantic -std=c99 -g -I /usr/local/include/SDL2/ -l SDL2-2.0.0
 
 test:	vimlac
 	rm -f vimlac.log trace.out *.pbm; time ./vimlac -b ptr -ptr chars.ptp -r 040 -r 0100
