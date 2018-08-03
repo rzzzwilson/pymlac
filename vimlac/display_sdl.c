@@ -17,8 +17,13 @@
  * Constants, etc.
  ******/
 
-#define MAX_X           512     // max X coord
-#define MAX_Y           512     // max Y coord
+// screen/display stuff
+#define MAX_X           512     // max X coord for display
+#define MAX_Y           512     // max Y coord for display
+#define SCALE_MAX_X     2048    // max vimlac X coord
+#define SCALE_MAX_Y     2048    // max vimlac Y coord
+
+// initial and increment size for dynamic DisplayList
 #define DL_INIT_SIZE    2048    // initial size of the DisplayList array
 #define DL_INC_SIZE     1024    // how much we increase DisplayList size
 
@@ -32,10 +37,10 @@ typedef struct DrawLine
 } DrawLine;
 
 // display state variables
-static SDL_Window* window = NULL;       // the SDL window reference
-static SDL_Renderer* renderer = NULL;   // reference to SDL renderer
+static SDL_Window *window = NULL;       // the SDL window reference
+static SDL_Renderer *renderer = NULL;   // reference to SDL renderer
 
-static DrawLine *DisplayList;           // the DrawLine array
+static DrawLine *DisplayList;           // the DrawLine array (dynamic)
 static int DisplayListSize = 0;         // current size of the dynamic DisplayList
 static int NumLines = 0;                // number of lines in DisplayList
 static bool DisplayDirty = false;       // true if the DisplayList has changed
@@ -69,6 +74,16 @@ void display_draw(int x1, int y1, int x2, int y2)
         DisplayListSize = newsize;
     }
 
+    // invert the Y coords
+    y1 = SCALE_MAX_Y - y1;
+    y2 = SCALE_MAX_Y - y2;
+
+    // scale line coords
+    x1 = x1 / (SCALE_MAX_X / MAX_X);
+    y1 = y1 / (SCALE_MAX_Y / MAX_Y);
+    x2 = x2 / (SCALE_MAX_X / MAX_X);
+    y2 = y2 / (SCALE_MAX_Y / MAX_Y);
+    
     // add new line to DisplayList
     DrawLine *p = &DisplayList[NumLines++];
 
@@ -131,17 +146,57 @@ Description : Initialize the SDL system.
 
 bool display_init()
 {
+    printf("display_init: called\n");
+
+    SDL_DisplayMode dm;
+
     if (SDL_Init(SDL_INIT_VIDEO) != 0)
         return false;
 
-    if (SDL_CreateWindowAndRenderer(MAX_X, MAX_Y, 0, &window, &renderer) != 0)
+    if (SDL_GetDesktopDisplayMode(0, &dm) != 0)
     {
-        if (renderer)
-            SDL_DestroyRenderer(renderer);
+        printf("SDL_GetDesktopDisplayMode failed: %s\n", SDL_GetError());
+        return false;
+    }
+    printf("Screen wxh = %d x %d\n", dm.w, dm.h);
+
+//    if (SDL_CreateWindowAndRenderer(MAX_X, MAX_Y, 0, &window, &renderer) != 0)
+//    {
+//        if (renderer)
+//            SDL_DestroyRenderer(renderer);
+//        if (window)
+//            SDL_DestroyWindow(window);
+//        return false;
+//    }
+
+    window = SDL_CreateWindow("SDL Tutorial", SDL_WINDOWPOS_UNDEFINED,
+                              SDL_WINDOWPOS_UNDEFINED, MAX_X,
+                              MAX_Y, SDL_WINDOW_SHOWN);
+
+//    window = SDL_CreateWindow(
+//        "An SDL2 window",                  // window title
+//        SDL_WINDOWPOS_UNDEFINED,           // initial x position
+//        SDL_WINDOWPOS_UNDEFINED,           // initial y position
+//        MAX_X,                             // width, in pixels
+//        MAX_Y,                             // height, in pixels
+//        SDL_WINDOW_OPENGL                  // flags - see below
+//    );
+    if (!window)
+    {
+        return false;
+    }
+
+
+    renderer = SDL_CreateRenderer(window, -1, 0);
+    if (!renderer)
+    {
         if (window)
             SDL_DestroyWindow(window);
         return false;
     }
+
+    // set window title
+    SDL_SetWindowTitle(window, "vimlac 0.1");
 
     // allocate the initial DisplayList array
     DisplayList = malloc(sizeof(DrawLine) * DL_INIT_SIZE);

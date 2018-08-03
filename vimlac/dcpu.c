@@ -9,7 +9,7 @@
 #include "vimlac.h"
 #include "dcpu.h"
 #include "memory.h"
-#include "display_pbm.h"
+#include "display.h"
 #include "log.h"
 #include "trace.h"
 

@@ -32,12 +32,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <SDL.h>
 
 #include "vimlac.h"
 #include "bootstrap.h"
 #include "memory.h"
 #include "ptrptp.h"
-//#include "display_pbm.h"
 #include "display.h"
 #include "cpu.h"
 #include "dcpu.h"
@@ -140,6 +140,16 @@ run(WORD pc)
 
         if (!dcpu_running() && display_dirty())
             display_write();
+
+        SDL_Event e;
+        while (SDL_PollEvent(&e) != 0)
+        {
+            if (e.type == SDL_QUIT)
+            {
+                cpu_abort();
+                printf("cpu_on set to %s\n", cpu_running() ? "true" : "false");
+            }
+        }
     }
 
     trace_close();

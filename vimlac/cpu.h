@@ -25,6 +25,7 @@ void cpu_set_AC(WORD ac);
 void cpu_set_L(WORD l);
 void cpu_set_PC(WORD pc);
 void cpu_set_DS(WORD ds);
+void cpu_abort(void);
 
 
 #endif

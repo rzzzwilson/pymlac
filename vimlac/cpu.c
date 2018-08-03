@@ -142,6 +142,12 @@ cpu_running(void)
 
 
 void
+cpu_abort(void)
+{
+    cpu_on = false;
+}
+
+void
 cpu_set_AC(WORD new_ac)
 {
     r_AC = new_ac;
