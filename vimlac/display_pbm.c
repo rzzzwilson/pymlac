@@ -7,7 +7,7 @@
 #include <math.h>
 
 #include "vimlac.h"
-#include "display_pbm.h"
+#include "display.h"
 #include "dcpu.h"
 #include "log.h"
 
@@ -56,13 +56,21 @@ display_reset(void)
 }
 
 
-void
+bool
 display_init(void)
 {
     pbm_display = malloc(sizeof(BYTE) * SCALE_MAX_X * SCALE_MAX_Y);
+    if (!pbm_display)
+    {
+        printf("Out of memory in 'display_init()'!?\n");
+        return false;
+    }
+
     display_reset();
 
     vlog("display_init: done");
+
+    return true;
 }
 
 void
