@@ -37,9 +37,9 @@ vlog(char *fmt, ...)
     vsprintf(buff, fmt, ap);
     fd = fopen(LogFile, "a");
     if (LogPrefix)
-        fprintf(fd, "%15.6f|%s: %s\n", now, LogPrefix, buff);
+        fprintf(fd, "%11.6f|%s: %s\n", now, LogPrefix, buff);
     else
-        fprintf(fd, "%15.6f|%s\n", now, buff);
+        fprintf(fd, "%11.6f|%s\n", now, buff);
     fclose(fd);
     va_end(ap);
 }

@@ -203,8 +203,6 @@ Description : Execute a DEIM instruction byte.
 static
 char *doDEIMByte(BYTE byte, bool last)
 {
-    vlog("doDEIMByte: entered, last=%s", last ? "true" : "false");
-
     char *trace = DEIMdecode(byte);
 
     if (byte & 0x80)                    // increment mode
@@ -217,7 +215,6 @@ char *doDEIMByte(BYTE byte, bool last)
 
         if (byte & 0x20)                // get dx sign and move X
         {
-            vlog("doDEIMByte: -x move");
             DX -= dx * DScale;
         }
         else
@@ -227,7 +224,6 @@ char *doDEIMByte(BYTE byte, bool last)
 
         if (byte & 0x04)                // get dy sign and move Y
         {
-            vlog("doDEIMByte: -y move");
             DY -= dy * DScale;
         }
         else
@@ -278,8 +274,6 @@ char *doDEIMByte(BYTE byte, bool last)
         }
     }
 
-    vlog("doDEIMByte: finished, trace='%s'", trace);
-
     return trace;
 }
 
@@ -310,12 +304,8 @@ int i_DDYM(void)
 static
 int i_DEIM(WORD address)
 {
-    vlog("i_DEIM: entered");
-
     Mode = MODE_DEIM;
-    vlog("i_DEIM: just before doDEIMByte+trace_dcpu");
     trace_dcpu("DEIM %s", doDEIMByte(address & 0377, true));
-    vlog("i_DEIM: returning 1");
     return 1;
 }
 
@@ -479,7 +469,6 @@ int i_DSTS(int scale)
     else
         illegal();
     trace_dcpu("DSTS %d", scale);
-    vlog("i_DSTS: scale=%d, DScale set to %d", scale, DScale);
     return 1;                   // FIXME check # cycles used
 }
 
@@ -534,8 +523,6 @@ Description : Function to execute one display processor instruction.
 int
 dcpu_execute_one(void)
 {
-    vlog("dcpu_execute_one: entered");
-
     if (!Running)
     {
         return 0;
@@ -551,13 +538,11 @@ dcpu_execute_one(void)
         static char tmp_buff[100];
 
         strcpy(tmp_buff, doDEIMByte(instruction >> 8, false));
-        vlog("dcpu_execute_one: after first doDEIMByte()");
 
         if (Mode == MODE_DEIM)
         {
             strcat(tmp_buff, ",");
             strcat(tmp_buff, doDEIMByte(instruction & 0xff, true));
-            vlog("dcpu_execute_one: after second doDEIMByte()");
         }
 
         trace_dcpu("INC  %s", tmp_buff);
@@ -582,10 +567,7 @@ dcpu_execute_one(void)
     }
     else if (opcode == 003)
     {
-        vlog("dcpu_execute_one: calling i_DEIM()");
-        int result = i_DEIM(address);
-        vlog("dcpu_execute_one: returning %d", result);
-        return result;
+        return i_DEIM(address);;
     }
     else if (opcode == 004)
     {

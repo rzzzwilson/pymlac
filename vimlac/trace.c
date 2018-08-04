@@ -116,10 +116,7 @@ trace_dregs(void)
 
     if (TraceFlag != false)
     {
-//        sprintf(DCPU_reg_trace, "DPC=%06o X=%04o, Y=%04o",
-//                                dcpu_get_PC(), dcpu_get_x(), dcpu_get_y());
         sprintf(DCPU_reg_trace, "X=%04o, Y=%04o", dcpu_get_x(), dcpu_get_y());
-        vlog(DCPU_reg_trace);
     }
 }
 
@@ -156,8 +153,6 @@ Description : printf()-style trace routine for the display CPU.
 void
 trace_dcpu(char *fmt, ...)
 {
-    vlog("trace_dcpu: entered");
-
     TraceFlag = true;       // DEBUG
 
     if (TraceFlag != false)
@@ -170,7 +165,5 @@ trace_dcpu(char *fmt, ...)
 
         trace_dregs();
     }
-
-    vlog("trace_dcpu: exit");
 }
 

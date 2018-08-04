@@ -86,12 +86,6 @@ ptr_mount(char *fname)
     device_cycle_count = PTR_NOT_PTR_READY_CYCLES;
     device_use = InUsePTR;
 
-    vlog("ptr_mount: PTR_CHARS_PER_SECOND=%d", PTR_CHARS_PER_SECOND);
-    vlog("ptr_mount: PTR_CYCLES_PER_CHAR=(CPU_HERZ / PTR_CHARS_PER_SECOND)=%d/%d=%d",
-                    CPU_HERZ, PTR_CHARS_PER_SECOND, PTR_CYCLES_PER_CHAR);
-    vlog("ptr_mount: PTR_READY_CYCLES=%d", PTR_READY_CYCLES);
-    vlog("ptr_mount: PTR_NOT_PTR_READY_CYCLES=%d", PTR_NOT_PTR_READY_CYCLES);
-
     return 0;
 }
 

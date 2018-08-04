@@ -125,8 +125,6 @@ run(WORD pc)
         int cycles;
         int dcycles;
 
-        vlog("run: loop, PC=%06o", cpu_get_PC());
-
         trace_start_line();
 
         cycles = cpu_execute_one();
