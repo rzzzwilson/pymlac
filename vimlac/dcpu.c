@@ -18,11 +18,12 @@
  * Constants, etc.
  ******/
 
-#define MSBBITS     6
-#define LSBBITS     5
+//#define MSBBITS     6
+//#define LSBBITS     5
+#define LSBBITS     4
 
-#define MSBMASK     03740
-#define LSBMASK     037
+#define MSBMASK     0x7f0
+#define LSBMASK     0x0f
 
 // full 11 bits of display addressing
 #define DMASK       03777
@@ -130,7 +131,8 @@ DEIMdecode(BYTE byte)
     // now decode the DEIM byte
     if (byte & 0x80)
     {
-        if (byte & 0x40)
+        // increment byte decoding
+        if (byte & 0x40)    // beam on/off bit
         {
             strcat(bptr, "B");
             *++bptr = '\0';
@@ -141,26 +143,27 @@ DEIMdecode(BYTE byte)
             *++bptr = '\0';
         }
 
-        if (byte & 0x20)
+        if (byte & 0x20)    // increment/decrement X
         {
             strcat(bptr, "-");
             *++bptr = '\0';
         }
 
-        sprintf(bptr, "%d", (byte >> 3) & 0x03);
+        sprintf(bptr, "%d", (byte >> 3) & 0x03);    // magnitude X movement
         bptr = DEIM_result + strlen(DEIM_result);
 
-        if (byte & 0x04)
+        if (byte & 0x04)    // increment/decrement Y
         {
             strcat(bptr, "-");
             *++bptr = '\0';
         }
 
         sprintf(bptr, "%d", byte & 0x03);
-        bptr = DEIM_result + strlen(DEIM_result);
+        bptr = DEIM_result + strlen(DEIM_result);   // magnitude Y movement
     }
     else
     {
+        // control byte decoding
         if (byte == 0111)
         {
             strcat(bptr, "N");
@@ -205,8 +208,11 @@ char *doDEIMByte(BYTE byte, bool last)
 {
     char *trace = DEIMdecode(byte);
 
-    if (byte & 0x80)                    // increment mode
+    vlog("doDEIMByte: DX=%04x, DY=%04x,", DX, DY);
+
+    if (byte & 0x80)
     {
+        // increment mode
         int dx = (byte & 0x18) >> 3;    // extract X/Y deltas
         int dy = (byte & 0x03);
 
@@ -231,13 +237,18 @@ char *doDEIMByte(BYTE byte, bool last)
             DY += dy * DScale;
         }
 
+        // ensure dislay X/Y in limits
+        DX &= DMASK;
+        DY &= DMASK;
+
         if (byte & 0x40)                // if beam on
         {
             display_draw(prevDX, prevDY, DX, DY);
         }
     }
-    else                                // control instructions
+    else
     {
+        // control instructions
         if (byte & 0x40)                // escape DEIM mode
         {
             Mode = MODE_NORMAL;
@@ -255,22 +266,32 @@ char *doDEIMByte(BYTE byte, bool last)
 
         if (byte & 0x10)                // inc X MSB
         {
+            vlog("before inc X MSB, X=%04x", DX);
             DX += (1 << LSBBITS);
+            DX &= DMASK;
+            vlog(" after inc X MSB, X=%04x", DX);
         }
 
         if (byte & 0x08)                // clear X LSB
         {
+            vlog("before clear X LSB, X=%04x", DX);
             DX &= MSBMASK;
+            vlog(" after clear X LSB, X=%04x", DX);
         }
 
         if (byte & 0x02)                // inc Y MSB
         {
+            vlog("before inc Y MSB, Y=%04x", DY);
             DY += (1 << LSBBITS);
+            DY &= DMASK;
+            vlog(" after inc Y MSB, Y=%04x", DY);
         }
 
         if (byte & 0x01)                // clear Y LSB
         {
+            vlog("before clear Y LSB, Y=%04x", DY);
             DY &= MSBMASK;
+            vlog(" after clear Y LSB, Y=%04x", DY);
         }
     }
 
@@ -288,7 +309,8 @@ Description : The emulated display CPU instructions.
 static
 int i_DDXM(void)
 {
-    DX -= 040;
+    DX -= 02000;
+    DX &= DMASK;
     trace_dcpu("DDXM");
     return 1;
 }
@@ -296,7 +318,8 @@ int i_DDXM(void)
 static
 int i_DDYM(void)
 {
-    DY -= 040;
+    DY -= 02000;
+    DY &= DMASK;
     trace_dcpu("DDYM");
     return 1;
 }
@@ -329,6 +352,7 @@ static
 int i_DIXM(void)
 {
     DX += 04000;
+    DX &= DMASK;
     trace_dcpu("DIXM");
     return 1;
 }
@@ -337,6 +361,7 @@ static
 int i_DIYM(void)
 {
     DY += 04000;
+    DY &= DMASK;
     trace_dcpu("DIYM");
     return 1;
 }

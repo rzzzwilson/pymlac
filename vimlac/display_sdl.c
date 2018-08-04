@@ -20,8 +20,8 @@
 // screen/display stuff
 #define MAX_X           512     // max X coord for display
 #define MAX_Y           512     // max Y coord for display
-#define SCALE_MAX_X     1024    // max vimlac X coord
-#define SCALE_MAX_Y     1024    // max vimlac Y coord
+#define SCALE_MAX_X     512     // max vimlac X coord
+#define SCALE_MAX_Y     512     // max vimlac Y coord
 //#define SCALE_MAX_X     2048    // max vimlac X coord
 //#define SCALE_MAX_Y     2048    // max vimlac Y coord
 
