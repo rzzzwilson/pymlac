@@ -209,13 +209,13 @@ i_LAW_LWC(bool indirect, WORD address)
     {
         /* LWC */
         r_AC = ~address & WORD_MASK;
-        trace_cpu("LWC\t %5.5o", address);
+        trace_cpu("LWC     %5.5o", address);
     }
     else
     {
         /* LAW */
         r_AC = address;
-        trace_cpu("LAW\t %5.5o", address);
+        trace_cpu("LAW     %5.5o", address);
     }
 
     return 1;
@@ -236,7 +236,10 @@ i_JMP(bool indirect, WORD address)
 
     r_PC = new_address & MEMMASK;
 
-    trace_cpu("JMP\t%c%5.5o", (indirect) ? '*' : ' ', address);
+    if (indirect)
+        trace_cpu("JMP     *%5.5o", address);
+    else
+        trace_cpu("JMP     %5.5o", address);
 
     return (indirect) ? 3 : 2;
 }
@@ -256,7 +259,10 @@ i_DAC(bool indirect, WORD address)
 
     mem_put(new_address, false, r_AC);
 
-    trace_cpu("DAC\t%c%5.5o", (indirect) ? '*' : ' ', address);
+    if (indirect)
+        trace_cpu("DAC     *%5.5o", address);
+    else
+        trace_cpu("DAC     %5.5o", address);
 
     return (indirect) ? 3 : 2;
 }
@@ -278,7 +284,10 @@ i_XAM(bool indirect, WORD address)
     mem_put(new_address, false, r_AC);
     r_AC = tmp;
 
-    trace_cpu("XAM\t%c%5.5o", (indirect) ? '*' : ' ', address);
+    if (indirect)
+        trace_cpu("XAM     *%5.5o", address);
+    else
+        trace_cpu("XAM     %5.5o", address);
 
     return (indirect) ? 3 : 2;
 }
@@ -303,7 +312,10 @@ i_ISZ(bool indirect, WORD address)
     if (new_value == 0)
         r_PC = (r_PC + 1) & WORD_MASK;
 
-    trace_cpu("ISZ\t%c%5.5o", (indirect) ? '*' : ' ', address);
+    if (indirect)
+        trace_cpu("ISZ     *%5.5o", address);
+    else
+        trace_cpu("ISZ     %5.5o", address);
 
     return (indirect) ? 3 : 2;
 }
@@ -324,7 +336,10 @@ i_JMS(bool indirect, WORD address)
     mem_put(new_address, false, r_PC);
     r_PC = ++new_address & MEMMASK;
 
-    trace_cpu("JMS\t%c%5.5o", (indirect) ? '*' : ' ', address);
+    if (indirect)
+        trace_cpu("JMS     *%5.5o", address);
+    else
+        trace_cpu("JMS     %5.5o", address);
 
     return (indirect) ? 3 : 2;
 }
@@ -344,7 +359,10 @@ i_AND(bool indirect, WORD address)
 
     r_AC &= mem_get(new_address, false);
 
-    trace_cpu("AND\t%c%5.5o", (indirect) ? '*' : ' ', address);
+    if (indirect)
+        trace_cpu("AND     *%5.5o", address);
+    else
+        trace_cpu("AND     %5.5o", address);
 
     return (indirect) ? 3 : 2;
 }
@@ -364,7 +382,10 @@ i_IOR(bool indirect, WORD address)
 
     r_AC |= mem_get(new_address, false);
 
-    trace_cpu("IOR\t%c%5.5o", (indirect) ? '*' : ' ', address);
+    if (indirect)
+        trace_cpu("IOR     *%5.5o", address);
+    else
+        trace_cpu("IOR     %5.5o", address);
 
     return (indirect) ? 3 : 2;
 }
@@ -384,7 +405,10 @@ i_XOR(bool indirect, WORD address)
 
     r_AC ^= mem_get(new_address, false);
 
-    trace_cpu("XOR\t%c%5.5o", (indirect) ? '*' : ' ', address);
+    if (indirect)
+        trace_cpu("XOR     *%5.5o", address);
+    else
+        trace_cpu("XOR     %5.5o", address);
 
     return (indirect) ? 3 : 2;
 }
@@ -404,7 +428,10 @@ i_LAC(bool indirect, WORD address)
 
     r_AC = mem_get(new_address, false);
 
-    trace_cpu("LAC\t%c%5.5o", (indirect) ? '*' : ' ', address);
+    if (indirect)
+        trace_cpu("LAC     *%5.5o", address);
+    else
+        trace_cpu("LAC     %5.5o", address);
 
     return (indirect) ? 3 : 2;
 }
@@ -429,7 +456,10 @@ i_ADD(bool indirect, WORD address)
         r_AC &= WORD_MASK;
     }
 
-    trace_cpu("ADD\t%c%5.5o", (indirect) ? '*' : ' ', address);
+    if (indirect)
+        trace_cpu("ADD     *%5.5o", address);
+    else
+        trace_cpu("ADD     %5.5o", address);
 
     return (indirect) ? 3 : 2;
 }
@@ -455,7 +485,10 @@ i_SUB(bool indirect, WORD address)
         r_AC &= WORD_MASK;
     }
 
-    trace_cpu("SUB\t%c%5.5o", (indirect) ? '*' : ' ', address);
+    if (indirect)
+        trace_cpu("SUB     *%5.5o", address);
+    else
+        trace_cpu("SUB     %5.5o", address);
 
     return (indirect) ? 3 : 2;
 }
@@ -476,7 +509,10 @@ i_SAM(bool indirect, WORD address)
     if (r_AC == mem_get(new_address, false))
         r_PC = (r_PC + 1) & WORD_MASK;
 
-    trace_cpu("SAM\t%c%5.5o", (indirect) ? '*' : ' ', address);
+    if (indirect)
+        trace_cpu("SAM     *%5.5o", address);
+    else
+        trace_cpu("SAM     %5.5o", address);
 
     return (indirect) ? 3 : 2;
 }
@@ -490,7 +526,7 @@ Description : Decode the 'microcode' instructions.
 static int
 microcode(WORD instruction)
 {
-    char trace_cpu_msg[10];		/* little buffer for opcode */
+    char trace_cpu_msg[20];		/* little buffer for opcode */
 
     /* T1 */
     if (instruction & 001)
@@ -554,7 +590,7 @@ microcode(WORD instruction)
        	    strcat(trace_cpu_msg, "HLT");
     }
 
-    strcat(trace_cpu_msg, "\t");
+    strcat(trace_cpu_msg, "  ");
     trace_cpu(trace_cpu_msg);
 
     return 1;
@@ -573,7 +609,7 @@ i_DSF(void)
     if (dcpu_running())
         r_PC = (r_PC + 1) & WORD_MASK;
 
-    trace_cpu("DSF\t");
+    trace_cpu("DSF");
 
     return 1;
 }
@@ -592,7 +628,7 @@ i_HRB(void)
 {
     r_AC |= ptr_read();
 
-    trace_cpu("HRB\t");
+    trace_cpu("HRB");
 
     return 1;
 }
@@ -610,7 +646,7 @@ i_DSN(void)
     if (!dcpu_running())
         r_PC = (r_PC + 1) & WORD_MASK;
 
-    trace_cpu("DSN\t");
+    trace_cpu("DSN");
 
     return 1;
 }
@@ -629,7 +665,7 @@ i_HSF(void)
     if (ptr_ready())
         r_PC = (r_PC + 1) & WORD_MASK;
 
-    trace_cpu("HSF\t");
+    trace_cpu("HSF");
 
     return 1;
 }
@@ -648,7 +684,7 @@ i_HSN(void)
     if (!ptr_ready())
         r_PC = (r_PC + 1) & WORD_MASK;
 
-    trace_cpu("HSN\t");
+    trace_cpu("HSN");
 
     return 1;
 }
@@ -665,7 +701,7 @@ i_KCF(void)
 {
     kb_clear_flag();
 
-    trace_cpu("KCF\t");
+    trace_cpu("KCF");
 
     return 1;
 }
@@ -682,7 +718,7 @@ i_KRB(void)
 {
     r_AC |= kb_get_char();
 
-    trace_cpu("KRB\t");
+    trace_cpu("KRB");
 
     return 1;
 }
@@ -700,7 +736,7 @@ i_KRC(void)
     r_AC |= kb_get_char();
     kb_clear_flag();
 
-    trace_cpu("KRC\t");
+    trace_cpu("KRC");
 
     return 1;
 }
@@ -718,7 +754,7 @@ i_KSF(void)
     if (kb_ready())
         r_PC = (r_PC + 1) & WORD_MASK;
 
-    trace_cpu("KSF\t");
+    trace_cpu("KSF");
 
     return 1;
 }
@@ -736,7 +772,7 @@ i_KSN(void)
     if (!kb_ready())
         r_PC = (r_PC + 1) & WORD_MASK;
 
-    trace_cpu("KSN\t");
+    trace_cpu("KSN");
 
     return 1;
 }
@@ -753,7 +789,7 @@ i_PPC(void)
 {
     ptp_punch(r_AC & 0xff);
 
-    trace_cpu("PPC\t");
+    trace_cpu("PPC");
 
     return 1;
 }
@@ -771,7 +807,7 @@ i_PSF(void)
     if (ptp_ready())
         r_PC = (r_PC + 1) & WORD_MASK;
 
-    trace_cpu("PSF\t");
+    trace_cpu("PSF");
 
     return 1;
 }
@@ -794,7 +830,7 @@ i_RAL(int shift)
         r_AC = ((r_AC << 1) + oldlink) & WORD_MASK;
     }
 
-    trace_cpu("RAL\t %d", shift);
+    trace_cpu("RAL     %d", shift);
 
     return 1;
 }
@@ -817,7 +853,7 @@ i_RAR(int shift)
         r_AC = ((r_AC >> 1) | (oldlink << 15)) & WORD_MASK;
     }
 
-    trace_cpu("RAR\t %d", shift);
+    trace_cpu("RAR     %d", shift);
 
     return 1;
 }
@@ -834,7 +870,7 @@ i_RCF(void)
 {
     ttyin_clear_flag();
 
-    trace_cpu("RCF\t");
+    trace_cpu("RCF");
 
     return 1;
 }
@@ -851,7 +887,7 @@ i_RRB(void)
 {
     r_AC |= ttyin_get_char();
 
-    trace_cpu("RRB\t");
+    trace_cpu("RRB");
 
     return 1;
 }
@@ -869,7 +905,7 @@ i_RRC(void)
     r_AC |= ttyin_get_char();
     ttyin_clear_flag();
 
-    trace_cpu("RRC\t");
+    trace_cpu("RRC");
 
     return 1;
 }
@@ -887,7 +923,7 @@ i_RSF(void)
     if (ttyin_ready())
         r_PC = (r_PC + 1) & WORD_MASK;
 
-    trace_cpu("RSF\t");
+    trace_cpu("RSF");
 
     return 1;
 }
@@ -905,7 +941,7 @@ i_RSN(void)
     if (!ttyin_ready())
         r_PC = (r_PC + 1) & WORD_MASK;
 
-    trace_cpu("RSN\t");
+    trace_cpu("RSN");
 
     return 1;
 }
@@ -925,7 +961,7 @@ i_SAL(int shift)
     while (shift-- > 0)
         r_AC = ((r_AC << 1) & WORD_MASK) | oldbit0;
 
-    trace_cpu("SAL\t %d", shift);
+    trace_cpu("SAL     %d", shift);
 
     return 1;
 }
@@ -947,7 +983,7 @@ i_SAR(int shift)
         r_AC = (r_AC >> 1) | oldbit0;
     }
 
-    trace_cpu("SAR\t %d", shift);
+    trace_cpu("SAR     %d", shift);
 
     return 1;
 }
@@ -1000,7 +1036,7 @@ i_TCF(void)
 {
     ttyout_clear_flag();
 
-    trace_cpu("TCF\t");
+    trace_cpu("TCF");
 
     return 1;
 }
@@ -1018,7 +1054,7 @@ i_TPC(void)
     ttyout_send(r_AC & 0xff);
     ttyout_clear_flag();
 
-    trace_cpu("TPC\t");
+    trace_cpu("TPC");
 
     return 1;
 }
@@ -1035,7 +1071,7 @@ i_TPR(void)
 {
     ttyout_send(r_AC & 0xff);
 
-    trace_cpu("TPR\t");
+    trace_cpu("TPR");
 
     return 1;
 }
@@ -1053,7 +1089,7 @@ i_TSF(void)
     if (ttyout_ready())
         r_PC = (r_PC + 1) & WORD_MASK;
 
-    trace_cpu("TSF\t");
+    trace_cpu("TSF");
 
     return 1;
 }
@@ -1071,7 +1107,7 @@ i_TSN(void)
     if (!ttyout_ready())
         r_PC = (r_PC + 1) & WORD_MASK;
 
-    trace_cpu("TSN\t");
+    trace_cpu("TSN");
 
     return 1;
 }
@@ -1089,7 +1125,7 @@ i_ASZ(void)
     if (r_AC == 0)
         r_PC = (r_PC + 1) & WORD_MASK;
 
-    trace_cpu("ASZ\t");
+    trace_cpu("ASZ");
 
     return 1;
 }
@@ -1107,7 +1143,7 @@ i_ASN(void)
     if (r_AC != 0)
         r_PC = (r_PC + 1) & WORD_MASK;
 
-    trace_cpu("ASN\t");
+    trace_cpu("ASN");
 
     return 1;
 }
@@ -1125,7 +1161,7 @@ i_ASP(void)
     if ((r_AC & HIGHBITMASK) == 0)
         r_PC = (r_PC + 1) & WORD_MASK;
 
-    trace_cpu("ASP\t");
+    trace_cpu("ASP");
 
     return 1;
 }
@@ -1143,7 +1179,7 @@ i_LSZ(void)
     if (r_L == 0)
         r_PC = (r_PC + 1) & WORD_MASK;
 
-    trace_cpu("LSZ\t");
+    trace_cpu("LSZ");
 
     return 1;
 }
@@ -1161,7 +1197,7 @@ i_LSN(void)
     if (r_L != 0)
         r_PC = (r_PC + 1) & WORD_MASK;
 
-    trace_cpu("LSN\t");
+    trace_cpu("LSN");
 
     return 1;
 }
@@ -1179,7 +1215,7 @@ i_ASM(void)
     if (r_AC & HIGHBITMASK)
         r_PC = (r_PC + 1) & WORD_MASK;
 
-    trace_cpu("ASM\t");
+    trace_cpu("ASM");
 
     return 1;
 }
@@ -1196,7 +1232,7 @@ i_DLA(void)
 {
     dcpu_set_PC(r_AC);
 
-    trace_cpu("DLA\t");
+    trace_cpu("DLA");
 
     return 1;
 }
@@ -1211,7 +1247,7 @@ Description : Emulate the IMLAC CTB instruction.
 static int
 i_CTB(void)
 {
-    trace_cpu("CTB\t");
+    trace_cpu("CTB");
 
     return 1;
 }
@@ -1228,7 +1264,7 @@ i_DOF(void)
 {
     dcpu_stop();
 
-    trace_cpu("DOF\t");
+    trace_cpu("DOF");
 
     return 1;
 }
@@ -1246,7 +1282,7 @@ i_DON(void)
     dcpu_set_DRSindex(0);
     dcpu_start();
 
-    trace_cpu("DON\t");
+    trace_cpu("DON");
 
     return 1;
 }
@@ -1263,7 +1299,7 @@ i_HOF(void)
 {
     ptr_stop();
 
-    trace_cpu("HOF\t");
+    trace_cpu("HOF");
 
     return 1;
 }
@@ -1280,7 +1316,7 @@ i_HON(void)
 {
     ptr_start();
 
-    trace_cpu("HON\t");
+    trace_cpu("HON");
 
     return 1;
 }
@@ -1295,7 +1331,7 @@ Description : Emulate the IMLAC STB instruction.
 static int
 i_STB(void)
 {
-    trace_cpu("STB\t");
+    trace_cpu("STB");
 
     return 1;
 }
@@ -1312,7 +1348,7 @@ i_SCF(void)
 {
     Sync40HzOn = false;
 
-    trace_cpu("SCF\t");
+    trace_cpu("SCF");
 
     return 1;
 }
@@ -1327,7 +1363,7 @@ Description : Emulate the IMLAC IOS instruction.
 static int
 i_IOS(void)
 {
-    trace_cpu("IOS\t");
+    trace_cpu("IOS");
 
     return 1;
 }
@@ -1342,7 +1378,7 @@ Description : Emulate the IMLAC IOT101 instruction.
 static int
 i_IOT101(void)
 {
-    trace_cpu("IOT101\t");
+    trace_cpu("IOT101");
 
     return 1;
 }
@@ -1357,7 +1393,7 @@ Description : Emulate the IMLAC IOT111 instruction.
 static int
 i_IOT111(void)
 {
-    trace_cpu("IOT111\t");
+    trace_cpu("IOT111");
 
     return 1;
 }
@@ -1371,7 +1407,7 @@ Description : Emulate the IMLAC i_IOT131 instruction.
 static int
 i_IOT131(void)
 {
-    trace_cpu("i_IOT131\t");
+    trace_cpu("IOT131");
 
     return 1;
 }
@@ -1386,7 +1422,7 @@ Description : Emulate the IMLAC i_IOT132 instruction.
 static int
 i_IOT132(void)
 {
-    trace_cpu("i_IOT132\t");
+    trace_cpu("IOT132");
 
     return 1;
 }
@@ -1401,7 +1437,7 @@ Description : Emulate the IMLAC IOT134 instruction.
 static int
 i_IOT134(void)
 {
-    trace_cpu("IOT134\t");
+    trace_cpu("IOT134");
 
     return 1;
 }
@@ -1416,7 +1452,7 @@ Description : Emulate the IMLAC IOT141 instruction.
 static int
 i_IOT141(void)
 {
-    trace_cpu("IOT141\t");
+    trace_cpu("IOT141");
 
     return 1;
 }
@@ -1431,7 +1467,7 @@ Description : Emulate the IMLAC IOF instruction.
 static int
 i_IOF(void)
 {
-    trace_cpu("IOF\t");
+    trace_cpu("IOF");
 
     return 1;
 }
@@ -1446,7 +1482,7 @@ Description : Emulate the IMLAC ION instruction.
 static int
 i_ION(void)
 {
-    trace_cpu("ION\t");
+    trace_cpu("ION");
 
     return 1;
 }

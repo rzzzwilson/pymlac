@@ -3,6 +3,7 @@
  */
 
 #include <stdarg.h>
+#include <time.h>
 
 #include "vimlac.h"
 #include "cpu.h"
@@ -17,6 +18,7 @@ static char CPU_trace[64];
 static char DCPU_trace[64];
 static char CPU_reg_trace[64];
 static char DCPU_reg_trace[64];
+static double now = 0;                  // time for each trace line
 
 
 /******************************************************************************
@@ -63,6 +65,7 @@ trace_start_line(void)
     DCPU_trace[0] = 0;
     CPU_reg_trace[0] = 0;
     DCPU_reg_trace[0] = 0;
+    now = (double) clock() / CLOCKS_PER_SEC;    // get the time
 }
 
 
@@ -75,9 +78,9 @@ trace_start_line(void)
 void
 trace_end_line(void)
 {
-    fprintf(trace_fp, "%06o:     %-20s%-20s   %-s %-s\n",
-                      cpu_get_prev_PC(), CPU_trace, DCPU_trace,
-                                         CPU_reg_trace, DCPU_reg_trace);
+    fprintf(trace_fp, "%11.6f|%06o:  %-16s%-13s|%06o: %-18s%-s\n",
+                      now, cpu_get_prev_PC(), CPU_trace, CPU_reg_trace,
+                      dcpu_get_PC(), DCPU_trace, DCPU_reg_trace);
     fflush(trace_fp);
 }
 
@@ -96,7 +99,6 @@ trace_regs(void)
     if (TraceFlag != false)
     {
         sprintf(CPU_reg_trace, "AC=%06.6o L=%1.1o", cpu_get_AC(), cpu_get_L());
-//        vlog(CPU_reg_trace);
     }
 }
 
@@ -114,8 +116,9 @@ trace_dregs(void)
 
     if (TraceFlag != false)
     {
-        sprintf(DCPU_reg_trace, "DPC=%06o X=%04o, Y=%04o",
-                                dcpu_get_PC(), dcpu_get_x(), dcpu_get_y());
+//        sprintf(DCPU_reg_trace, "DPC=%06o X=%04o, Y=%04o",
+//                                dcpu_get_PC(), dcpu_get_x(), dcpu_get_y());
+        sprintf(DCPU_reg_trace, "X=%04o, Y=%04o", dcpu_get_x(), dcpu_get_y());
         vlog(DCPU_reg_trace);
     }
 }
