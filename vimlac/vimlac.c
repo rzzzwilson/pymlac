@@ -143,13 +143,8 @@ run(WORD pc)
 
         SDL_Event e;
         while (SDL_PollEvent(&e) != 0)
-        {
             if (e.type == SDL_QUIT)
-            {
                 cpu_abort();
-                printf("cpu_on set to %s\n", cpu_running() ? "true" : "false");
-            }
-        }
     }
 
     trace_close();
@@ -329,8 +324,7 @@ main(int argc, char *argv[])
                 vlog("Running from current PC %06o", cpu_get_PC());
                 run_pc = cpu_get_PC();
             }
-//            Trace.set_TraceMap(trace_map);
-//            start_running(imlac_cpu, imlac_dcpu, imlac_memory, imlac_ptrptp, imlac_ttyin);
+            printf("Running vimlac at address %05o\n", cpu_get_PC());
             run(run_pc);
         }
         else if (STREQ(opt, "-s"))

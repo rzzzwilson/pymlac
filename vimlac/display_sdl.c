@@ -20,8 +20,10 @@
 // screen/display stuff
 #define MAX_X           512     // max X coord for display
 #define MAX_Y           512     // max Y coord for display
-#define SCALE_MAX_X     2048    // max vimlac X coord
-#define SCALE_MAX_Y     2048    // max vimlac Y coord
+#define SCALE_MAX_X     1024    // max vimlac X coord
+#define SCALE_MAX_Y     1024    // max vimlac Y coord
+//#define SCALE_MAX_X     2048    // max vimlac X coord
+//#define SCALE_MAX_Y     2048    // max vimlac Y coord
 
 // initial and increment size for dynamic DisplayList
 #define DL_INIT_SIZE    2048    // initial size of the DisplayList array
@@ -50,7 +52,7 @@ static bool DisplayDirty = false;       // true if the DisplayList has changed
 Description : Draw one line on the vimlac screen.
  Parameters : x1, y1 - start point coordinates
             : x2, y2 - stop point coordinates
-    Returns : 
+    Returns :
    Comments : Must check if DisplayList full and reallocate it bigger.
  ******************************************************************************/
 
@@ -83,7 +85,7 @@ void display_draw(int x1, int y1, int x2, int y2)
     y1 = y1 / (SCALE_MAX_Y / MAX_Y);
     x2 = x2 / (SCALE_MAX_X / MAX_X);
     y2 = y2 / (SCALE_MAX_Y / MAX_Y);
-    
+
     // add new line to DisplayList
     DrawLine *p = &DisplayList[NumLines++];
 
@@ -98,9 +100,9 @@ void display_draw(int x1, int y1, int x2, int y2)
 
 /******************************************************************************
 Description : Draw the DisplayList to the SDL screen.
- Parameters : 
-    Returns : 
-   Comments : 
+ Parameters :
+    Returns :
+   Comments :
  ******************************************************************************/
 
 void display_write(void)
@@ -125,9 +127,9 @@ void display_write(void)
 
 /******************************************************************************
 Description : Set the state back to "nothing on the screen".
- Parameters : 
-    Returns : 
-   Comments : 
+ Parameters :
+    Returns :
+   Comments :
  ******************************************************************************/
 
 void display_reset(void)
@@ -139,86 +141,69 @@ void display_reset(void)
 
 /******************************************************************************
 Description : Initialize the SDL system.
- Parameters : 
+ Parameters :
     Returns : 'true' if all went well, else 'false'.
-   Comments : 
+   Comments :
  ******************************************************************************/
 
 bool display_init()
 {
-    printf("display_init: called\n");
-
-    SDL_DisplayMode dm;
-
-    if (SDL_Init(SDL_INIT_VIDEO) != 0)
-        return false;
-
-    if (SDL_GetDesktopDisplayMode(0, &dm) != 0)
-    {
-        printf("SDL_GetDesktopDisplayMode failed: %s\n", SDL_GetError());
-        return false;
-    }
-    printf("Screen wxh = %d x %d\n", dm.w, dm.h);
-
-//    if (SDL_CreateWindowAndRenderer(MAX_X, MAX_Y, 0, &window, &renderer) != 0)
-//    {
-//        if (renderer)
-//            SDL_DestroyRenderer(renderer);
-//        if (window)
-//            SDL_DestroyWindow(window);
-//        return false;
-//    }
-
-    window = SDL_CreateWindow("SDL Tutorial", SDL_WINDOWPOS_UNDEFINED,
-                              SDL_WINDOWPOS_UNDEFINED, MAX_X,
-                              MAX_Y, SDL_WINDOW_SHOWN);
-
-//    window = SDL_CreateWindow(
-//        "An SDL2 window",                  // window title
-//        SDL_WINDOWPOS_UNDEFINED,           // initial x position
-//        SDL_WINDOWPOS_UNDEFINED,           // initial y position
-//        MAX_X,                             // width, in pixels
-//        MAX_Y,                             // height, in pixels
-//        SDL_WINDOW_OPENGL                  // flags - see below
-//    );
+    // if NOT initialized, do the initialization
     if (!window)
     {
-        return false;
-    }
+        if (SDL_Init(SDL_INIT_VIDEO) != 0)
+            return false;
 
+//        SDL_DisplayMode dm;
+//
+//        if (SDL_GetDesktopDisplayMode(0, &dm) != 0)
+//        {
+//            printf("SDL_GetDesktopDisplayMode failed: %s\n", SDL_GetError());
+//            return false;
+//        }
+//        printf("Screen wxh = %d x %d\n", dm.w, dm.h);
 
-    renderer = SDL_CreateRenderer(window, -1, 0);
-    if (!renderer)
-    {
-        if (window)
-            SDL_DestroyWindow(window);
-        return false;
-    }
+        window = SDL_CreateWindow("SDL Tutorial", SDL_WINDOWPOS_UNDEFINED,
+                                  SDL_WINDOWPOS_UNDEFINED, MAX_X,
+                                  MAX_Y, SDL_WINDOW_SHOWN);
 
-    // set window title
-    SDL_SetWindowTitle(window, "vimlac 0.1");
+        if (!window)
+            return false;
 
-    // allocate the initial DisplayList array
-    DisplayList = malloc(sizeof(DrawLine) * DL_INIT_SIZE);
-    if (DisplayList)
-    {
+        renderer = SDL_CreateRenderer(window, -1, 0);
+        if (!renderer)
+        {
+            if (window)
+                SDL_DestroyWindow(window);
+            return false;
+        }
+
+        // set window title
+        SDL_SetWindowTitle(window, "vimlac 0.1");
+
+        // allocate the initial DisplayList array
+        DisplayList = malloc(sizeof(DrawLine) * DL_INIT_SIZE);
+        if (!DisplayList)
+        {
+            display_close();
+            return false;
+        }
+
+        // error allocating DisplayList if we get here
+        // free up DSL resources
         DisplayListSize = DL_INIT_SIZE;
         display_reset();
-        return true;
     }
 
-    // error allocating DisplayList if we get here
-    // free up DSL resources
-    display_close();
-    return false;
+    return true;
 }
 
 
 /******************************************************************************
 Description : Get the display "dirty" flag.
- Parameters : 
+ Parameters :
     Returns : 'true' if the DisplayList has changed, else 'false'.
-   Comments : 
+   Comments :
  ******************************************************************************/
 
 bool display_dirty(void)
@@ -229,9 +214,9 @@ bool display_dirty(void)
 
 /******************************************************************************
 Description : Close down the SDL system.
- Parameters : 
-    Returns : 
-   Comments : 
+ Parameters :
+    Returns :
+   Comments :
  ******************************************************************************/
 
 void display_close(void)

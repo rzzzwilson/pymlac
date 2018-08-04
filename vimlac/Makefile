@@ -7,8 +7,8 @@ CFLAGS=-O2 -Wall -pedantic -std=c99 -g -I /usr/local/include/SDL2/
 LDFLAGS=-l SDL2-2.0.0
 
 test:	vimlac
-	rm -f vimlac.log trace.out *.pbm; time ./vimlac -b ptr -ptr chars.ptp -r 040 -r 0100
-#	rm -f vimlac.log trace.out *.pbm; time ./vimlac -b ptr -ptr simpledisplay.ptp -r 040 -r 0100
+	rm -f vimlac.log trace.out *.pbm; ./vimlac -b ptr -ptr chars.ptp -r 040 -r 0100
+#	rm -f vimlac.log trace.out *.pbm; ./vimlac -b ptr -ptr simpledisplay.ptp -r 040 -r 0100
 #	rm -f vimlac.log trace.out
 #	./test_cpu CPU.test
 

@@ -15,7 +15,7 @@
  ******/
 
 #define PTR_CHARS_PER_SECOND        300
-#define PTR_CYCLES_PER_CHAR         (CPU_HERZ / PTR_CHARS_PER_SECOND)
+#define PTR_CYCLES_PER_CHAR         (int)(CPU_HERZ / PTR_CHARS_PER_SECOND)
 #define PTR_READY_CYCLES            (int)((3 * PTR_CYCLES_PER_CHAR) / 10)
 #define PTR_NOT_PTR_READY_CYCLES    (int)((7 * PTR_CYCLES_PER_CHAR) / 10)
 
@@ -96,10 +96,9 @@ ptr_mount(char *fname)
 }
 
 // #define PTR_CHARS_PER_SECOND        300
-// #define PTR_CYCLES_PER_CHAR         (CPU_HERZ / PTR_CHARS_PER_SECOND)
-// #define PTR_READY_CYCLES            (int)((3 * PTR_CYCLES_PER_CHAR) / 10)
-// #define PTR_NOT_PTR_READY_CYCLES    (int)((7 * PTR_CYCLES_PER_CHAR) / 10)
-
+//#define PTR_CYCLES_PER_CHAR         (int)(CPU_HERZ / PTR_CHARS_PER_SECOND)
+//#define PTR_READY_CYCLES            (int)((3 * PTR_CYCLES_PER_CHAR) / 10)
+//#define PTR_NOT_PTR_READY_CYCLES    (int)((7 * PTR_CYCLES_PER_CHAR) / 10)
 
 void
 ptr_dismount(void)
