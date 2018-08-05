@@ -78,7 +78,7 @@ trace_start_line(void)
 void
 trace_end_line(void)
 {
-    fprintf(trace_fp, "%11.6f|%06o:  %-16s%-13s|%06o: %-18s%-s\n",
+    fprintf(trace_fp, "%11.6f  |%06o:  %-16s;%-15s|%06o:  %-18s;%-s\n",
                       now, cpu_get_prev_PC(), CPU_trace, CPU_reg_trace,
                       dcpu_get_PC(), DCPU_trace, DCPU_reg_trace);
     fflush(trace_fp);

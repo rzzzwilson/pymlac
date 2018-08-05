@@ -22,8 +22,8 @@
 //#define LSBBITS     5
 #define LSBBITS     4
 
-#define MSBMASK     0x7f0
-#define LSBMASK     0x0f
+#define MSBMASK     0x7e0
+#define LSBMASK     0x1f
 
 // full 11 bits of display addressing
 #define DMASK       03777
@@ -55,10 +55,14 @@ static WORD DRS[] = {0, 0, 0, 0, 0, 0, 0, 0};   // display CPU stack
 static int DRSindex;                            //
 static int DX;                                  //
 static int DY;                                  //
-static int DScale = 1;                          // display scale (1, 2, 4, 8)
 int DIB = 0;                                    // ????
 static BYTE Mode = MODE_NORMAL;                 // DEIM mode
 static bool Running = false;                    // true if display processor is running
+
+// array for DTSTS scale inc values
+static int DSTS_Inc[] = {1, 2, 4, 6};           // from p59 of Programming Guide
+static int DSTS_Value = 1;                      // index into DSTS_Inc[] [0..3]
+static int DSTS_Scale = 2;                      // actual inv value to use
 
 static char DEIM_result[100];                   // holds DEIM_decode() result
 
@@ -110,7 +114,7 @@ illegal(void)
     WORD oldPC = Prev_DPC & MEMMASK;
 
     error("INTERNAL ERROR: "
-          "unexpected main processor opcode %06.6o at address %06.6o",
+          "unexpected display processor opcode %06.6o at address %06.6o",
           mem_get(oldPC, false), oldPC);
 }
 
@@ -208,7 +212,7 @@ char *doDEIMByte(BYTE byte, bool last)
 {
     char *trace = DEIMdecode(byte);
 
-    vlog("doDEIMByte: DX=%04x, DY=%04x,", DX, DY);
+    vlog("doDEIMByte: before, DX=%04x, DY=%04x, DSTS_Scale=%d", DX, DY, DSTS_Scale);
 
     if (byte & 0x80)
     {
@@ -221,20 +225,20 @@ char *doDEIMByte(BYTE byte, bool last)
 
         if (byte & 0x20)                // get dx sign and move X
         {
-            DX -= dx * DScale;
+            DX -= dx * DSTS_Scale;
         }
         else
         {
-            DX += dx * DScale;
+            DX += dx * DSTS_Scale;
         }
 
         if (byte & 0x04)                // get dy sign and move Y
         {
-            DY -= dy * DScale;
+            DY -= dy * DSTS_Scale;
         }
         else
         {
-            DY += dy * DScale;
+            DY += dy * DSTS_Scale;
         }
 
         // ensure dislay X/Y in limits
@@ -266,8 +270,9 @@ char *doDEIMByte(BYTE byte, bool last)
 
         if (byte & 0x10)                // inc X MSB
         {
-            vlog("before inc X MSB, X=%04x", DX);
-            DX += (1 << LSBBITS);
+            vlog("before inc X MSB, X=%04x, (1 << LSBBITS) * DSTS_Scale=%04x", DX, (1 << LSBBITS) * DSTS_Scale);
+            DX += (1 << LSBBITS) * DSTS_Scale;
+            vlog("during inc X MSB, X=%04x", DX);
             DX &= DMASK;
             vlog(" after inc X MSB, X=%04x", DX);
         }
@@ -282,7 +287,7 @@ char *doDEIMByte(BYTE byte, bool last)
         if (byte & 0x02)                // inc Y MSB
         {
             vlog("before inc Y MSB, Y=%04x", DY);
-            DY += (1 << LSBBITS);
+            DY += (1 << LSBBITS) * DSTS_Scale;
             DY &= DMASK;
             vlog(" after inc Y MSB, Y=%04x", DY);
         }
@@ -294,6 +299,8 @@ char *doDEIMByte(BYTE byte, bool last)
             vlog(" after clear Y LSB, Y=%04x", DY);
         }
     }
+
+    vlog("doDEIMByte:  after, DX=%04x, DY=%04x,", DX, DY);
 
     return trace;
 }
@@ -483,16 +490,16 @@ int i_DSTB(int block)
 static
 int i_DSTS(int scale)
 {
-    if (scale == 0)
-        DScale = 1;
-    else if (scale == 1)
-        DScale = 2;
-    else if (scale == 2)
-        DScale = 4;
-    else if (scale == 3)
-        DScale = 8;
+    if (0 <= scale && scale <= 3)
+    {
+        DSTS_Value = scale;
+        DSTS_Scale = DSTS_Inc[scale];
+        vlog("i_DSTS: DSTS_Value=%d, DSTS_Scale=%d", DSTS_Value, DSTS_Scale);
+    }
     else
+    {
         illegal();
+    }
     trace_dcpu("DSTS %d", scale);
     return 1;                   // FIXME check # cycles used
 }
@@ -534,7 +541,9 @@ int page00(WORD instruction)
     else if (instruction == 006000)             // DHVC
         cycles = i_DHVC();
     else
+    {
         illegal();
+    }
 
     return cycles;
 }

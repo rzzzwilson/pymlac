@@ -26,7 +26,7 @@ static WORD            r_AC;
 static WORD            r_L;
 static WORD            r_PC;
 static WORD            Prev_r_PC;
-static WORD            r_DS;	/* data switches */
+static WORD            r_DS;    /* data switches */
 
 /* 40Hz sync stuff */
 static bool            Sync40HzOn = false;
@@ -70,9 +70,9 @@ cpu_eff_address(WORD address, bool indirect)
 
 /******************************************************************************
 Description : Function to start the main CPU.
- Parameters : 
-    Returns : 
-   Comments : 
+ Parameters :
+    Returns :
+   Comments :
  ******************************************************************************/
 void
 cpu_start(void)
@@ -83,9 +83,9 @@ cpu_start(void)
 
 /******************************************************************************
 Description : Function to stop the main CPU.
- Parameters : 
-    Returns : 
-   Comments : 
+ Parameters :
+    Returns :
+   Comments :
  ******************************************************************************/
 void
 cpu_stop(void)
@@ -96,9 +96,9 @@ cpu_stop(void)
 
 /******************************************************************************
 Description : Functions to get various registers and states.
- Parameters : 
-    Returns : 
-   Comments : 
+ Parameters :
+    Returns :
+   Comments :
  ******************************************************************************/
 WORD
 cpu_get_AC(void)
@@ -177,16 +177,16 @@ cpu_set_DS(WORD new_ds)
 
 /******************************************************************************
 Description : Function to handle unrecognized instruction.
- Parameters : 
-    Returns : 
-   Comments : 
+ Parameters :
+    Returns :
+   Comments :
  ******************************************************************************/
 static void
 illegal(void)
 {
     WORD oldPC = Prev_r_PC & MEMMASK;
 
-/*    memdump(LogOut, oldPC - 8, 16); */
+//    memdump(LogOut, oldPC - 8, 16);
 
     error("INTERNAL ERROR: "
           "unexpected main processor opcode %06.6o at address %06.6o",
@@ -198,7 +198,7 @@ illegal(void)
 Description : Emulate the IMLAC LAW/LWC instructions.
  Parameters : indirect - TRUE if address is indirect, FALSE if immediate
             : address  - the memory address
-    Returns : 
+    Returns :
    Comments : Load AC with immediate value.
  ******************************************************************************/
 static int
@@ -226,7 +226,7 @@ i_LAW_LWC(bool indirect, WORD address)
 Description : Emulate the JMP instruction.
  Parameters : indirect - TRUE if address is indirect, FALSE if immediate
             : address  - the memory address
-    Returns : 
+    Returns :
    Comments : PC set to new address.
  ******************************************************************************/
 static int
@@ -249,7 +249,7 @@ i_JMP(bool indirect, WORD address)
 Description : Emulate the DAC instruction.
  Parameters : indirect - TRUE if address is indirect, FALSE if immediate
             : address  - the memory address
-    Returns : 
+    Returns :
    Comments : Deposit AC in MEM.
  ******************************************************************************/
 static int
@@ -272,7 +272,7 @@ i_DAC(bool indirect, WORD address)
 Description : Emulate the IMLAC XAM instruction.
  Parameters : indirect - TRUE if address is indirect, FALSE if immediate
             : address  - the memory address
-    Returns : 
+    Returns :
    Comments : Exchange AC with MEM.
  ******************************************************************************/
 static int
@@ -297,7 +297,7 @@ i_XAM(bool indirect, WORD address)
 Description : Emulate the ISZ instruction.
  Parameters : indirect - TRUE if address is indirect, FALSE if immediate
             : address  - the memory address
-    Returns : 
+    Returns :
    Comments : Increment MEM and skip if MEM == 0.
  ******************************************************************************/
 static int
@@ -325,7 +325,7 @@ i_ISZ(bool indirect, WORD address)
 Description : Emulate the IMLAC JMS instruction.
  Parameters : indirect - TRUE if address is indirect, FALSE if immediate
             : address  - the memory address
-    Returns : 
+    Returns :
    Comments : Store PC in MEM, jump to MEM + 1.
  ******************************************************************************/
 static int
@@ -349,7 +349,7 @@ i_JMS(bool indirect, WORD address)
 Description : Emulate the IMLAC AND instruction.
  Parameters : indirect - TRUE if address is indirect, FALSE if immediate
             : address  - the memory address
-    Returns : 
+    Returns :
    Comments : AND MEM with AC.
  ******************************************************************************/
 static int
@@ -372,7 +372,7 @@ i_AND(bool indirect, WORD address)
 Description : Emulate the IMLAC IOR instruction.
  Parameters : indirect - TRUE if address is indirect, FALSE if immediate
             : address  - the memory address
-    Returns : 
+    Returns :
    Comments : Inclusive OR MEM with AC.
  ******************************************************************************/
 static int
@@ -395,7 +395,7 @@ i_IOR(bool indirect, WORD address)
 Description : Emulate the IMLAC XOR instruction.
  Parameters : indirect - TRUE if address is indirect, FALSE if immediate
             : address  - the memory address
-    Returns : 
+    Returns :
    Comments : XOR AC and MEM.  LINK unchanged.
  ******************************************************************************/
 static int
@@ -418,7 +418,7 @@ i_XOR(bool indirect, WORD address)
 Description : Emulate the IMLAC LAC instruction.
  Parameters : indirect - TRUE if address is indirect, FALSE if immediate
             : address  - the memory address
-    Returns : 
+    Returns :
    Comments : Load AC from MEM.
  ******************************************************************************/
 static int
@@ -441,7 +441,7 @@ i_LAC(bool indirect, WORD address)
 Description : Emulate the ADD instruction.
  Parameters : indirect - TRUE if address is indirect, FALSE if immediate
             : address  - the memory address
-    Returns : 
+    Returns :
    Comments : Add value at MEM to AC.
  ******************************************************************************/
 static int
@@ -469,7 +469,7 @@ i_ADD(bool indirect, WORD address)
 Description : Emulate the IMLAC SUB instruction.
  Parameters : indirect - TRUE if address is indirect, FALSE if immediate
             : address  - the memory address
-    Returns : 
+    Returns :
    Comments : Subtract MEM from AC.  LINK complemented if carry.
  ******************************************************************************/
 static int
@@ -498,7 +498,7 @@ i_SUB(bool indirect, WORD address)
 Description : Emulate the IMLAC SAM instruction.
  Parameters : indirect - TRUE if address is indirect, FALSE if immediate
             : address  - the memory address
-    Returns : 
+    Returns :
    Comments : Skip if AC same as MEM.
  ******************************************************************************/
 static int
@@ -520,13 +520,13 @@ i_SAM(bool indirect, WORD address)
 /******************************************************************************
 Description : Decode the 'microcode' instructions.
  Parameters : instruction - the complete instruction word
-    Returns : 
-   Comments : 
+    Returns :
+   Comments :
  ******************************************************************************/
 static int
 microcode(WORD instruction)
 {
-    char trace_cpu_msg[20];		/* little buffer for opcode */
+    char trace_cpu_msg[20];     /* little buffer for opcode */
 
     /* T1 */
     if (instruction & 001)
@@ -584,10 +584,10 @@ microcode(WORD instruction)
     {
         /* bit 0 is clear, it's HLT */
         cpu_on = false;
-	if (trace_cpu_msg[0] != 0)
-       	    strcat(trace_cpu_msg, "+HLT");
-	else
-       	    strcat(trace_cpu_msg, "HLT");
+        if (trace_cpu_msg[0] != 0)
+               strcat(trace_cpu_msg, "+HLT");
+    else
+               strcat(trace_cpu_msg, "HLT");
     }
 
     strcat(trace_cpu_msg, "  ");
@@ -599,8 +599,8 @@ microcode(WORD instruction)
 
 /******************************************************************************
 Description : Emulate the DSF instruction.
- Parameters : 
-    Returns : 
+ Parameters :
+    Returns :
    Comments : Skip if display is ON.
  ******************************************************************************/
 static int
@@ -617,8 +617,8 @@ i_DSF(void)
 
 /******************************************************************************
 Description : Emulate the IMLAC HRB instruction.
- Parameters : 
-    Returns : 
+ Parameters :
+    Returns :
    Comments : Read PTR value into AC.
             : If PTR motor off return 0.
             : If PTR motor on return byte from file.
@@ -636,8 +636,8 @@ i_HRB(void)
 
 /******************************************************************************
 Description : Emulate the DSN instruction.
- Parameters : 
-    Returns : 
+ Parameters :
+    Returns :
    Comments : Skip if display is OFF.
  ******************************************************************************/
 static int
@@ -654,8 +654,8 @@ i_DSN(void)
 
 /******************************************************************************
 Description : Emulate the IMLAC HSF instruction.
- Parameters : 
-    Returns : 
+ Parameters :
+    Returns :
    Comments : Skip if PTR has data.
    Comments : No data until cycle counter >= 'char ready' number.
  ******************************************************************************/
@@ -673,8 +673,8 @@ i_HSF(void)
 
 /******************************************************************************
 Description : Emulate the IMLAC HSN instruction.
- Parameters : 
-    Returns : 
+ Parameters :
+    Returns :
    Comments : Skip if PTR has no data.
             : There is no data until cycle counter >= 'char ready' number.
  ******************************************************************************/
@@ -692,8 +692,8 @@ i_HSN(void)
 
 /******************************************************************************
 Description : Emulate the IMLAC KCF instruction.
- Parameters : 
-    Returns : 
+ Parameters :
+    Returns :
    Comments : Clear the keyboard flag.
  ******************************************************************************/
 static int
@@ -709,8 +709,8 @@ i_KCF(void)
 
 /******************************************************************************
 Description : Emulate the IMLAC KRB instruction.
- Parameters : 
-    Returns : 
+ Parameters :
+    Returns :
    Comments : Read a character from the keyboard into bits 5-15 of AC.
  ******************************************************************************/
 static int
@@ -726,8 +726,8 @@ i_KRB(void)
 
 /******************************************************************************
 Description : Emulate the IMLAC KRC instruction.
- Parameters : 
-    Returns : 
+ Parameters :
+    Returns :
    Comments : Combine the KCF and KRB instruction: Read keyboard and clear flag.
  ******************************************************************************/
 static int
@@ -744,8 +744,8 @@ i_KRC(void)
 
 /******************************************************************************
 Description : Emulate the IMLAC KSF instruction.
- Parameters : 
-    Returns : 
+ Parameters :
+    Returns :
    Comments : Skip if keyboard char available.
  ******************************************************************************/
 static int
@@ -762,8 +762,8 @@ i_KSF(void)
 
 /******************************************************************************
 Description : Emulate the IMLAC KSN instruction.
- Parameters : 
-    Returns : 
+ Parameters :
+    Returns :
    Comments : Skip if no keyboard char available.
  ******************************************************************************/
 static int
@@ -780,8 +780,8 @@ i_KSN(void)
 
 /******************************************************************************
 Description : Emulate the IMLAC PPC instruction.
- Parameters : 
-    Returns : 
+ Parameters :
+    Returns :
    Comments : Punch AC low byte to tape.
  ******************************************************************************/
 static int
@@ -797,8 +797,8 @@ i_PPC(void)
 
 /******************************************************************************
 Description : Emulate the IMLAC PSF instruction.
- Parameters : 
-    Returns : 
+ Parameters :
+    Returns :
    Comments : Skip if PTP ready.
  ******************************************************************************/
 static int
@@ -816,7 +816,7 @@ i_PSF(void)
 /******************************************************************************
 Description : Emulate the IMLAC RAL instruction.
  Parameters : shift - the number of bits to shift by [1,3]
-    Returns : 
+    Returns :
    Comments : Rotate AC+L left 'shift' bits.
  ******************************************************************************/
 static int
@@ -839,7 +839,7 @@ i_RAL(int shift)
 /******************************************************************************
 Description : Emulate the RAR instruction.
  Parameters : shift - number of bits to rotate [1,3]
-    Returns : 
+    Returns :
    Comments : Rotate right AC+L 'shift' bits.
  ******************************************************************************/
 static int
@@ -861,8 +861,8 @@ i_RAR(int shift)
 
 /******************************************************************************
 Description : Emulate the IMLAC RCF instruction.
- Parameters : 
-    Returns : 
+ Parameters :
+    Returns :
    Comments : Clear the TTY buffer flag.
  ******************************************************************************/
 static int
@@ -878,8 +878,8 @@ i_RCF(void)
 
 /******************************************************************************
 Description : Emulate the IMLAC RRB instruction.
- Parameters : 
-    Returns : 
+ Parameters :
+    Returns :
    Comments : Read a character from the TTY into bits 5-15 of AC.
  ******************************************************************************/
 static int
@@ -895,8 +895,8 @@ i_RRB(void)
 
 /******************************************************************************
 Description : Emulate the IMLAC RRC instruction.
- Parameters : 
-    Returns : 
+ Parameters :
+    Returns :
    Comments : Read a character from the TTY and clear buffer flag.
  ******************************************************************************/
 static int
@@ -913,8 +913,8 @@ i_RRC(void)
 
 /******************************************************************************
 Description : Emulate the IMLAC RSF instruction.
- Parameters : 
-    Returns : 
+ Parameters :
+    Returns :
    Comments : Skip if TTY char available.
  ******************************************************************************/
 static int
@@ -931,8 +931,8 @@ i_RSF(void)
 
 /******************************************************************************
 Description : Emulate the IMLAC RSN instruction.
- Parameters : 
-    Returns : 
+ Parameters :
+    Returns :
    Comments : Skip if no TTY char available.
  ******************************************************************************/
 static int
@@ -950,7 +950,7 @@ i_RSN(void)
 /******************************************************************************
 Description : Emulate the IMLAC SAL instruction.
  Parameters : shift - the number of bits to shift by
-    Returns : 
+    Returns :
    Comments : Shift AC left n places.  LINK unchanged.
  ******************************************************************************/
 static int
@@ -970,7 +970,7 @@ i_SAL(int shift)
 /******************************************************************************
 Description : Emulate the IMLAC SAR instruction.
  Parameters : shift - the number of bits to shift by
-    Returns : 
+    Returns :
    Comments : Shift AC right n places.
  ******************************************************************************/
 static int
@@ -991,8 +991,8 @@ i_SAR(int shift)
 
 /******************************************************************************
 Description : Emulate the IMLAC SSF instruction.
- Parameters : 
-    Returns : 
+ Parameters :
+    Returns :
    Comments : Skip if 40Hz sync flip-flop is set.
  ******************************************************************************/
 static int
@@ -1009,8 +1009,8 @@ i_SSF(void)
 
 /******************************************************************************
 Description : Emulate the IMLAC SSN instruction.
- Parameters : 
-    Returns : 
+ Parameters :
+    Returns :
    Comments : Skip if 40Hz sync flip-flop is NOT set.
  ******************************************************************************/
 static int
@@ -1027,8 +1027,8 @@ i_SSN(void)
 
 /******************************************************************************
 Description : Emulate the IMLAC TCF instruction.
- Parameters : 
-    Returns : 
+ Parameters :
+    Returns :
    Comments : Reset the TTY "output done" flag.
  ******************************************************************************/
 static int
@@ -1044,8 +1044,8 @@ i_TCF(void)
 
 /******************************************************************************
 Description : Emulate the IMLAC TPC instruction.
- Parameters : 
-    Returns : 
+ Parameters :
+    Returns :
    Comments : Transmit char in AC and clear TTY ready flag
  ******************************************************************************/
 static int
@@ -1062,8 +1062,8 @@ i_TPC(void)
 
 /******************************************************************************
 Description : Emulate the IMLAC TPR instruction.
- Parameters : 
-    Returns : 
+ Parameters :
+    Returns :
    Comments : Send low byte in AC to TTY output.
  ******************************************************************************/
 static int
@@ -1079,8 +1079,8 @@ i_TPR(void)
 
 /******************************************************************************
 Description : Emulate the IMLAC TSF instruction.
- Parameters : 
-    Returns : 
+ Parameters :
+    Returns :
    Comments : Skip if TTY done sending
  ******************************************************************************/
 static int
@@ -1097,8 +1097,8 @@ i_TSF(void)
 
 /******************************************************************************
 Description : Emulate the IMLAC TSN instruction.
- Parameters : 
-    Returns : 
+ Parameters :
+    Returns :
    Comments : Skip if TTY not done sending
  ******************************************************************************/
 static int
@@ -1115,8 +1115,8 @@ i_TSN(void)
 
 /******************************************************************************
 Description : Emulate the ASZ instruction.
- Parameters : 
-    Returns : 
+ Parameters :
+    Returns :
    Comments : Skip if AC == 0.
  ******************************************************************************/
 static int
@@ -1133,8 +1133,8 @@ i_ASZ(void)
 
 /******************************************************************************
 Description : Emulate the ASN instruction.
- Parameters : 
-    Returns : 
+ Parameters :
+    Returns :
    Comments : Skip if AC != 0.
  ******************************************************************************/
 static int
@@ -1151,8 +1151,8 @@ i_ASN(void)
 
 /******************************************************************************
 Description : Emulate the IMLAC ASP instruction.
- Parameters : 
-    Returns : 
+ Parameters :
+    Returns :
    Comments : Skip if AC is positive.
  ******************************************************************************/
 static int
@@ -1169,8 +1169,8 @@ i_ASP(void)
 
 /******************************************************************************
 Description : Emulate the LSZ instruction.
- Parameters : 
-    Returns : 
+ Parameters :
+    Returns :
    Comments : Skip if LINK is zero.
  ******************************************************************************/
 static int
@@ -1187,8 +1187,8 @@ i_LSZ(void)
 
 /******************************************************************************
 Description : Emulate the LSN instruction.
- Parameters : 
-    Returns : 
+ Parameters :
+    Returns :
    Comments : Skip if LINK isn't zero.
  ******************************************************************************/
 static int
@@ -1205,8 +1205,8 @@ i_LSN(void)
 
 /******************************************************************************
 Description : Emulate the IMLAC ASM instruction.
- Parameters : 
-    Returns : 
+ Parameters :
+    Returns :
    Comments : Skip if AC is negative.
  ******************************************************************************/
 static int
@@ -1223,8 +1223,8 @@ i_ASM(void)
 
 /******************************************************************************
 Description : Emulate the IMLAC DLA instruction.
- Parameters : 
-    Returns : 
+ Parameters :
+    Returns :
    Comments : Load display CPU with a new PC.
  ******************************************************************************/
 static int
@@ -1240,8 +1240,8 @@ i_DLA(void)
 
 /******************************************************************************
 Description : Emulate the IMLAC CTB instruction.
- Parameters : 
-    Returns : 
+ Parameters :
+    Returns :
    Comments : Load display CPU with a new PC.
  ******************************************************************************/
 static int
@@ -1255,8 +1255,8 @@ i_CTB(void)
 
 /******************************************************************************
 Description : Emulate the IMLAC DOF instruction.
- Parameters : 
-    Returns : 
+ Parameters :
+    Returns :
    Comments : Turn the display processor off.
  ******************************************************************************/
 static int
@@ -1272,8 +1272,8 @@ i_DOF(void)
 
 /******************************************************************************
 Description : Emulate the IMLAC DON instruction.
- Parameters : 
-    Returns : 
+ Parameters :
+    Returns :
    Comments : Turn the display processor on.
  ******************************************************************************/
 static int
@@ -1290,8 +1290,8 @@ i_DON(void)
 
 /******************************************************************************
 Description : Emulate the IMLAC HOF instruction.
- Parameters : 
-    Returns : 
+ Parameters :
+    Returns :
    Comments : Turn the PTR off.
  ******************************************************************************/
 static int
@@ -1307,8 +1307,8 @@ i_HOF(void)
 
 /******************************************************************************
 Description : Emulate the IMLAC HON instruction.
- Parameters : 
-    Returns : 
+ Parameters :
+    Returns :
    Comments : Turn the PTR on.
  ******************************************************************************/
 static int
@@ -1324,9 +1324,9 @@ i_HON(void)
 
 /******************************************************************************
 Description : Emulate the IMLAC STB instruction.
- Parameters : 
-    Returns : 
-   Comments : 
+ Parameters :
+    Returns :
+   Comments :
  ******************************************************************************/
 static int
 i_STB(void)
@@ -1339,8 +1339,8 @@ i_STB(void)
 
 /******************************************************************************
 Description : Emulate the IMLAC SCF instruction.
- Parameters : 
-    Returns : 
+ Parameters :
+    Returns :
    Comments : Clear the 40Hz "sync" flag.
  ******************************************************************************/
 static int
@@ -1356,9 +1356,9 @@ i_SCF(void)
 
 /******************************************************************************
 Description : Emulate the IMLAC IOS instruction.
- Parameters : 
-    Returns : 
-   Comments : 
+ Parameters :
+    Returns :
+   Comments :
  ******************************************************************************/
 static int
 i_IOS(void)
@@ -1371,9 +1371,9 @@ i_IOS(void)
 
 /******************************************************************************
 Description : Emulate the IMLAC IOT101 instruction.
- Parameters : 
-    Returns : 
-   Comments : 
+ Parameters :
+    Returns :
+   Comments :
  ******************************************************************************/
 static int
 i_IOT101(void)
@@ -1386,9 +1386,9 @@ i_IOT101(void)
 
 /******************************************************************************
 Description : Emulate the IMLAC IOT111 instruction.
- Parameters : 
-    Returns : 
-   Comments : 
+ Parameters :
+    Returns :
+   Comments :
  ******************************************************************************/
 static int
 i_IOT111(void)
@@ -1400,9 +1400,9 @@ i_IOT111(void)
 
 /******************************************************************************
 Description : Emulate the IMLAC i_IOT131 instruction.
- Parameters : 
-    Returns : 
-   Comments : 
+ Parameters :
+    Returns :
+   Comments :
  ******************************************************************************/
 static int
 i_IOT131(void)
@@ -1415,9 +1415,9 @@ i_IOT131(void)
 
 /******************************************************************************
 Description : Emulate the IMLAC i_IOT132 instruction.
- Parameters : 
-    Returns : 
-   Comments : 
+ Parameters :
+    Returns :
+   Comments :
  ******************************************************************************/
 static int
 i_IOT132(void)
@@ -1430,9 +1430,9 @@ i_IOT132(void)
 
 /******************************************************************************
 Description : Emulate the IMLAC IOT134 instruction.
- Parameters : 
-    Returns : 
-   Comments : 
+ Parameters :
+    Returns :
+   Comments :
  ******************************************************************************/
 static int
 i_IOT134(void)
@@ -1445,9 +1445,9 @@ i_IOT134(void)
 
 /******************************************************************************
 Description : Emulate the IMLAC IOT141 instruction.
- Parameters : 
-    Returns : 
-   Comments : 
+ Parameters :
+    Returns :
+   Comments :
  ******************************************************************************/
 static int
 i_IOT141(void)
@@ -1460,9 +1460,9 @@ i_IOT141(void)
 
 /******************************************************************************
 Description : Emulate the IMLAC IOF instruction.
- Parameters : 
-    Returns : 
-   Comments : 
+ Parameters :
+    Returns :
+   Comments :
  ******************************************************************************/
 static int
 i_IOF(void)
@@ -1475,9 +1475,9 @@ i_IOF(void)
 
 /******************************************************************************
 Description : Emulate the IMLAC ION instruction.
- Parameters : 
-    Returns : 
-   Comments : 
+ Parameters :
+    Returns :
+   Comments :
  ******************************************************************************/
 static int
 i_ION(void)
@@ -1491,8 +1491,8 @@ i_ION(void)
 /******************************************************************************
 Description : Further decode the initial '02' opcode instruction.
  Parameters : instruction - the complete instruction word
-    Returns : 
-   Comments : 
+    Returns :
+   Comments :
  ******************************************************************************/
 static int
 page02(WORD instruction)
@@ -1517,17 +1517,18 @@ page02(WORD instruction)
         case 0102200: return i_SSN();
         case 0002400: return i_HSF();
         case 0102400: return i_HSN();
-        default: illegal();
+        default:
+            illegal();
     }
-    return 0;	/* CAN'T REACH */
+    return 0;    /* CAN'T REACH */
 }
 
 
 /******************************************************************************
 Description : Further decode the initial '00' opcode instruction.
  Parameters : instruction - the complete instruction word
-    Returns : 
-   Comments : 
+    Returns :
+   Comments :
  ******************************************************************************/
 static int
 page00(WORD instruction)
@@ -1589,17 +1590,18 @@ page00(WORD instruction)
         case 003062: return i_SAR(2);
         case 003063: return i_SAR(3);
         case 003100: return i_DON();
-	default: illegal();
+        default:
+            illegal();
     }
 
-    return 0;	/* CAN'T REACH */
+    return 0;    /* CAN'T REACH */
 }
 
 
 /******************************************************************************
 Description : Function to execute one main processor instruction.
- Parameters : 
-    Returns : 
+ Parameters :
+    Returns :
    Comments : Perform initial decode of 5 bit opcode and either call
             : appropriate emulating function or call further decode function.
  ******************************************************************************/
@@ -1640,9 +1642,9 @@ cpu_execute_one(void)
     ++r_PC;
     r_PC = r_PC & MEMMASK;
 
-    indirect = (bool) (instruction & 0100000);	/* high bit set? */
-    opcode = (instruction >> 11) & 017;		/* high 5 bits */
-    address = instruction & 03777;		/* low 11 bits */
+    indirect = (bool) (instruction & 0100000);    /* high bit set? */
+    opcode = (instruction >> 11) & 017;           /* high 5 bits */
+    address = instruction & 03777;                /* low 11 bits */
 
 /******
  * Now decode it.
@@ -1666,8 +1668,9 @@ cpu_execute_one(void)
         case 015: return i_ADD(indirect, address);
         case 016: return i_SUB(indirect, address);
         case 017: return i_SAM(indirect, address);
-	default: illegal();
+        default:
+            illegal();
     }
 
-    return 0;	/* CAN'T REACH */
+    return 0;       /* CAN'T REACH */
 }

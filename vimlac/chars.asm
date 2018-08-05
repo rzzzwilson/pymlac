@@ -24,40 +24,40 @@ loop    dsn                    ; wait until display is off
 ;-------------------------------
 dsub 
          dhvc                   ;
-;         dsts    0              ;
-;         dlxa    004            ;
-;         dlya    0500           ;
-;         djms    dlist0         ;
-;         dsts    1              ;
-;         dlxa    0004           ; 
-;         dlya    0400           ; 
-;         djms    dlist1         ;
-;         dsts    2              ;
-;         dlxa    0004           ; 
-;         dlya    0300           ; 
-;         djms    dlist2         ;
-;         dsts    3              ;
-;         dlxa    0004           ; 
-;         dlya    0200           ; 
-;         djms    dlist3         ;
-;         dsts    0              ;
-;         dlxa    0004           ; 
-;         dlya    0100           ; 
-;         djms    dlist4         ;
-
-        dsts    1              ; 
-        dlxa    020            ; 
-        dlya    0500           ; 
-        djms    dlist0         ;
-        dlxa    020            ; 
-        dlya    0400           ; 
-        djms    dlist1         ;
-        dlxa    020            ; 
-        dlya    0300           ; 
-        djms    dlist2         ;
-        dlxa    020            ; 
-        dlya    0200           ; 
-        djms    dlist3         ;
+         dsts    1              ;
+         dlxa    004            ;
+         dlya    0500           ;
+         djms    dlist0         ;
+         dsts    1              ;
+         dlxa    0004           ; 
+         dlya    0400           ; 
+         djms    dlist1         ;
+         dsts    2              ;
+         dlxa    0004           ; 
+         dlya    0300           ; 
+         djms    dlist2         ;
+         dsts    3              ;
+         dlxa    0004           ; 
+         dlya    0200           ; 
+         djms    dlist3         ;
+         dsts    0              ;
+         dlxa    0004           ; 
+         dlya    0100           ; 
+         djms    dlist4         ;
+;
+;        dsts    1              ; 
+;        dlxa    020            ; 
+;        dlya    0500           ; 
+;        djms    dlist0         ;
+;        dlxa    020            ; 
+;        dlya    0400           ; 
+;        djms    dlist1         ;
+;        dlxa    020            ; 
+;        dlya    0300           ; 
+;        djms    dlist2         ;
+;        dlxa    020            ; 
+;        dlya    0200           ; 
+;        djms    dlist3         ;
 ;        dlxa    020            ; 
 ;        dlya    0100           ; 
 ;        djms    dlist4         ;
@@ -119,6 +119,18 @@ dlist0                         ;
         djms    dot            ; .
         djms    slash          ; /
         drjm                   ; 
+dlistX                         ;
+        djms    zero           ; 0
+        djms    one            ; 1
+        djms    two            ; 2
+        djms    three          ; 3
+        djms    four           ; 4
+        djms    five           ; 5
+        djms    six            ; 6
+        djms    seven          ; 7
+        djms    eight          ; 8
+        djms    nine           ; 9
+        drjm                   ;
 dlist1                         ;
         djms    zero           ; 0
         djms    one            ; 1
