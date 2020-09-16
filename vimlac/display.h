@@ -1,10 +1,10 @@
-/*
- * Interface for the vimlac display.
- *
- * This interface is used by all the display backends:
- *     PBM
- *     SDL
- */
+//*****************************************************************************
+// Interface for the vimlac display.
+//
+// This interface is used by all the display backends:
+//     PBM
+//     SDL
+//*****************************************************************************
 
 #ifndef DISPLAY_H
 #define DISPLAY_H
