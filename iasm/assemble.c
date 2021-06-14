@@ -404,6 +404,7 @@ delimfields(char *buffer,
             ++chptr;
         if (*chptr)
             *(chptr++) = '\0';
+        strupper(*label);
     }
 
     /* if not off end of buffer, look for opcode */
@@ -426,7 +427,7 @@ delimfields(char *buffer,
                     ++chptr;
                 if (*chptr)
                     *(chptr++) = '\0';
-
+                strupper(*opcode);
             }
         }
     }
@@ -451,19 +452,13 @@ delimfields(char *buffer,
                     ++chptr;
                 if (*chptr)
                     *(chptr++) = '\0';
+                strupper(*field);
             }
         }
     }
 
     if (*chptr == ';')
         *comment = chptr;
-
-    if (*label)
-        strupper(*label);
-    if (*opcode)
-        strupper(*opcode);
-    if (*field)
-        strupper(*field);
 }
 
 
