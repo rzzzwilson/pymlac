@@ -10,6 +10,9 @@ where <options> is one or more of
 """
 
 import os
+import shutil
+# copy "pyasm" to "pyasm.py" so we can import it here
+shutil.copyfile('pyasm', 'pyasm.py')
 import pyasm
 import unittest
 
@@ -27,7 +30,7 @@ class TestPyasm(unittest.TestCase):
                  ('A', 0o100, {'A': 1}, 1, None, False),
                  ('.', 0o100, {}, 0o100, None, False),
                  ('B', 0o100, {}, None, 'B', True),
-                 ('A+1', 0100, {'A': 1}, 2, None, False),
+                 ('A+1', 0o100, {'A': 1}, 2, None, False),
                  ('A+B', 0, {'A': 1, 'B': 2}, 3, None, False),
                  ('A + B', 0, {'A': 1, 'B': 2}, 3, None, False),
                  ('A / B', 0, {'A': 4, 'B': 2}, 2, None, False),
@@ -114,7 +117,7 @@ class TestPyasm(unittest.TestCase):
 
 ################################################################################
 
-if __name__ == '__main__':
-    suite = unittest.makeSuite(TestPyasm, 'test')
-    runner = unittest.TextTestRunner()
-    runner.run(suite)
+suite = unittest.makeSuite(TestPyasm, 'test')
+runner = unittest.TextTestRunner()
+runner.run(suite)
+os.remove('pyasm.py')

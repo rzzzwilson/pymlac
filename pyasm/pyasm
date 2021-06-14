@@ -80,11 +80,11 @@ ShortVectorMode = False     # True if within a DEIM/INC instruction
 BeamState = 0               # 1 if beam is ON, 0 if OFF
 
 # stuff about the current code block
-CodeBlockMask = 0174000     # high 5 bit address mask
-CodeBlockSize = 04000       # 2K code block size
+CodeBlockMask = 0o174000    # high 5 bit address mask
+CodeBlockSize = 0o4000      # 2K code block size
 CodeBlockBase = None        # base of the current code block
-AddressMask = 03777         # mask for 11 bit address
-MaxMemory = 0177777         # highest possible address
+AddressMask = 0o3777        # mask for 11 bit address
+MaxMemory = 0o177777        # highest possible address
 
 ######
 # Mostly constant stuff
@@ -123,105 +123,105 @@ def mask(n):
 (AYES, ANO, AOPT) = range(3)
 
 OpcodeData = {
-              'LAW': ( 0004000, AOPT, mask(11), False),
-              'LWC': ( 0104000, AOPT, mask(11), False),
-              'JMP': ( 0010000, AYES, mask(11), True ),
-              'DAC': ( 0020000, AYES, mask(11), True ),
-              'XAM': ( 0024000, AYES, mask(11), True ),
-              'ISZ': ( 0030000, AYES, mask(11), True ),
-              'JMS': ( 0034000, AYES, mask(11), True ),
-              'AND': ( 0044000, AYES, mask(11), True ),
-              'IOR': ( 0050000, AYES, mask(11), True ),
-              'XOR': ( 0054000, AYES, mask(11), True ),
-              'LAC': ( 0060000, AYES, mask(11), True ),
-              'ADD': ( 0064000, AYES, mask(11), True ),
-              'SUB': ( 0070000, AYES, mask(11), True ),
-              'SAM': ( 0074000, AYES, mask(11), True ),
+              'LAW': ( 0o004000, AOPT, mask(11), False),
+              'LWC': ( 0o104000, AOPT, mask(11), False),
+              'JMP': ( 0o010000, AYES, mask(11), True ),
+              'DAC': ( 0o020000, AYES, mask(11), True ),
+              'XAM': ( 0o024000, AYES, mask(11), True ),
+              'ISZ': ( 0o030000, AYES, mask(11), True ),
+              'JMS': ( 0o034000, AYES, mask(11), True ),
+              'AND': ( 0o044000, AYES, mask(11), True ),
+              'IOR': ( 0o050000, AYES, mask(11), True ),
+              'XOR': ( 0o054000, AYES, mask(11), True ),
+              'LAC': ( 0o060000, AYES, mask(11), True ),
+              'ADD': ( 0o064000, AYES, mask(11), True ),
+              'SUB': ( 0o070000, AYES, mask(11), True ),
+              'SAM': ( 0o074000, AYES, mask(11), True ),
 
-              'HLT': ( 0000000, AOPT, mask(11), False),
-              'NOP': ( 0100000, ANO,  0,        False),
-              'CLA': ( 0100001, ANO,  0,        False),
-              'CMA': ( 0100002, ANO,  0,        False),
-              'STA': ( 0100003, ANO,  0,        False),
-              'IAC': ( 0100004, ANO,  0,        False),
-              'COA': ( 0100005, ANO,  0,        False),
-              'CIA': ( 0100006, ANO,  0,        False),
-              'CLL': ( 0100010, ANO,  0,        False),
-              'CML': ( 0100020, ANO,  0,        False),
-              'STL': ( 0100030, ANO,  0,        False),
-              'ODA': ( 0100040, ANO,  0,        False),
-              'LDA': ( 0100041, ANO,  0,        False),
-              'CAL': ( 0100011, ANO,  0,        False),
+              'HLT': ( 0o000000, AOPT, mask(11), False),
+              'NOP': ( 0o100000, ANO,  0,        False),
+              'CLA': ( 0o100001, ANO,  0,        False),
+              'CMA': ( 0o100002, ANO,  0,        False),
+              'STA': ( 0o100003, ANO,  0,        False),
+              'IAC': ( 0o100004, ANO,  0,        False),
+              'COA': ( 0o100005, ANO,  0,        False),
+              'CIA': ( 0o100006, ANO,  0,        False),
+              'CLL': ( 0o100010, ANO,  0,        False),
+              'CML': ( 0o100020, ANO,  0,        False),
+              'STL': ( 0o100030, ANO,  0,        False),
+              'ODA': ( 0o100040, ANO,  0,        False),
+              'LDA': ( 0o100041, ANO,  0,        False),
+              'CAL': ( 0o100011, ANO,  0,        False),
 
-              'RAL': ( 0003000, AOPT, mask(2),  False),
-              'RAR': ( 0003020, AOPT, mask(2),  False),
-              'SAL': ( 0003040, AOPT, mask(2),  False),
-              'SAR': ( 0003060, AOPT, mask(2),  False),
-              'DON': ( 0003100, ANO,  0,        False),
+              'RAL': ( 0o003000, AOPT, mask(2),  False),
+              'RAR': ( 0o003020, AOPT, mask(2),  False),
+              'SAL': ( 0o003040, AOPT, mask(2),  False),
+              'SAR': ( 0o003060, AOPT, mask(2),  False),
+              'DON': ( 0o003100, ANO,  0,        False),
 
-              'ASZ': ( 0002001, ANO,  0,        False),
-              'ASN': ( 0102001, ANO,  0,        False),
-              'ASP': ( 0002002, ANO,  0,        False),
-              'ASM': ( 0102002, ANO,  0,        False),
-              'LSZ': ( 0002004, ANO,  0,        False),
-              'LSN': ( 0102004, ANO,  0,        False),
-              'DSF': ( 0002010, ANO,  0,        False),
-              'DSN': ( 0102010, ANO,  0,        False),
-              'KSF': ( 0002020, ANO,  0,        False),
-              'KSN': ( 0102020, ANO,  0,        False),
-              'RSF': ( 0002040, ANO,  0,        False),
-              'RSN': ( 0102040, ANO,  0,        False),
-              'TSF': ( 0002100, ANO,  0,        False),
-              'TSN': ( 0102100, ANO,  0,        False),
-              'SSF': ( 0002200, ANO,  0,        False),
-              'SSN': ( 0102200, ANO,  0,        False),
-              'HSF': ( 0002400, ANO,  0,        False),
-              'HSN': ( 0102400, ANO,  0,        False),
+              'ASZ': ( 0o002001, ANO,  0,        False),
+              'ASN': ( 0o102001, ANO,  0,        False),
+              'ASP': ( 0o002002, ANO,  0,        False),
+              'ASM': ( 0o102002, ANO,  0,        False),
+              'LSZ': ( 0o002004, ANO,  0,        False),
+              'LSN': ( 0o102004, ANO,  0,        False),
+              'DSF': ( 0o002010, ANO,  0,        False),
+              'DSN': ( 0o102010, ANO,  0,        False),
+              'KSF': ( 0o002020, ANO,  0,        False),
+              'KSN': ( 0o102020, ANO,  0,        False),
+              'RSF': ( 0o002040, ANO,  0,        False),
+              'RSN': ( 0o102040, ANO,  0,        False),
+              'TSF': ( 0o002100, ANO,  0,        False),
+              'TSN': ( 0o102100, ANO,  0,        False),
+              'SSF': ( 0o002200, ANO,  0,        False),
+              'SSN': ( 0o102200, ANO,  0,        False),
+              'HSF': ( 0o002400, ANO,  0,        False),
+              'HSN': ( 0o102400, ANO,  0,        False),
 
-              'DLA': ( 0001003, ANO,  0,        False),
-              'CTB': ( 0001011, ANO,  0,        False),
-              'DOF': ( 0001012, ANO,  0,        False),
-              'KRB': ( 0001021, ANO,  0,        False),
-              'KCF': ( 0001022, ANO,  0,        False),
-              'KRC': ( 0001023, ANO,  0,        False),
-              'RRB': ( 0001031, ANO,  0,        False),
-              'RCF': ( 0001032, ANO,  0,        False),
-              'RRC': ( 0001033, ANO,  0,        False),
-              'TPR': ( 0001041, ANO,  0,        False),
-              'TCF': ( 0001042, ANO,  0,        False),
-              'TPC': ( 0001043, ANO,  0,        False),
-              'HRB': ( 0001051, ANO,  0,        False),
-              'HOF': ( 0001052, ANO,  0,        False),
-              'HON': ( 0001061, ANO,  0,        False),
-              'STB': ( 0001062, ANO,  0,        False),
-              'SCF': ( 0001071, ANO,  0,        False),
-              'IOS': ( 0001072, ANO,  0,        False),
+              'DLA': ( 0o001003, ANO,  0,        False),
+              'CTB': ( 0o001011, ANO,  0,        False),
+              'DOF': ( 0o001012, ANO,  0,        False),
+              'KRB': ( 0o001021, ANO,  0,        False),
+              'KCF': ( 0o001022, ANO,  0,        False),
+              'KRC': ( 0o001023, ANO,  0,        False),
+              'RRB': ( 0o001031, ANO,  0,        False),
+              'RCF': ( 0o001032, ANO,  0,        False),
+              'RRC': ( 0o001033, ANO,  0,        False),
+              'TPR': ( 0o001041, ANO,  0,        False),
+              'TCF': ( 0o001042, ANO,  0,        False),
+              'TPC': ( 0o001043, ANO,  0,        False),
+              'HRB': ( 0o001051, ANO,  0,        False),
+              'HOF': ( 0o001052, ANO,  0,        False),
+              'HON': ( 0o001061, ANO,  0,        False),
+              'STB': ( 0o001062, ANO,  0,        False),
+              'SCF': ( 0o001071, ANO,  0,        False),
+              'IOS': ( 0o001072, ANO,  0,        False),
 
-              'IOT': ( 0001000, AYES, mask(9),  False),
-              'IOF': ( 0001161, ANO,  0,        False),
-              'ION': ( 0001162, ANO,  0,        False),
-              'PUN': ( 0001271, ANO,  0,        False),
-              'PSF': ( 0001274, ANO,  0,        False),
-              'PPC': ( 0001271, ANO,  0,        False),
+              'IOT': ( 0o001000, AYES, mask(9),  False),
+              'IOF': ( 0o001161, ANO,  0,        False),
+              'ION': ( 0o001162, ANO,  0,        False),
+              'PUN': ( 0o001271, ANO,  0,        False),
+              'PSF': ( 0o001274, ANO,  0,        False),
+              'PPC': ( 0o001271, ANO,  0,        False),
 
-              'DLXA': (0010000, AYES, mask(12), False),
-              'DLYA': (0020000, AYES, mask(12), False),
-#             'DEIM': (0030000, AYES, mask(12), False), # handled as pseudo-op
-              'DJMS': (0050000, AYES, mask(12), False),
-              'DJMP': (0060000, AYES, mask(12), False),
+              'DLXA': (0o010000, AYES, mask(12), False),
+              'DLYA': (0o020000, AYES, mask(12), False),
+#             'DEIM': (0o030000, AYES, mask(12), False), # handled as pseudo-op
+              'DJMS': (0o050000, AYES, mask(12), False),
+              'DJMP': (0o060000, AYES, mask(12), False),
 
-              'DOPR': (0004000, AYES, mask(4),  False),
-              'DHLT': (0000000, ANO,  0,        False),
-              'DSTS': (0004004, AYES, mask(2),  False),
-              'DSTB': (0004010, AYES, mask(3),  False),
-              'DRJM': (0004040, ANO,  0,        False),
-              'DIXM': (0005000, ANO,  0,        False),
-              'DIYM': (0004400, ANO,  0,        False),
-              'DDXM': (0004200, ANO,  0,        False),
-              'DDYM': (0004100, ANO,  0,        False),
-              'DHVC': (0006000, ANO,  0,        False),
-              'DDSP': (0004020, ANO,  0,        False),
-              'DNOP': (0004000, ANO,  0,        False),
+              'DOPR': (0o004000, AYES, mask(4),  False),
+              'DHLT': (0o000000, ANO,  0,        False),
+              'DSTS': (0o004004, AYES, mask(2),  False),
+              'DSTB': (0o004010, AYES, mask(3),  False),
+              'DRJM': (0o004040, ANO,  0,        False),
+              'DIXM': (0o005000, ANO,  0,        False),
+              'DIYM': (0o004400, ANO,  0,        False),
+              'DDXM': (0o004200, ANO,  0,        False),
+              'DDYM': (0o004100, ANO,  0,        False),
+              'DHVC': (0o006000, ANO,  0,        False),
+              'DDSP': (0o004020, ANO,  0,        False),
+              'DNOP': (0o004000, ANO,  0,        False),
              }
 
 ######
@@ -230,182 +230,182 @@ OpcodeData = {
 
 # the LC16SD blockloader as disassembled from bin/munch.ptp
 BlockLoader_LC16SD = [
-         #03700          ORG     03700   ;
-         #
-0001032, #03700  ldaddr  RCF             ;
-0037701, #03701  numwrd  JMS     .       ; get address of 'chksum' into 'numwrd'
-         #
-0063701, #03702  chksum  LAC     numwrd  ; are we are running in high memory (017700+)
-0077775, #03703          SAM     himem   ;
-0013710, #03704          JMP     rdblk   ; if not, just load tape
-         #
-0104012, #03705          LWC     012     ; else turn on the display
-0001003, #03706          DLA             ;
-0003100, #03707          DON             ;
-         #
-0100011, #03710  rdblk   CAL             ; initialize block checksum
-0023702, #03711          DAC     chksum  ;
-0037746, #03712          JMS     rdword  ; get load address
-0023700, #03713          DAC     ldaddr  ;
-0002002, #03714          ASP             ; if high bit set
-0013740, #03715          JMP     ldend   ; then end of tape load
-0037746, #03716          JMS     rdword  ; else get number of words in block
-0023701, #03717          DAC     numwrd  ;
-0037746, #03720          JMS     rdword  ; read checksum word, add to checksum
-0037746, #03721  blklp   JMS     rdword  ; get data word
-0123700, #03722          DAC     *ldaddr ; store into memory
-0063700, #03723          LAC     ldaddr  ; get load address
-0003063, #03724          SAR     3       ; echo load address in display (if running)
-0047765, #03725          AND     low10   ;
-0053764, #03726          IOR     dlya0   ;
-0023766, #03727          DAC     disp    ;
-0163700, #03730          LAC     *ldaddr ; get last data word
-0033700, #03731          ISZ     ldaddr  ; move 'load address' pointer
-0033701, #03732          ISZ     numwrd  ; check end of block
-0013721, #03733          JMP     blklp   ; jump if not ended
-0067702, #03734          ADD     chksum  ; block end, check checksum
-0002001, #03735          ASZ             ; if checksum invalid,
-0013736, #03736          JMP     .       ;     busy wait here
-0013710, #03737          JMP     rdblk   ; else go get next block
-         #       ; end of load, AC is load address, high bit set
-0001012, #03740  ldend   DOF             ; turn off the display
-0100004, #03741          IAC             ;
-0102001, #03742          ASN             ; if address is 0177777
-0000000, #03743          HLT             ;     then just halt
-0037746, #03744          JMS     rdword  ; else get AC contents
-0113700, #03745          JMP     *ldaddr ; and jump to start address
-         #       ; read a word from tape, leave in AC
-0000000, #03746  rdword  DATA    0       ;
-0067702, #03747          ADD     chksum  ;
-0023702, #03750          DAC     chksum  ;
-0100011, #03751          CAL             ;
-0002040, #03752          RSF             ;
-0013752, #03753          JMP     .-1     ;
-0001033, #03754          RRC             ;
-0003003, #03755          RAL     3       ;
-0003003, #03756          RAL     3       ;
-0003002, #03757          RAL     2       ;
-0002040, #03760          RSF             ;
-0013760, #03761          JMP     .-1     ;
-0001033, #03762          RRC             ;
-0113746, #03763          JMP     *rdword ;
-         #
-0020000, #03764  dlya0   DLYA    0       ;
-0001777, #03765  low10   DATA    001777  ;
-         #
-         #       ; display routine, used if running in extended memory
-0020000, #03766  disp    DLYA    00000   ;
-0010000, #03767          DLXA    00000   ;
-0004005, #03770          DSTS    1       ;
-0046000, #03771          DLVH    02000   ;
-0021777, #03772          DLYA    01777   ;
-0000000, #03773          DHLT            ;
-         #
-0067766, #03774          DATA    0067766 ;
-0017702, #03775  himem   DATA    0017702 ;
-0010000, #03776          DATA    0010000 ;
-0177777, #03777          DATA    0177777 ;
-         #
-         #               END             ;
+          #03700          ORG     03700   ;
+          #
+0o001032, #03700  ldaddr  RCF             ;
+0o037701, #03701  numwrd  JMS     .       ; get address of 'chksum' into 'numwrd'
+          #
+0o063701, #03702  chksum  LAC     numwrd  ; are we are running in high memory (017700+)
+0o077775, #03703          SAM     himem   ;
+0o013710, #03704          JMP     rdblk   ; if not, just load tape
+          #
+0o104012, #03705          LWC     012     ; else turn on the display
+0o001003, #03706          DLA             ;
+0o003100, #03707          DON             ;
+          #
+0o100011, #03710  rdblk   CAL             ; initialize block checksum
+0o023702, #03711          DAC     chksum  ;
+0o037746, #03712          JMS     rdword  ; get load address
+0o023700, #03713          DAC     ldaddr  ;
+0o002002, #03714          ASP             ; if high bit set
+0o013740, #03715          JMP     ldend   ; then end of tape load
+0o037746, #03716          JMS     rdword  ; else get number of words in block
+0o023701, #03717          DAC     numwrd  ;
+0o037746, #03720          JMS     rdword  ; read checksum word, add to checksum
+0o037746, #03721  blklp   JMS     rdword  ; get data word
+0o123700, #03722          DAC     *ldaddr ; store into memory
+0o063700, #03723          LAC     ldaddr  ; get load address
+0o003063, #03724          SAR     3       ; echo load address in display (if running)
+0o047765, #03725          AND     low10   ;
+0o053764, #03726          IOR     dlya0   ;
+0o023766, #03727          DAC     disp    ;
+0o163700, #03730          LAC     *ldaddr ; get last data word
+0o033700, #03731          ISZ     ldaddr  ; move 'load address' pointer
+0o033701, #03732          ISZ     numwrd  ; check end of block
+0o013721, #03733          JMP     blklp   ; jump if not ended
+0o067702, #03734          ADD     chksum  ; block end, check checksum
+0o002001, #03735          ASZ             ; if checksum invalid,
+0o013736, #03736          JMP     .       ;     busy wait here
+0o013710, #03737          JMP     rdblk   ; else go get next block
+          #       ; end of load, AC is load address, high bit set
+0o001012, #03740  ldend   DOF             ; turn off the display
+0o100004, #03741          IAC             ;
+0o102001, #03742          ASN             ; if address is 0177777
+0o000000, #03743          HLT             ;     then just halt
+0o037746, #03744          JMS     rdword  ; else get AC contents
+0o113700, #03745          JMP     *ldaddr ; and jump to start address
+          #       ; read a word from tape, leave in AC
+0o000000, #03746  rdword  DATA    0       ;
+0o067702, #03747          ADD     chksum  ;
+0o023702, #03750          DAC     chksum  ;
+0o100011, #03751          CAL             ;
+0o002040, #03752          RSF             ;
+0o013752, #03753          JMP     .-1     ;
+0o001033, #03754          RRC             ;
+0o003003, #03755          RAL     3       ;
+0o003003, #03756          RAL     3       ;
+0o003002, #03757          RAL     2       ;
+0o002040, #03760          RSF             ;
+0o013760, #03761          JMP     .-1     ;
+0o001033, #03762          RRC             ;
+0o113746, #03763          JMP     *rdword ;
+          #
+0o020000, #03764  dlya0   DLYA    0       ;
+0o001777, #03765  low10   DATA    001777  ;
+          #
+          #       ; display routine, used if running in extended memory
+0o020000, #03766  disp    DLYA    00000   ;
+0o010000, #03767          DLXA    00000   ;
+0o004005, #03770          DSTS    1       ;
+0o046000, #03771          DLVH    02000   ;
+0o021777, #03772          DLYA    01777   ;
+0o000000, #03773          DHLT            ;
+          #
+0o067766, #03774          DATA    0067766 ;
+0o017702, #03775  himem   DATA    0017702 ;
+0o010000, #03776          DATA    0010000 ;
+0o177777, #03777          DATA    0177777 ;
+          #
+          #               END             ;
               ]
 
 
 BlockLoader_C8LDS = [
-         #        0001: ; 'c8lds' blockloader disassembled from chars.ptp.
-         #        0002: ;
-         #        0003: ; this loader is smart - it looks at the ROM code
-         #        0004: ; and decides if it should use PTR or TTY.
-         #        0005: 
-         #03700   0006:         ORG     03700   ;
-         #        0007: 
-         #03677   0008: cksum   equ     03677   ; store checksum just below start address
-         #        0009: 
-0001032, #03700   0010: start	RCF		; 03700 0001032
-0013740, #03701   0011: 	JMP	patch	; 03701 0013740 ; patch loadeer to use PTR or TTY
-0023677, #03702   0012: rdblok	DAC	cksum	; 03702 0023677 ; AC is zero at this point
-0037760, #03703   0013: skpzer	JMS	rdbyte	; 03703 0037760 ; wait for non-zero byte
-0102001, #03704   0014: 	ASN		; 03704 0102001
-0013703, #03705   0015: 	JMP	skpzer	; 03705 0013703
-0100006, #03706   0016: 	CIA		; 03706 0100006
-0023777, #03707   0017: 	DAC	wrdcnt	; 03707 0023777 ; save word count (or load address?)
-0037750, #03710   0018: 	JMS	rdword	; 03710 0037750 ; get load address
-0023776, #03711   0019: 	DAC	ldaddr	; 03711 0023776
-0077730, #03712   0020: 	SAM	eolval	; 03712 0077730
-0013715, #03713   0021: 	JMP	rddata	; 03713 0013715
-0000000, #03714   0022: 	HLT		; 03714 0000000
-0037750, #03715   0023: rddata	JMS	rdword	; 03715 0037750
-0123776, #03716   0024: 	DAC	*ldaddr	; 03716 0123776
-0037731, #03717   0025: 	JMS	updcks	; 03717 0037731
-0033776, #03720   0026: 	ISZ	ldaddr	; 03720 0033776
-0033777, #03721   0027: 	ISZ	wrdcnt	; 03721 0033777
-0013715, #03722   0028: 	JMP	rddata	; 03722 0013715
-0037750, #03723   0029: 	JMS	rdword	; 03723 0037750
-0073677, #03724   0030: 	SUB	cksum	; 03724 0073677
-0102001, #03725   0031: 	ASN		; 03725 0102001
-0013746, #03726   0032: 	JMP	nxtblk	; 03726 0013746
-0000000, #03727   0033: 	HLT		; 03727 0000000
-         #        0034: 
-0177777, #03730   0035: eolval	DATA	0177777	; 03730 0177777 ;' end-of-load' load address value
-         #        0036: 
-         #        0037: ;------------------------
-         #        0038: ; Update checksum.  New word in AC.
-         #        0039: ; On exit, AC is updated checksum.
-         #        0040: ;------------------------
-0000000, #03731   0041: updcks	DATA	0	; 03731 0017720
-0100010, #03732   0042: 	CLL		; 03732 0100010
-0067677, #03733   0043: 	ADD	cksum	; 03733 0067677
-0002004, #03734   0044: 	LSZ		; 03734 0002004
-0100004, #03735   0045: 	IAC		; 03735 0100004
-0023677, #03736   0046: 	DAC	cksum	; 03736 0023677
-0113731, #03737   0047: 	JMP	*updcks	; 03737 0113731
-         #        0048: 
-         #        0049: ;------------------------
-         #        0050: ; Patch loader to use TTY or PTR.
-         #        0051: ;------------------------
-0001061, #03740   0052: patch	HON		; 03740 0001061
-0063774, #03741   0053: 	LAC	pattty	; 03741 0063774
-0023761, #03742   0054: 	DAC	usetty	; 03742 0023761
-0005032, #03743   0055: 	LAW	01032	; 03743 0005032 ; load RCF instruction
-0177775, #03744   0056: 	SAM	*romflg	; 03744 0177775 ; skip if ROM is TTY (RCF @044)
-0023761, #03745   0057: 	DAC	usetty	; 03745 0023761 ; patch this code to use PTR
-0100011, #03746   0058: nxtblk	CAL		; 03746 0100011
-0013702, #03747   0059: 	JMP	rdblok	; 03747 0013702
-         #        0060: 
-         #        0061: ;------------------------
-         #        0062: ; Read a word from the input device.
-         #        0063: ;------------------------
-0000000, #03750   0064: rdword	DATA	0	; 03750 0017711
-0100011, #03751   0065: 	CAL		; 03751 0100011
-0037760, #03752   0066: 	JMS	rdbyte	; 03752 0037760
-0003003, #03753   0067: 	RAL	3	; 03753 0003003
-0003003, #03754   0068: 	RAL	3	; 03754 0003003
-0003002, #03755   0069: 	RAL	2	; 03755 0003002
-0037760, #03756   0070: 	JMS	rdbyte	; 03756 0037760
-0113750, #03757   0071: 	JMP	*rdword	; 03757 0113750
-         #        0072: 
-         #        0073: ;------------------------
-         #        0074: ; Read a byte.  Patched to use TTY or PTR.
-         #        0075: ;------------------------
-0000000, #03760   0076: rdbyte	DATA	0	; 03760 0017757
-0001032, #03761   0077: usetty	RCF		; 03761 0001032
-0102400, #03762   0078: 	HSN		; 03762 0102400
-0013762, #03763   0079: 	JMP	.-1	; 03763 0013762
-0002400, #03764   0080: 	HSF		; 03764 0002400
-0013764, #03765   0081: 	JMP	.-1	; 03765 0013764
-0001051, #03766   0082: 	HRB		; 03766 0001051
-0113760, #03767   0083: 	JMP	*rdbyte	; 03767 0113760
-         #        0084: 
-0002040, #03770   0085: rdtty	RSF		; 03770 0002040
-0013770, #03771   0086: 	JMP	.-1	; 03771 0013770
-0001033, #03772   0087: 	RRC		; 03772 0001033
-0113760, #03773   0088: 	JMP	*rdbyte	; 03773 0113760
-         #        0089: 
-0013770, #03774   0090: pattty	JMP	rdtty	; 03774 0013770
-0000044, #03775   0091: romflg	DATA	000044	; 03775 0000044
-0000000, #03776   0092: ldaddr	DATA	000000	; 03776 0000000
-0000000, #03777   0093: wrdcnt	DATA	000000	; 03777 0000000
-         #        0094: 
-         #        0095: 	END		;
+          #        0001: ; 'c8lds' blockloader disassembled from chars.ptp.
+          #        0002: ;
+          #        0003: ; this loader is smart - it looks at the ROM code
+          #        0004: ; and decides if it should use PTR or TTY.
+          #        0005: 
+          #03700   0006:         ORG     03700   ;
+          #        0007: 
+          #03677   0008: cksum   equ     03677   ; store checksum just below start address
+          #        0009: 
+0o001032, #03700   0010: start	RCF		; 03700 0001032
+0o013740, #03701   0011: 	JMP	patch	; 03701 0013740 ; patch loadeer to use PTR or TTY
+0o023677, #03702   0012: rdblok	DAC	cksum	; 03702 0023677 ; AC is zero at this point
+0o037760, #03703   0013: skpzer	JMS	rdbyte	; 03703 0037760 ; wait for non-zero byte
+0o102001, #03704   0014: 	ASN		; 03704 0102001
+0o013703, #03705   0015: 	JMP	skpzer	; 03705 0013703
+0o100006, #03706   0016: 	CIA		; 03706 0100006
+0o023777, #03707   0017: 	DAC	wrdcnt	; 03707 0023777 ; save word count (or load address?)
+0o037750, #03710   0018: 	JMS	rdword	; 03710 0037750 ; get load address
+0o023776, #03711   0019: 	DAC	ldaddr	; 03711 0023776
+0o077730, #03712   0020: 	SAM	eolval	; 03712 0077730
+0o013715, #03713   0021: 	JMP	rddata	; 03713 0013715
+0o000000, #03714   0022: 	HLT		; 03714 0000000
+0o037750, #03715   0023: rddata	JMS	rdword	; 03715 0037750
+0o123776, #03716   0024: 	DAC	*ldaddr	; 03716 0123776
+0o037731, #03717   0025: 	JMS	updcks	; 03717 0037731
+0o033776, #03720   0026: 	ISZ	ldaddr	; 03720 0033776
+0o033777, #03721   0027: 	ISZ	wrdcnt	; 03721 0033777
+0o013715, #03722   0028: 	JMP	rddata	; 03722 0013715
+0o037750, #03723   0029: 	JMS	rdword	; 03723 0037750
+0o073677, #03724   0030: 	SUB	cksum	; 03724 0073677
+0o102001, #03725   0031: 	ASN		; 03725 0102001
+0o013746, #03726   0032: 	JMP	nxtblk	; 03726 0013746
+0o000000, #03727   0033: 	HLT		; 03727 0000000
+          #        0034: 
+0o177777, #03730   0035: eolval	DATA	0177777	; 03730 0177777 ;' end-of-load' load address value
+          #        0036: 
+          #        0037: ;------------------------
+          #        0038: ; Update checksum.  New word in AC.
+          #        0039: ; On exit, AC is updated checksum.
+          #        0040: ;------------------------
+0o000000, #03731   0041: updcks	DATA	0	; 03731 0017720
+0o100010, #03732   0042: 	CLL		; 03732 0100010
+0o067677, #03733   0043: 	ADD	cksum	; 03733 0067677
+0o002004, #03734   0044: 	LSZ		; 03734 0002004
+0o100004, #03735   0045: 	IAC		; 03735 0100004
+0o023677, #03736   0046: 	DAC	cksum	; 03736 0023677
+0o113731, #03737   0047: 	JMP	*updcks	; 03737 0113731
+          #        0048: 
+          #        0049: ;------------------------
+          #        0050: ; Patch loader to use TTY or PTR.
+          #        0051: ;------------------------
+0o001061, #03740   0052: patch	HON		; 03740 0001061
+0o063774, #03741   0053: 	LAC	pattty	; 03741 0063774
+0o023761, #03742   0054: 	DAC	usetty	; 03742 0023761
+0o005032, #03743   0055: 	LAW	01032	; 03743 0005032 ; load RCF instruction
+0o177775, #03744   0056: 	SAM	*romflg	; 03744 0177775 ; skip if ROM is TTY (RCF @044)
+0o023761, #03745   0057: 	DAC	usetty	; 03745 0023761 ; patch this code to use PTR
+0o100011, #03746   0058: nxtblk	CAL		; 03746 0100011
+0o013702, #03747   0059: 	JMP	rdblok	; 03747 0013702
+          #        0060: 
+          #        0061: ;------------------------
+          #        0062: ; Read a word from the input device.
+          #        0063: ;------------------------
+0o000000, #03750   0064: rdword	DATA	0	; 03750 0017711
+0o100011, #03751   0065: 	CAL		; 03751 0100011
+0o037760, #03752   0066: 	JMS	rdbyte	; 03752 0037760
+0o003003, #03753   0067: 	RAL	3	; 03753 0003003
+0o003003, #03754   0068: 	RAL	3	; 03754 0003003
+0o003002, #03755   0069: 	RAL	2	; 03755 0003002
+0o037760, #03756   0070: 	JMS	rdbyte	; 03756 0037760
+0o113750, #03757   0071: 	JMP	*rdword	; 03757 0113750
+          #        0072: 
+          #        0073: ;------------------------
+          #        0074: ; Read a byte.  Patched to use TTY or PTR.
+          #        0075: ;------------------------
+0o000000, #03760   0076: rdbyte	DATA	0	; 03760 0017757
+0o001032, #03761   0077: usetty	RCF		; 03761 0001032
+0o102400, #03762   0078: 	HSN		; 03762 0102400
+0o013762, #03763   0079: 	JMP	.-1	; 03763 0013762
+0o002400, #03764   0080: 	HSF		; 03764 0002400
+0o013764, #03765   0081: 	JMP	.-1	; 03765 0013764
+0o001051, #03766   0082: 	HRB		; 03766 0001051
+0o113760, #03767   0083: 	JMP	*rdbyte	; 03767 0113760
+          #        0084: 
+0o002040, #03770   0085: rdtty	RSF		; 03770 0002040
+0o013770, #03771   0086: 	JMP	.-1	; 03771 0013770
+0o001033, #03772   0087: 	RRC		; 03772 0001033
+0o113760, #03773   0088: 	JMP	*rdbyte	; 03773 0113760
+          #        0089: 
+0o013770, #03774   0090: pattty	JMP	rdtty	; 03774 0013770
+0o000044, #03775   0091: romflg	DATA	000044	; 03775 0000044
+0o000000, #03776   0092: ldaddr	DATA	000000	; 03776 0000000
+0o000000, #03777   0093: wrdcnt	DATA	000000	; 03777 0000000
+          #        0094: 
+          #        0095: 	END		;
                     ]
 
 
@@ -509,11 +509,11 @@ def write_eot():
     """Write End-Of-Tape data for whatever format tape."""
 
     if BlockLoader is BlockLoader_C8LDS:
-        write_byte(0377)
-        write_word(0177777)
+        write_byte(0o377)
+        write_word(0o177777)
     else:
         if StartAddress is not None:
-            write_start(StartAddress, ac=0177777)
+            write_start(StartAddress, ac=0o177777)
         else:
             write_start()
 
@@ -628,7 +628,8 @@ def eval_expr(expr):
         return None
 
     # replace any "." value with "dot" defined in the symbol table
-    expr = string.replace(expr, '.', '_D_O_T_')
+#    expr = string.replace(expr, '.', '_D_O_T_')
+    expr = expr.replace('.', '_D_O_T_')
     globs = copy.deepcopy(SymTable)
     globs['_D_O_T_'] = Dot       # add in the "." address
 
@@ -636,9 +637,9 @@ def eval_expr(expr):
     try:
         result = eval(expr, globs)
     except (TypeError, NameError) as e:
-        Undefined = e.message
-        if 'is not defined' in e.message:
-            Undefined = e.message[len("name '"):-len("' is not defined")]
+        Undefined = str(e)
+        if 'is not defined' in Undefined:
+            Undefined = Undefined[len("name '"):-len("' is not defined")]
             msg = "Opcode expression has '%s' undefined" % Undefined
             #error(msg)
             raise NameError(msg)
@@ -1082,7 +1083,7 @@ def genincfield(code):
     if len(code) > 0:
         error('INC value has trailing characters')
 
-    return 0200 | (BeamState << 6) | (xneg << 5) | (x << 3) | (yneg << 2) | y
+    return 0o200 | (BeamState << 6) | (xneg << 5) | (x << 3) | (yneg << 2) | y
 
 def geninc(code):
     """Generate the byte value for an INC code.
@@ -1100,9 +1101,9 @@ def geninc(code):
     if code[0] == 'A':      # make an SVM byte
         code = code[1:]
         byte = int(code, base=8)
-        if byte & (~0377):
+        if byte & (~0o377):
             error('Overflow in INC A field')
-        if byte & 0100:
+        if byte & 0o100:
             ShortVectorMode = False
         return byte
     elif code[0] == 'B':    # beam on
@@ -1120,33 +1121,33 @@ def geninc(code):
             error('Already in INC mode!?')
         ShortVectorMode = True
         BeamState = 1
-        return 0060
+        return 0o060
     elif code[0] == 'F':    # exit SVM, DRJM, ++Xmsb, X&Ylsb<-0
         ShortVectorMode = False
         BeamState = 0
-        return 0171
+        return 0o171
     elif code[0] == 'N':    # X&Ylsb<-0
         if not ShortVectorMode:
             error('Not in INC mode!?')
         ShortVectorMode = False
-        return 0111
+        return 0o111
     elif code[0] == 'P':    # pause (filler)
         if not ShortVectorMode:
             error('Not in INC mode!?')
-        return 0200
+        return 0o200
     elif code[0] == 'R':    # exit SVM, DRJM, X&Ylsb<-0
         if not ShortVectorMode:
             error('Not in INC mode!?')
         ShortVectorMode = False
-        return 0151
+        return 0o151
     elif code[0] == 'X':    # Xlsb <- 0
         if not ShortVectorMode:
             error('Not in INC mode!?')
-        return 0010
+        return 0o010
     elif code[0] == 'Y':    # Ylsb <- 0
         if not ShortVectorMode:
             error('Not in INC mode!?')
-        return 0001
+        return 0o001
     elif code[0] in '0123+-':
         byte = genincfield(code)
         return byte
@@ -1193,7 +1194,7 @@ def gen_code(lnum, line, dot, label, opcode, indirect, addr):
 
     # if indirect and indirect OK, set high bit
     if indirect and ind:
-        word += 0100000
+        word += 0o100000
     if not ind and indirect:
         error("Indirect not allowed here")
 
@@ -1221,7 +1222,8 @@ def define_label(label, value, lnum):
 def next_symbol(line):
     """Return next symbol and line remainder."""
 
-    fields = string.split(line, maxsplit=1)
+#    fields = string.split(line, maxsplit=1)
+    fields = line.split(maxsplit=1)
     if len(fields) != 2:
         fields.append('')
 

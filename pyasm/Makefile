@@ -3,8 +3,7 @@
 #
 
 test:
-	cp pyasm pyasm.py
-	python test_pyasm.py
+	python3 test_pyasm.py
 
 debug:
 	rm -Rf default_TEST.lst c8lds_TEST.lst lc16sd_TEST.lst default_TEST.ptp c8lds_TEST.ptp lc16sd_TEST.ptp
@@ -16,7 +15,7 @@ debug:
 	@../idasm/loadptp.py lc16sd_TEST.ptp
 
 run:
-	python pyasm test.asm
+	python3 pyasm test.asm
 
 clean:
 	rm -f *.log pyasm.py *.lst *.ptp *.pyc
